@@ -250,6 +250,40 @@ export interface TaskInput {
   keepDays: number;
   enabled: boolean;
 }
+export type AlertKind = "cpu" | "memory" | "lag";
+export interface ServerMetrics {
+  id: string;
+  sampledAt: string;
+  status: Status;
+  cpuPercent: number;
+  memoryMb: number;
+  memoryLimitMb: number;
+  memoryPercent: number;
+  players: number;
+  maxPlayers: number;
+  uptimeSecs: number;
+  lagEvents: number;
+}
+export interface MetricsSample {
+  at: string;
+  cpuPercent: number;
+  memoryPercent: number;
+  players: number;
+}
+export interface ServerAlert {
+  id: string;
+  serverId: string;
+  at: string;
+  kind: AlertKind;
+  value: number;
+  threshold: number;
+}
+export interface AlertRules {
+  enabled: boolean;
+  cpuPercent: number;
+  memoryPercent: number;
+  lagEvents: number;
+}
 export const active = (s: Status) =>
   ["starting", "running", "stopping"].includes(s);
 export const idle = (s: Status) => !active(s) && s !== "installing";

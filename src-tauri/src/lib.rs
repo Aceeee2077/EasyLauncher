@@ -7,6 +7,7 @@ mod logger;
 pub mod minecraft;
 pub mod models;
 pub mod modrinth;
+pub mod monitor;
 pub mod network;
 pub mod schedule;
 pub mod server;
@@ -32,6 +33,7 @@ pub fn run() {
             let root = app.path().app_data_dir()?;
             let manager = server::manager::Manager::new(root, app.handle().clone())?;
             schedule::spawn(manager.clone());
+            monitor::spawn(manager.clone());
             app.manage(manager);
             Ok(())
         })
@@ -85,7 +87,13 @@ pub fn run() {
             commands::create_task,
             commands::update_task,
             commands::delete_task,
-            commands::run_task_now
+            commands::run_task_now,
+            commands::monitor_metrics,
+            commands::monitor_history,
+            commands::monitor_alerts,
+            commands::clear_monitor_alerts,
+            commands::monitor_rules,
+            commands::save_monitor_rules
         ])
         .on_window_event(move |window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

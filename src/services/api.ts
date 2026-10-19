@@ -22,6 +22,10 @@ import type {
   ModpackReport,
   ScheduledTask,
   TaskInput,
+  ServerMetrics,
+  MetricsSample,
+  ServerAlert,
+  AlertRules,
 } from "../types";
 type Contract = {
   list_servers: [undefined, ServerView[]];
@@ -101,6 +105,12 @@ type Contract = {
   ];
   delete_task: [{ id: string; taskId: string }, void];
   run_task_now: [{ id: string; taskId: string }, void];
+  monitor_metrics: [{ id: string }, ServerMetrics | null];
+  monitor_history: [{ id: string }, MetricsSample[]];
+  monitor_alerts: [{ id: string }, ServerAlert[]];
+  clear_monitor_alerts: [{ id: string }, void];
+  monitor_rules: [{ id: string }, AlertRules];
+  save_monitor_rules: [{ id: string; rules: AlertRules }, AlertRules];
 };
 export const desktop = isTauri();
 export async function call<K extends keyof Contract>(

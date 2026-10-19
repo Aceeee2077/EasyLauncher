@@ -42,6 +42,7 @@ import { ServerSettings } from "./pages/ServerSettings";
 import { Players } from "./pages/Players";
 import { Backups } from "./pages/Backups";
 import { Schedule } from "./pages/Schedule";
+import { Monitor } from "./pages/Monitor";
 import { Ops } from "./pages/Ops";
 import { Content } from "./pages/Content";
 import { AppSettings } from "./pages/AppSettings";
@@ -751,6 +752,7 @@ export default function App() {
                         ["players", "common.players", Users],
                         ["backups", "common.backups", Archive],
                         ["schedule", "common.schedule", Clock],
+                        ["monitor", "common.monitor", Activity],
                         ["content", "common.content", Package],
                         ["ops", "common.ops", Stethoscope],
                       ].map(([v, label, Icon]) => {
@@ -785,6 +787,9 @@ export default function App() {
                   )}
                   {page === "detail" && tab === "schedule" && (
                     <Schedule key={server.id} {...shared} server={server} />
+                  )}
+                  {page === "detail" && tab === "monitor" && (
+                    <Monitor key={server.id} {...shared} server={server} />
                   )}
                   {page === "detail" && tab === "ops" && (
                     <Ops key={server.id} {...shared} server={server} />

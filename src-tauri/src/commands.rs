@@ -407,3 +407,58 @@ pub async fn delete_task(m: Managed<'_>, id: String, task_id: String) -> Result<
 pub async fn run_task_now(m: Managed<'_>, id: String, task_id: String) -> Result<()> {
     crate::schedule::run_now(m.inner(), &id, &task_id).await
 }
+#[tauri::command]
+pub async fn monitor_metrics(
+    m: Managed<'_>,
+    id: String,
+) -> Result<Option<crate::monitor::ServerMetrics>> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::monitor::latest(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not read server metrics.", e))?
+}
+#[tauri::command]
+pub async fn monitor_history(
+    m: Managed<'_>,
+    id: String,
+) -> Result<Vec<crate::monitor::MetricsSample>> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::monitor::history(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not read the metrics history.", e))?
+}
+#[tauri::command]
+pub async fn monitor_alerts(
+    m: Managed<'_>,
+    id: String,
+) -> Result<Vec<crate::monitor::ServerAlert>> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::monitor::alerts(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not read server alerts.", e))?
+}
+#[tauri::command]
+pub async fn clear_monitor_alerts(m: Managed<'_>, id: String) -> Result<()> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::monitor::clear_alerts(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not clear server alerts.", e))?
+}
+#[tauri::command]
+pub async fn monitor_rules(m: Managed<'_>, id: String) -> Result<crate::monitor::AlertRules> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::monitor::rules(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not read alert rules.", e))?
+}
+#[tauri::command]
+pub async fn save_monitor_rules(
+    m: Managed<'_>,
+    id: String,
+    rules: crate::monitor::AlertRules,
+) -> Result<crate::monitor::AlertRules> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::monitor::save_rules(&manager, &id, rules))
+        .await
+        .map_err(|e| AppError::new("Could not save alert rules.", e))?
+}

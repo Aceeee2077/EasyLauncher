@@ -2566,3 +2566,219 @@ progress::-webkit-progress-value {
     display: none;
   }
 }
+.monitor-stack {
+  display: grid;
+  gap: 23px;
+}
+.monitor-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font-size: 9px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: live-pulse 1.8s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 15px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface2);
+  box-shadow: inset 0 1px 0 var(--glass-sheen);
+}
+.metric-card .metric-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--fill);
+  color: var(--accent);
+}
+.metric-card small {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.metric-card strong {
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.4px;
+  font-variant-numeric: tabular-nums;
+}
+.metric-card em {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.metric-card.warn {
+  border-color: color-mix(in srgb, #e0b86a 45%, var(--border));
+}
+.metric-card.warn strong {
+  color: #e0b86a;
+}
+.chart-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--fill);
+  box-shadow: inset 0 1px 0 var(--glass-sheen);
+}
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 11px;
+}
+.chart-legend {
+  display: flex;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+.chart-legend .cpu i {
+  background: var(--accent);
+}
+.chart-legend .memory i {
+  background: #6d9eff;
+}
+.spark {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.spark-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+.spark-line {
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.spark-line.cpu {
+  stroke: var(--accent);
+}
+.spark-line.memory {
+  stroke: #6d9eff;
+}
+.chart-card .mini-empty {
+  margin: 18px 0 8px;
+}
+.rule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  align-items: end;
+  margin: 4px 0 16px;
+}
+.rule-grid .task-toggle {
+  margin: 0 0 12px;
+}
+.alert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 340px;
+  margin-top: 14px;
+  padding-right: 4px;
+  overflow-y: auto;
+}
+.alert-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface2);
+  box-shadow: inset 0 1px 0 var(--glass-sheen);
+}
+.alert-item .alert-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--fill);
+}
+.alert-item strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+}
+.alert-item small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.alert-item time {
+  color: var(--muted);
+  font-size: 9px;
+  white-space: nowrap;
+}
+.alert-item.cpu .alert-icon {
+  color: #e0b86a;
+}
+.alert-item.memory .alert-icon {
+  color: #ee9a8c;
+}
+.alert-item.lag .alert-icon {
+  color: #6d9eff;
+}

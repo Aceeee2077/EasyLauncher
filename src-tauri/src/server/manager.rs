@@ -74,6 +74,7 @@ pub struct Manager {
     client: RwLock<reqwest::Client>,
     pub logger: Logger,
     pub runtimes: Mutex<HashMap<String, Arc<Runtime>>>,
+    pub monitors: Mutex<HashMap<String, Arc<Mutex<crate::monitor::MonitorState>>>>,
     pub shutting_down: AtomicBool,
     pub settings_gate: AsyncMutex<()>,
     pub java_gate: AsyncMutex<()>,
@@ -110,6 +111,7 @@ impl Manager {
             client: RwLock::new(client),
             logger,
             runtimes: Mutex::new(HashMap::new()),
+            monitors: Mutex::new(HashMap::new()),
             shutting_down: AtomicBool::new(false),
             settings_gate: AsyncMutex::new(()),
             java_gate: AsyncMutex::new(()),
@@ -442,6 +444,7 @@ impl Manager {
         let trash = storage::child(&self.servers, &format!("deleted-{id}"))?;
         fs::rename(&dir, &trash)?;
         self.runtimes.lock().unwrap().remove(id);
+        self.monitors.lock().unwrap().remove(id);
         fs::remove_dir_all(trash)?;
         self.logger.log("INFO", &format!("Deleted server {id}"));
         Ok(())
