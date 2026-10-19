@@ -41,6 +41,7 @@ export const zh = {
   "status.starting": "启动中",
   "status.running": "运行中",
   "status.stopping": "停止中",
+  "status.restarting": "重启中",
   "status.crashed": "已崩溃",
 
   "sidebar.tagline": "你的世界，你做主。",
@@ -413,6 +414,14 @@ export const zh = {
   "monitor.uptimeValue": "{h} 小时 {m} 分钟",
   "monitor.uptimeShort": "{m} 分钟",
   "monitor.noData": "服务器未运行，暂停采样。",
+  "recovery.title": "崩溃自愈",
+  "recovery.desc": "服务器异常退出后自动重启，最多 5 次，间隔逐次延长。",
+  "recovery.enabled": "启用崩溃自愈",
+  "recovery.hint": "手动停止或关闭应用会取消倒计时。",
+  "recovery.saved": "崩溃自愈设置已保存。",
+  "recovery.lastExit": "最近一次退出",
+  "recovery.exitCode": "退出码 {code}",
+  "recovery.noExit": "尚未发生崩溃。",
 
   "console.live": "实时输出",
   "console.lines": "{shown} / 1,500 行",
@@ -643,6 +652,7 @@ export const en: Record<MessageKey, string> = {
   "status.starting": "Starting",
   "status.running": "Running",
   "status.stopping": "Stopping",
+  "status.restarting": "Restarting",
   "status.crashed": "Crashed",
 
   "sidebar.tagline": "Your world. Your rules.",
@@ -1047,6 +1057,15 @@ export const en: Record<MessageKey, string> = {
   "monitor.uptimeValue": "{h}h {m}m",
   "monitor.uptimeShort": "{m}m",
   "monitor.noData": "Server is not running; sampling is paused.",
+  "recovery.title": "Crash recovery",
+  "recovery.desc":
+    "Restart automatically after an unexpected exit, up to 5 times with growing delays.",
+  "recovery.enabled": "Enable crash recovery",
+  "recovery.hint": "Stopping manually or closing the app cancels the countdown.",
+  "recovery.saved": "Crash recovery setting saved.",
+  "recovery.lastExit": "Last exit",
+  "recovery.exitCode": "Exit code {code}",
+  "recovery.noExit": "No crash recorded yet.",
 
   "console.live": "Live output",
   "console.lines": "{shown} / 1,500 lines",

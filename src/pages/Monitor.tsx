@@ -6,6 +6,7 @@ import {
   Cpu,
   Eraser,
   Gauge,
+  HeartPulse,
   MemoryStick,
   RefreshCw,
   Timer,
@@ -54,7 +55,10 @@ export function Monitor({
   const [rules, setRules] = useState<AlertRules | null>(null);
   const [draft, setDraft] = useState<AlertRules | null>(null);
   const [message, setMessage] = useState("");
+  const [recovery, setRecovery] = useState(server.autoRestart);
+  const [recoveryMessage, setRecoveryMessage] = useState("");
   const key = `monitor-${server.id}`;
+  useEffect(() => setRecovery(server.autoRestart), [server.autoRestart]);
   const load = async () => {
     const [nextMetrics, nextHistory, nextAlerts, nextRules] = await Promise.all([
       call("monitor_metrics", { id: server.id }),
@@ -163,6 +167,17 @@ export function Monitor({
     : [];
   const cpuLine = points(history, "cpuPercent");
   const memoryLine = points(history, "memoryPercent");
+  const exitLabel = (code: number) =>
+    code < 0 ? `0x${(code >>> 0).toString(16).toUpperCase()}` : String(code);
+  const toggleRecovery = () =>
+    run(`${key}-recovery`, async () => {
+      const updated = await call("update_auto_restart", {
+        id: server.id,
+        enabled: !recovery,
+      });
+      setRecovery(updated.autoRestart);
+      setRecoveryMessage(t("recovery.saved"));
+    });
   return (
     <div className="monitor-stack">
       <section className="panel">
@@ -351,6 +366,59 @@ export function Monitor({
         ) : (
           <p className="mini-empty">{t("common.loading")}</p>
         )}
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <HeartPulse size={18} />
+              {t("recovery.title")}
+            </h2>
+            <p>{t("recovery.desc")}</p>
+          </div>
+        </div>
+        <div className="rule-grid">
+          <div className="task-toggle">
+            <button
+              type="button"
+              className={`switch ${recovery ? "on" : ""}`}
+              role="switch"
+              aria-checked={recovery}
+              aria-label={t("recovery.enabled")}
+              disabled={busy.has(`${key}-recovery`)}
+              onClick={() => void toggleRecovery()}
+            />
+            <span>{t("recovery.enabled")}</span>
+          </div>
+          <div>
+            <small className="muted">{t("recovery.lastExit")}</small>
+            {server.runtime.exitCode === null ? (
+              <p className="muted">{t("recovery.noExit")}</p>
+            ) : (
+              <p>
+                <strong>
+                  {t("recovery.exitCode", {
+                    code: exitLabel(server.runtime.exitCode),
+                  })}
+                </strong>
+                {server.runtime.exitReason && (
+                  <>
+                    <br />
+                    <small className="muted">
+                      {server.runtime.exitReason}
+                    </small>
+                  </>
+                )}
+              </p>
+            )}
+          </div>
+        </div>
+        {recoveryMessage && (
+          <p className="success-text" role="status">
+            {recoveryMessage}
+          </p>
+        )}
+        <p className="muted">{t("recovery.hint")}</p>
       </section>
       <section className="panel">
         <div className="section-title">

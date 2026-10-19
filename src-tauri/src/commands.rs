@@ -100,6 +100,10 @@ pub async fn update_resources(
     m.update_resources(&id, min, max, java_path).await
 }
 #[tauri::command]
+pub async fn update_auto_restart(m: Managed<'_>, id: String, enabled: bool) -> Result<Server> {
+    m.update_auto_restart(&id, enabled).await
+}
+#[tauri::command]
 pub async fn detect_java(
     m: Managed<'_>,
     custom: Option<String>,

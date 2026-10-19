@@ -14,16 +14,23 @@ use tokio::{
     process::Command,
 };
 
+const MAX_AUTO_RESTARTS: u32 = 5;
+const RESTART_DELAYS: [u64; 5] = [5, 10, 20, 40, 60];
+
 impl Manager {
     pub async fn start(self: &Arc<Self>, id: &str) -> Result<()> {
         self.ready()?;
         let r = self.runtime(id)?;
         let _g = r.gate.lock().await;
+        r.restart_attempts.store(0, Ordering::Relaxed);
         self.start_locked(id, &r).await
     }
     async fn start_locked(self: &Arc<Self>, id: &str, r: &Arc<Runtime>) -> Result<()> {
         self.ready()?;
-        r.idle()?;
+        // The crash supervisor already owns this runtime while it waits to restart.
+        if r.snapshot().status != Status::Restarting {
+            r.idle()?;
+        }
         if r.child.lock().await.is_some() {
             return Err(AppError::user("This server already has a managed process."));
         }
@@ -105,6 +112,7 @@ impl Manager {
             snap.pid = child.id();
             snap.started_at = s.last_started_at;
             snap.exit_code = None;
+            snap.exit_reason = None;
             snap.players.clear();
         }
         *r.stdin.lock().await = stdin;
@@ -150,12 +158,26 @@ impl Manager {
                             let _ = tokio::time::timeout(Duration::from_secs(3), reader).await;
                         }
                         *runtime.stdin.lock().await = None;
+                        let recent: Vec<String> = runtime
+                            .console
+                            .lock()
+                            .unwrap()
+                            .iter()
+                            .rev()
+                            .take(80)
+                            .map(|line| line.text.clone())
+                            .collect();
                         {
                             let mut snap = runtime.snapshot.lock().unwrap();
                             snap.exit_code = exit.code();
                             snap.pid = None;
                             snap.players.clear();
                             let expected = snap.status == Status::Stopping && exit.success();
+                            snap.exit_reason = if expected {
+                                None
+                            } else {
+                                Some(attribute_exit(exit.code(), &recent))
+                            };
                             snap.status = if expected {
                                 Status::Stopped
                             } else {
@@ -164,7 +186,13 @@ impl Manager {
                             snap.message = Some(if expected {
                                 "Server stopped safely.".into()
                             } else {
-                                format!("Server exited unexpectedly (exit code {}). Open the console or latest log for details.",exit.code().map(|s|s.to_string()).unwrap_or("unknown".into()))
+                                format!(
+                                    "Server exited unexpectedly (exit code {}). {}",
+                                    exit.code()
+                                        .map(|c| c.to_string())
+                                        .unwrap_or_else(|| "unknown".into()),
+                                    snap.exit_reason.clone().unwrap_or_default()
+                                )
                             });
                         }
                         // Publish final state only after the handle is reaped and streams drained.
@@ -175,8 +203,38 @@ impl Manager {
                             &format!("Java exited for {}: {exit}", runtime.snapshot().id),
                         );
                         if runtime.snapshot().status == Status::Crashed {
+                            let crashed_id = runtime.snapshot().id;
+                            let auto = m
+                                .metadata(&crashed_id)
+                                .map(|s| s.auto_restart)
+                                .unwrap_or(false);
+                            if auto && !m.shutting_down.load(Ordering::SeqCst) {
+                                let attempt =
+                                    runtime.restart_attempts.fetch_add(1, Ordering::SeqCst) + 1;
+                                if attempt <= MAX_AUTO_RESTARTS {
+                                    let delay = restart_delay(attempt);
+                                    let _ = m.transition(
+                                        &runtime,
+                                        Status::Restarting,
+                                        Some(restart_message(attempt, delay)),
+                                    );
+                                    spawn_auto_restart(
+                                        m.clone(),
+                                        runtime.clone(),
+                                        crashed_id.clone(),
+                                        attempt,
+                                    );
+                                } else {
+                                    m.logger.log(
+                                        "WARN",
+                                        &format!(
+                                            "Crash recovery limit reached for {crashed_id}; waiting for manual start"
+                                        ),
+                                    );
+                                }
+                            }
                             let manager = m.clone();
-                            let server_id = runtime.snapshot().id;
+                            let server_id = crashed_id;
                             match tokio::task::spawn_blocking(move || {
                                 super::diagnostics::diagnose(&manager, &server_id)
                             })
@@ -269,6 +327,16 @@ impl Manager {
         self.stop_locked(id, &r).await
     }
     async fn stop_locked(&self, id: &str, r: &Arc<Runtime>) -> Result<()> {
+        if r.snapshot().status == Status::Restarting {
+            self.transition(
+                r,
+                Status::Stopped,
+                Some("Automatic restart cancelled.".into()),
+            )?;
+            self.logger
+                .log("INFO", &format!("Cancelled crash recovery for {id}"));
+            return Ok(());
+        }
         if !r.snapshot().status.active() {
             return Ok(());
         }
@@ -308,6 +376,7 @@ impl Manager {
         self.ready()?;
         let r = self.runtime(id)?;
         let _g = r.gate.lock().await;
+        r.restart_attempts.store(0, Ordering::Relaxed);
         self.stop_locked(id, &r).await?;
         self.start_locked(id, &r).await
     }
@@ -383,6 +452,8 @@ fn observe(m: &Manager, r: &Runtime, text: &str, stream: &str) {
     m.line(r, stream, text);
     // Only trust readiness from the server logger, never chat or a frontend click.
     if readiness(text) && r.snapshot().status == Status::Starting {
+        // A full startup proves the crash loop is over.
+        r.restart_attempts.store(0, Ordering::Relaxed);
         let _ = m.transition(
             r,
             Status::Running,
@@ -425,6 +496,122 @@ fn player_event(text: &str) -> Option<(String, bool)> {
     }
     None
 }
+/// Exponential backoff between crash recovery attempts.
+fn restart_delay(attempt: u32) -> u64 {
+    let index = attempt.saturating_sub(1) as usize;
+    RESTART_DELAYS
+        .get(index)
+        .copied()
+        .unwrap_or(*RESTART_DELAYS.last().unwrap())
+}
+fn restart_message(attempt: u32, seconds: u64) -> String {
+    format!(
+        "Crash detected. Restarting automatically in {seconds}s (attempt {attempt}/{MAX_AUTO_RESTARTS})…"
+    )
+}
+/// Explain why Java exited, preferring concrete log evidence over the exit code.
+fn attribute_exit(code: Option<i32>, recent: &[String]) -> String {
+    let logs = recent.join("\n").to_lowercase();
+    for (needle, reason) in [
+        (
+            "outofmemoryerror",
+            "Java ran out of memory. Increase the maximum RAM in server settings.",
+        ),
+        (
+            "could not reserve enough space",
+            "Java could not reserve the requested heap. Lower the memory limit or use 64-bit Java.",
+        ),
+        (
+            "unsupportedclassversionerror",
+            "The server needs a newer Java version. Change the Java runtime in server settings.",
+        ),
+        (
+            "invalid or corrupt jarfile",
+            "server.jar is corrupt or incomplete. Reinstall the server files.",
+        ),
+        (
+            "noclassdeffounderror",
+            "A required library is missing. Reinstall the server or remove the incompatible mod.",
+        ),
+        (
+            "failed to bind to port",
+            "The server port is already in use. Change the port or stop the conflicting program.",
+        ),
+        (
+            "address already in use",
+            "The server port is already in use. Change the port or stop the conflicting program.",
+        ),
+    ] {
+        if logs.contains(needle) {
+            return reason.into();
+        }
+    }
+    match code {
+        None => "The Java process ended without an exit code. It may have been terminated externally."
+            .into(),
+        Some(0) => {
+            "Java reported a clean exit before Minecraft became ready. Check the console output."
+                .into()
+        }
+        Some(1) => "Java exited with code 1. Check the first error in the console.".into(),
+        Some(2) => "Java could not load the server. Check for missing or corrupt files.".into(),
+        Some(3) => {
+            "Java could not allocate enough memory. Lower the maximum RAM or close other applications."
+                .into()
+        }
+        Some(9) | Some(137) => {
+            "The process was killed, likely by the operating system due to memory pressure.".into()
+        }
+        Some(143) => "The process was terminated before Minecraft finished stopping.".into(),
+        Some(-1073741819) => {
+            "Java crashed with an access violation (0xC0000005). Update Java or remove incompatible mods."
+                .into()
+        }
+        Some(-1073740791) => {
+            "Java crashed with a stack buffer overrun (0xC0000409). Update Java or check native libraries."
+                .into()
+        }
+        Some(-1073741515) => {
+            "A required DLL is missing (0xC0000135). Reinstall the Java runtime.".into()
+        }
+        Some(code) => format!("Java exited with code {code}. Check the console for details."),
+    }
+}
+fn spawn_auto_restart(m: Arc<Manager>, r: Arc<Runtime>, id: String, attempt: u32) {
+    tauri::async_runtime::spawn(auto_restart(m, r, id, attempt));
+}
+async fn auto_restart(m: Arc<Manager>, r: Arc<Runtime>, id: String, attempt: u32) {
+    let mut remaining = restart_delay(attempt);
+    while remaining > 0 {
+        if m.shutting_down.load(Ordering::SeqCst) || r.snapshot().status != Status::Restarting {
+            return;
+        }
+        let _ = m.transition(
+            &r,
+            Status::Restarting,
+            Some(restart_message(attempt, remaining)),
+        );
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        remaining -= 1;
+    }
+    let _g = r.gate.lock().await;
+    if m.shutting_down.load(Ordering::SeqCst) || r.snapshot().status != Status::Restarting {
+        return;
+    }
+    m.logger.log(
+        "INFO",
+        &format!("Crash recovery restarting {id} (attempt {attempt}/{MAX_AUTO_RESTARTS})"),
+    );
+    if let Err(e) = m.start_locked(&id, &r).await {
+        let _ = m.transition(
+            &r,
+            Status::Crashed,
+            Some(format!("Automatic restart failed: {}", e.message)),
+        );
+        m.logger
+            .log("WARN", &format!("Crash recovery failed for {id}: {e}"));
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -451,6 +638,22 @@ mod tests {
         );
     }
     #[test]
+    fn restart_backoff_and_exit_attribution() {
+        assert_eq!(restart_delay(1), 5);
+        assert_eq!(restart_delay(2), 10);
+        assert_eq!(restart_delay(3), 20);
+        assert_eq!(restart_delay(4), 40);
+        assert_eq!(restart_delay(5), 60);
+        assert_eq!(restart_delay(9), 60);
+        assert!(restart_message(2, 10).contains("10s"));
+        assert!(restart_message(2, 10).contains("2/5"));
+        assert!(attribute_exit(Some(7), &["java.lang.OutOfMemoryError: Java heap space".into()])
+            .contains("out of memory"));
+        assert!(attribute_exit(Some(-1073741819), &[]).contains("0xC0000005"));
+        assert!(attribute_exit(None, &[]).contains("without an exit code"));
+        assert!(attribute_exit(Some(143), &[]).contains("terminated"));
+    }
+    #[test]
     fn launch_arguments_match_startup() {
         let s = Server {
             schema_version: 1,
@@ -466,6 +669,7 @@ mod tests {
             java_path: None,
             eula_accepted_at: None,
             installed: true,
+            auto_restart: false,
             required_java: Some(21),
             artifact: None,
         };

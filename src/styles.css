@@ -745,12 +745,14 @@ main {
 }
 .status.starting,
 .status.installing,
-.status.stopping {
+.status.stopping,
+.status.restarting {
   color: #dfc68a;
 }
 .status.starting i,
 .status.installing i,
-.status.stopping i {
+.status.stopping i,
+.status.restarting i {
   background: #dfc68a;
   animation: pulse 1.8s infinite;
 }

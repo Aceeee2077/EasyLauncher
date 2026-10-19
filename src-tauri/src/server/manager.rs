@@ -10,7 +10,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicU32, Ordering},
         Arc, Mutex, RwLock,
     },
 };
@@ -27,6 +27,7 @@ pub struct Runtime {
     pub child: AsyncMutex<Option<Child>>,
     pub stdin: AsyncMutex<Option<ChildStdin>>,
     pub cancelled: AtomicBool,
+    pub restart_attempts: AtomicU32,
     pub sequence: std::sync::atomic::AtomicU64,
 }
 impl Runtime {
@@ -39,6 +40,7 @@ impl Runtime {
                 pid: None,
                 started_at: None,
                 exit_code: None,
+                exit_reason: None,
                 message,
                 players: Vec::new(),
             }),
@@ -46,6 +48,7 @@ impl Runtime {
             child: AsyncMutex::new(None),
             stdin: AsyncMutex::new(None),
             cancelled: AtomicBool::new(false),
+            restart_attempts: AtomicU32::new(0),
             sequence: std::sync::atomic::AtomicU64::new(0),
         }
     }
@@ -313,6 +316,7 @@ impl Manager {
             java_path: Some(java.path),
             eula_accepted_at: Some(now),
             installed: false,
+            auto_restart: false,
             required_java: Some(required),
             artifact: None,
         };
@@ -475,6 +479,20 @@ impl Manager {
         *self.client.write().unwrap_or_else(|e| e.into_inner()) = client;
         Ok(())
     }
+    pub async fn update_auto_restart(&self, id: &str, enabled: bool) -> Result<Server> {
+        self.ready()?;
+        let r = self.runtime(id)?;
+        let _g = r.gate.lock().await;
+        self.ready()?;
+        let mut s = self.metadata(id)?;
+        s.auto_restart = enabled;
+        storage::save_server(&self.servers, &s)?;
+        self.logger.log(
+            "INFO",
+            &format!("Crash recovery {} for {id}", if enabled { "enabled" } else { "disabled" }),
+        );
+        Ok(s)
+    }
     pub async fn update_resources(
         &self,
         id: &str,
@@ -583,6 +601,7 @@ mod integration_tests {
             java_path: Some(java),
             eula_accepted_at: Some("fixture-only".into()),
             installed: true,
+            auto_restart: false,
             required_java: Some(21),
             artifact: Some("TEST FIXTURE — no Minecraft code".into()),
         };

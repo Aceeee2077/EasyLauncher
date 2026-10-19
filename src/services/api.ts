@@ -52,6 +52,7 @@ type Contract = {
     { id: string; min: number; max: number; javaPath: string },
     void,
   ];
+  update_auto_restart: [{ id: string; enabled: boolean }, Server];
   detect_java: [{ custom?: string }, JavaRuntime[]];
   list_managed_java: [undefined, ManagedJava[]];
   install_java: [{ major: number }, ManagedJava];

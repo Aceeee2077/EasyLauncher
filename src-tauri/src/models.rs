@@ -16,11 +16,15 @@ pub enum Status {
     Starting,
     Running,
     Stopping,
+    Restarting,
     Crashed,
 }
 impl Status {
     pub fn active(self) -> bool {
-        matches!(self, Self::Starting | Self::Running | Self::Stopping)
+        matches!(
+            self,
+            Self::Starting | Self::Running | Self::Stopping | Self::Restarting
+        )
     }
     pub fn allows(self, to: Self) -> bool {
         use Status::*;
@@ -29,6 +33,8 @@ impl Status {
             (Stopped | InstallationFailed, Installing)
                 | (Installing, Stopped | InstallationFailed)
                 | (Stopped | Crashed, Starting)
+                | (Crashed, Restarting)
+                | (Restarting, Starting | Stopped | Crashed)
                 | (Starting, Running | Stopping | Crashed)
                 | (Running, Stopping | Crashed)
                 | (Stopping, Stopped | Crashed)
@@ -72,6 +78,8 @@ pub struct Server {
     #[serde(default)]
     pub installed: bool,
     #[serde(default)]
+    pub auto_restart: bool,
+    #[serde(default)]
     pub required_java: Option<u32>,
     #[serde(default)]
     pub artifact: Option<String>,
@@ -100,6 +108,7 @@ pub struct Snapshot {
     pub pid: Option<u32>,
     pub started_at: Option<String>,
     pub exit_code: Option<i32>,
+    pub exit_reason: Option<String>,
     pub message: Option<String>,
     pub players: Vec<String>,
 }
@@ -216,6 +225,11 @@ mod tests {
         assert!(!Status::Stopped.allows(Status::Running));
         assert!(Status::Installing.allows(Status::InstallationFailed));
         assert!(Status::Running.allows(Status::Crashed));
+        assert!(Status::Crashed.allows(Status::Restarting));
+        assert!(Status::Restarting.allows(Status::Starting));
+        assert!(Status::Restarting.allows(Status::Stopped));
+        assert!(Status::Restarting.active());
+        assert!(!Status::Running.allows(Status::Restarting));
     }
     #[test]
     fn metadata_defaults_roundtrip() {

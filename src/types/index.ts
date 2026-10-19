@@ -6,6 +6,7 @@ export type Status =
   | "starting"
   | "running"
   | "stopping"
+  | "restarting"
   | "crashed";
 export interface Snapshot {
   id: string;
@@ -13,6 +14,7 @@ export interface Snapshot {
   pid: number | null;
   startedAt: string | null;
   exitCode: number | null;
+  exitReason: string | null;
   message: string | null;
   players: string[];
 }
@@ -29,6 +31,7 @@ export interface Server {
   javaPath: string | null;
   eulaAcceptedAt: string | null;
   installed: boolean;
+  autoRestart: boolean;
   requiredJava: number | null;
   artifact: string | null;
 }
@@ -294,5 +297,5 @@ export interface AlertRules {
   lagEvents: number;
 }
 export const active = (s: Status) =>
-  ["starting", "running", "stopping"].includes(s);
+  ["starting", "running", "stopping", "restarting"].includes(s);
 export const idle = (s: Status) => !active(s) && s !== "installing";

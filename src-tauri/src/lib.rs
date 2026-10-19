@@ -55,6 +55,7 @@ pub fn run() {
             commands::get_raw_properties,
             commands::update_server_properties,
             commands::update_resources,
+            commands::update_auto_restart,
             commands::detect_java,
             commands::list_managed_java,
             commands::install_java,
