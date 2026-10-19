@@ -40,6 +40,7 @@ import { ServerSettings } from "./pages/ServerSettings";
 import { Players } from "./pages/Players";
 import { Backups } from "./pages/Backups";
 import { AppSettings } from "./pages/AppSettings";
+import { Splash } from "./components/Splash";
 import { useTask } from "./hooks/useTask";
 import { useI18n, type MessageKey } from "./i18n";
 import { brand, call, desktop } from "./services/api";
@@ -267,7 +268,9 @@ export default function App() {
     ) : null;
   }
   return (
-    <div className="app-shell">
+    <>
+      <Splash />
+      <div className="app-shell">
       <aside className="sidebar">
         <button className="brand" onClick={() => setPage("dashboard")}>
           <div className="brand-mark">
@@ -849,6 +852,7 @@ export default function App() {
           <pre className="log-view">{log}</pre>
         </Modal>
       )}
-    </div>
+      </div>
+    </>
   );
 }

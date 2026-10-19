@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
-import { Save, FolderOpen, Settings2 } from "lucide-react";
+import {
+  Save,
+  FolderOpen,
+  Settings2,
+  Terminal,
+  Copy,
+  Check,
+} from "lucide-react";
 import { Button, Field } from "../components/ui";
 import { call } from "../services/api";
-import { idle, type ServerView } from "../types";
+import { idle, type LaunchInfo, type ServerView } from "../types";
 import type { TaskProps } from "../utils/task";
 import { useI18n, type MessageKey } from "../i18n";
 const numeric = [
@@ -27,6 +34,8 @@ export function ServerSettings({
   const [min, setMin] = useState(server.memoryMinMb);
   const [max, setMax] = useState(server.memoryMaxMb);
   const [java, setJava] = useState(server.javaPath || "");
+  const [launch, setLaunch] = useState<LaunchInfo | null>(null);
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
     let live = true;
     void run(`properties-${server.id}-${crypto.randomUUID()}`, async () => {
@@ -45,6 +54,33 @@ export function ServerSettings({
       live = false;
     };
   }, [server.id]);
+  useEffect(() => {
+    let live = true;
+    void run(`launch-${server.id}-${crypto.randomUUID()}`, async () => {
+      const info = await call("launch_command", { id: server.id });
+      if (live) {
+        setLaunch(info);
+        setCopied(false);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [
+    server.id,
+    server.installed,
+    server.memoryMinMb,
+    server.memoryMaxMb,
+    server.javaPath,
+  ]);
+  const copyCommand = () => {
+    if (!launch) return;
+    void run("copyLaunchCommand", async () => {
+      await navigator.clipboard.writeText(launch.command);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    });
+  };
   const change = (key: string, value: string) => {
     setValues((v) => ({ ...v, [key]: value }));
     setSaved(false);
@@ -242,6 +278,98 @@ export function ServerSettings({
             <input value={java} onChange={(e) => setJava(e.target.value)} />
           </Field>
         </fieldset>
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <Terminal size={18} />
+              {t("serverSettings.launch.title")}
+            </h2>
+            <p>{t("serverSettings.launch.desc")}</p>
+          </div>
+          <Button
+            disabled={!launch}
+            busy={busy.has("copyLaunchCommand")}
+            onClick={copyCommand}
+          >
+            {copied ? <Check size={16} /> : <Copy size={16} />}
+            {t(
+              copied
+                ? "serverSettings.launch.copied"
+                : "serverSettings.launch.copy",
+            )}
+          </Button>
+        </div>
+        {!launch ? (
+          <p className="muted small">{t("serverSettings.launch.unavailable")}</p>
+        ) : (
+          <>
+            {!launch.jarPresent && (
+              <div className="info-strip">
+                {t("serverSettings.launch.jarMissing")}
+              </div>
+            )}
+            <pre className="launch-command">
+              <code>{launch.command}</code>
+            </pre>
+            <dl className="launch-details">
+              <div>
+                <dt>{t("serverSettings.launch.java")}</dt>
+                <dd>{launch.javaPath}</dd>
+              </div>
+              <div>
+                <dt>{t("serverSettings.launch.dir")}</dt>
+                <dd>{launch.workingDirectory}</dd>
+              </div>
+              <div>
+                <dt>{t("serverSettings.launch.args")}</dt>
+                <dd>{launch.args.join(" ")}</dd>
+              </div>
+            </dl>
+          </>
+        )}
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <FolderOpen size={18} />
+              {t("serverSettings.files.title")}
+            </h2>
+            <p>{t("serverSettings.files.desc")}</p>
+          </div>
+          <div className="row">
+            <Button
+              onClick={() =>
+                void run("openServerFolder", () =>
+                  call("open_folder", { id: server.id, kind: "server" }),
+                )
+              }
+            >
+              <FolderOpen size={16} />
+              {t("serverSettings.files.root")}
+            </Button>
+            <Button
+              onClick={() =>
+                void run("openServerLogs", () =>
+                  call("open_folder", { id: server.id, kind: "logs" }),
+                )
+              }
+            >
+              {t("serverSettings.files.logs")}
+            </Button>
+            <Button
+              onClick={() =>
+                void run("openServerBackups", () =>
+                  call("open_folder", { id: server.id, kind: "backups" }),
+                )
+              }
+            >
+              {t("serverSettings.files.backups")}
+            </Button>
+          </div>
+        </div>
       </section>
       {server.serverType !== "vanilla" && (
         <section className="panel">

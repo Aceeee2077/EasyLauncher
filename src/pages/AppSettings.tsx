@@ -38,6 +38,8 @@ export function AppSettings({
     appearance: "light",
     language: "zh-CN",
     javaPath: null,
+    downloadSource: "official",
+    proxy: null,
   });
   const [java, setJava] = useState<JavaRuntime[]>([]);
   const [managed, setManaged] = useState<ManagedJava[]>([]);
@@ -324,13 +326,53 @@ export function AppSettings({
         </code>
       </section>
       <section className="panel">
-        <h2>
-          <Download size={18} />
-          {t("settings.downloads.title")}
-        </h2>
-        <p className="muted">
+        <div className="section-title">
+          <div>
+            <h2>
+              <Download size={18} />
+              {t("settings.downloads.title")}
+            </h2>
+            <p>{t("settings.downloads.desc")}</p>
+          </div>
+        </div>
+        <code className="path-block">
           {info?.downloadPath || t("settings.downloads.desc")}
-        </p>
+        </code>
+        <div className="field">
+          <span>{t("settings.downloads.source")}</span>
+          <div className="segmented">
+            {(["official", "china"] as const).map((value) => (
+              <button
+                key={value}
+                className={settings.downloadSource === value ? "selected" : ""}
+                onClick={() =>
+                  setSettings((s) => ({ ...s, downloadSource: value }))
+                }
+              >
+                {t(`settings.downloads.${value}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+        {settings.downloadSource === "china" && (
+          <p className="small muted">
+            {t("settings.downloads.chinaHint")}
+            <br />
+            {t("settings.downloads.mirrorCredit")}
+          </p>
+        )}
+        <Field
+          label={t("settings.downloads.proxy")}
+          hint={t("settings.downloads.proxyHint")}
+        >
+          <input
+            placeholder={t("settings.downloads.proxyPlaceholder")}
+            value={settings.proxy || ""}
+            onChange={(e) =>
+              setSettings((s) => ({ ...s, proxy: e.target.value || null }))
+            }
+          />
+        </Field>
         <p className="small muted">{t("settings.downloads.incomplete")}</p>
       </section>
       <section className="panel">

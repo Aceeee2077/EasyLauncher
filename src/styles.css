@@ -1357,6 +1357,45 @@ fieldset:disabled {
   line-height: 1.8;
   resize: vertical;
 }
+.launch-command {
+  margin: 0;
+  padding: 16px 18px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow-x: auto;
+  font:
+    11px/1.8 Consolas,
+    monospace;
+  color: var(--text);
+  white-space: pre;
+}
+.launch-details {
+  margin: 16px 0 0;
+  display: grid;
+  gap: 10px;
+  font-size: 11px;
+}
+.launch-details div {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+.launch-details dt {
+  color: var(--muted);
+}
+.launch-details dd {
+  margin: 0;
+  font-family: Consolas, monospace;
+  word-break: break-all;
+}
+@media (max-width: 720px) {
+  .launch-details div {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+}
 .danger-zone {
   margin-top: 25px;
   padding: 22px;
