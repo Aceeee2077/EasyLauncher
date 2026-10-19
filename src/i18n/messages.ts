@@ -454,6 +454,17 @@ export const zh = {
   "network.fallbackTitle": "路由器不支持 UPnP？",
   "network.fallbackDesc": "可在路由器管理页面手动将 TCP 端口 {port} 转发到这台电脑，或使用 playit.gg 等隧道服务。",
   "network.hint": "端口映射会在路由器重启后失效，可随时重新开启。仅对 Java 版 TCP 端口生效。",
+  "network.checkTitle": "网络体检",
+  "network.checkDesc": "检查服务器端口占用情况与 Windows 防火墙放行状态。",
+  "network.checkPortFree": "端口可用",
+  "network.checkPortRunning": "运行中，端口已监听",
+  "network.checkPortBusy": "端口被其他程序占用",
+  "network.firewallRule": "防火墙规则",
+  "network.checkFirewallOn": "防火墙已放行",
+  "network.checkFirewallOff": "防火墙未放行",
+  "network.allowFirewall": "一键放行防火墙",
+  "network.allowHint": "将弹出系统管理员授权窗口，确认后即可放行该 TCP 端口。",
+  "network.allowSent": "已请求管理员权限，请在弹窗中确认，然后刷新体检结果。",
 
   "console.live": "实时输出",
   "console.lines": "{shown} / 1,500 行",
@@ -1136,6 +1147,20 @@ export const en: Record<MessageKey, string> = {
     "Forward TCP port {port} to this computer in the router settings, or use a tunnel such as playit.gg.",
   "network.hint":
     "Mappings are lost when the router restarts; re-enable any time. Applies to the Java TCP port only.",
+  "network.checkTitle": "Network check",
+  "network.checkDesc":
+    "Check whether the server port is available and allowed through Windows Firewall.",
+  "network.checkPortFree": "Port is available",
+  "network.checkPortRunning": "Running, port is listening",
+  "network.checkPortBusy": "Port is used by another program",
+  "network.firewallRule": "Firewall rule",
+  "network.checkFirewallOn": "Allowed by firewall",
+  "network.checkFirewallOff": "Blocked by firewall",
+  "network.allowFirewall": "Allow through firewall",
+  "network.allowHint":
+    "A Windows administrator prompt will appear. Confirm it to allow this TCP port.",
+  "network.allowSent":
+    "Administrator permission requested. Confirm the prompt, then refresh this check.",
 
   "console.live": "Live output",
   "console.lines": "{shown} / 1,500 lines",

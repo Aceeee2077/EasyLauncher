@@ -311,6 +311,13 @@ export interface PortMapping {
   router: string;
   mappedAt: string | null;
 }
+export interface NetworkCheck {
+  port: number;
+  lanIp: string | null;
+  portFree: boolean;
+  firewallRule: boolean;
+  ruleName: string;
+}
 export interface NetworkReport {
   lanIp: string | null;
   publicIp: string | null;

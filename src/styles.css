@@ -2985,6 +2985,10 @@ progress::-webkit-progress-value {
   background: rgba(52, 199, 123, 0.12);
   color: #34c77b;
 }
+.net-card .net-badge {
+  align-self: flex-start;
+  margin-top: 4px;
+}
 .net-share {
   display: flex;
   align-items: center;
@@ -3039,6 +3043,9 @@ progress::-webkit-progress-value {
   margin: 0;
   font-size: 12px;
   line-height: 1.6;
+}
+.net-fallback .btn {
+  margin-top: 10px;
 }
 @media (max-width: 760px) {
   .net-share {

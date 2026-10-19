@@ -507,3 +507,27 @@ pub async fn network_map(
 pub async fn network_unmap(m: Managed<'_>, id: String) -> Result<crate::upnp::NetworkReport> {
     crate::upnp::unmap(m.inner().as_ref(), &id).await
 }
+#[tauri::command]
+pub async fn network_check(m: Managed<'_>, id: String) -> Result<crate::network::NetworkCheck> {
+    let server = m.metadata(&id)?;
+    let port = server.port;
+    let (port_free, firewall_rule) = tokio::task::spawn_blocking(move || {
+        (
+            crate::network::port_free(port),
+            crate::network::firewall_rule(port),
+        )
+    })
+    .await
+    .map_err(|e| AppError::new("Could not check the network ports.", e))?;
+    Ok(crate::network::NetworkCheck {
+        port,
+        lan_ip: crate::network::lan_address(),
+        port_free,
+        firewall_rule,
+        rule_name: crate::network::rule_name(port),
+    })
+}
+#[tauri::command]
+pub fn firewall_allow(port: u16) -> Result<()> {
+    crate::network::allow_firewall(port)
+}

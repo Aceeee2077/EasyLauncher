@@ -4,13 +4,15 @@ import {
   Globe,
   RefreshCw,
   Router,
+  ShieldCheck,
   TriangleAlert,
   Wifi,
 } from "lucide-react";
 import { Button, Field, date } from "../components/ui";
 import { call, desktop } from "../services/api";
 import { useI18n } from "../i18n";
-import type { NetworkReport, ServerView } from "../types";
+import { active } from "../types";
+import type { NetworkCheck, NetworkReport, ServerView } from "../types";
 import type { TaskProps } from "../utils/task";
 
 export function NetworkPanel({
@@ -20,13 +22,19 @@ export function NetworkPanel({
 }: TaskProps & { server: ServerView }) {
   const { t } = useI18n();
   const [report, setReport] = useState<NetworkReport | null>(null);
+  const [check, setCheck] = useState<NetworkCheck | null>(null);
   const [port, setPort] = useState(String(server.port));
   const [message, setMessage] = useState("");
+  const [allowMessage, setAllowMessage] = useState("");
   const key = `network-${server.id}`;
   const mapped = Boolean(report?.mapping?.enabled);
   const load = async () => {
-    const next = await call("network_report", { id: server.id });
+    const [next, status] = await Promise.all([
+      call("network_report", { id: server.id }),
+      call("network_check", { id: server.id }),
+    ]);
     setReport(next);
+    setCheck(status);
     setPort(String(next.mapping?.externalPort ?? next.port ?? server.port));
   };
   useEffect(() => {
@@ -47,6 +55,12 @@ export function NetworkPanel({
           }),
         );
       }
+    });
+  const allow = () =>
+    run(`${key}-allow`, async () => {
+      if (!check) return;
+      await call("firewall_allow", { port: check.port });
+      setAllowMessage(t("network.allowSent"));
     });
   const copy = () =>
     run(`${key}-copy`, async () => {
@@ -205,6 +219,89 @@ export function NetworkPanel({
             </p>
           </div>
         </div>
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <ShieldCheck size={18} />
+              {t("network.checkTitle")}
+            </h2>
+            <p>{t("network.checkDesc")}</p>
+          </div>
+          <Button
+            busy={busy.has(`${key}-load`)}
+            onClick={() => void run(`${key}-load`, load)}
+          >
+            <RefreshCw size={15} />
+            {t("network.refresh")}
+          </Button>
+        </div>
+        {check ? (
+          <>
+            <div className="net-grid">
+              <article className="net-card">
+                <span className="metric-icon">
+                  <Wifi size={16} />
+                </span>
+                <small>{t("network.port")}</small>
+                <code>{check.port}</code>
+                <span
+                  className={`net-badge ${
+                    check.portFree || active(server.runtime.status) ? "ok" : ""
+                  }`}
+                >
+                  {check.portFree
+                    ? t("network.checkPortFree")
+                    : active(server.runtime.status)
+                      ? t("network.checkPortRunning")
+                      : t("network.checkPortBusy")}
+                </span>
+              </article>
+              <article className="net-card">
+                <span className="metric-icon">
+                  <ShieldCheck size={16} />
+                </span>
+                <small>{t("network.firewallRule")}</small>
+                <code>{check.ruleName}</code>
+                <span
+                  className={`net-badge ${check.firewallRule ? "ok" : ""}`}
+                >
+                  {check.firewallRule
+                    ? t("network.checkFirewallOn")
+                    : t("network.checkFirewallOff")}
+                </span>
+              </article>
+            </div>
+            {!check.firewallRule && (
+              <div className="net-fallback">
+                <TriangleAlert size={18} />
+                <div>
+                  <strong>{t("network.checkFirewallOff")}</strong>
+                  <p className="muted">{t("network.allowHint")}</p>
+                  <Button
+                    busy={busy.has(`${key}-allow`)}
+                    onClick={() => void allow()}
+                  >
+                    <ShieldCheck size={15} />
+                    {t("network.allowFirewall")}
+                  </Button>
+                </div>
+              </div>
+            )}
+            {allowMessage && (
+              <p className="success-text" role="status">
+                {allowMessage}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="mini-empty">
+            {busy.has(`${key}-load`)
+              ? t("common.loading")
+              : t("common.unavailable")}
+          </p>
+        )}
       </section>
     </div>
   );

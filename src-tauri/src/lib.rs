@@ -104,7 +104,9 @@ pub fn run() {
             commands::stop_web_console,
             commands::network_report,
             commands::network_map,
-            commands::network_unmap
+            commands::network_unmap,
+            commands::network_check,
+            commands::firewall_allow
         ])
         .on_window_event(move |window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
