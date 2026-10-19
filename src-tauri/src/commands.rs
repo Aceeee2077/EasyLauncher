@@ -366,3 +366,44 @@ pub async fn content_remove_file(
 ) -> Result<()> {
     crate::modrinth::remove_file(m.inner().clone(), id, kind, name).await
 }
+#[tauri::command]
+pub async fn list_tasks(m: Managed<'_>, id: String) -> Result<Vec<crate::schedule::Task>> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::schedule::list(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not read scheduled tasks.", e))?
+}
+#[tauri::command]
+pub async fn create_task(
+    m: Managed<'_>,
+    id: String,
+    input: crate::schedule::TaskInput,
+) -> Result<crate::schedule::Task> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::schedule::create(&manager, &id, input))
+        .await
+        .map_err(|e| AppError::new("Could not save the scheduled task.", e))?
+}
+#[tauri::command]
+pub async fn update_task(
+    m: Managed<'_>,
+    id: String,
+    task_id: String,
+    input: crate::schedule::TaskInput,
+) -> Result<crate::schedule::Task> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::schedule::update(&manager, &id, &task_id, input))
+        .await
+        .map_err(|e| AppError::new("Could not save the scheduled task.", e))?
+}
+#[tauri::command]
+pub async fn delete_task(m: Managed<'_>, id: String, task_id: String) -> Result<()> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::schedule::delete(&manager, &id, &task_id))
+        .await
+        .map_err(|e| AppError::new("Could not delete the scheduled task.", e))?
+}
+#[tauri::command]
+pub async fn run_task_now(m: Managed<'_>, id: String, task_id: String) -> Result<()> {
+    crate::schedule::run_now(m.inner(), &id, &task_id).await
+}

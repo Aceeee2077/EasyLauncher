@@ -8,6 +8,7 @@ pub mod minecraft;
 pub mod models;
 pub mod modrinth;
 pub mod network;
+pub mod schedule;
 pub mod server;
 pub mod storage;
 use std::sync::{
@@ -30,6 +31,7 @@ pub fn run() {
         .setup(|app| {
             let root = app.path().app_data_dir()?;
             let manager = server::manager::Manager::new(root, app.handle().clone())?;
+            schedule::spawn(manager.clone());
             app.manage(manager);
             Ok(())
         })
@@ -78,7 +80,12 @@ pub fn run() {
             commands::modpack_install,
             commands::content_list,
             commands::content_remove,
-            commands::content_remove_file
+            commands::content_remove_file,
+            commands::list_tasks,
+            commands::create_task,
+            commands::update_task,
+            commands::delete_task,
+            commands::run_task_now
         ])
         .on_window_event(move |window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

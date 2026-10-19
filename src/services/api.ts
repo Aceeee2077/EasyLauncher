@@ -20,6 +20,8 @@ import type {
   ContentEntry,
   ContentListing,
   ModpackReport,
+  ScheduledTask,
+  TaskInput,
 } from "../types";
 type Contract = {
   list_servers: [undefined, ServerView[]];
@@ -91,6 +93,14 @@ type Contract = {
   content_list: [{ id: string }, ContentListing];
   content_remove: [{ id: string; projectId: string }, void];
   content_remove_file: [{ id: string; kind: string; name: string }, void];
+  list_tasks: [{ id: string }, ScheduledTask[]];
+  create_task: [{ id: string; input: TaskInput }, ScheduledTask];
+  update_task: [
+    { id: string; taskId: string; input: TaskInput },
+    ScheduledTask,
+  ];
+  delete_task: [{ id: string; taskId: string }, void];
+  run_task_now: [{ id: string; taskId: string }, void];
 };
 export const desktop = isTauri();
 export async function call<K extends keyof Contract>(

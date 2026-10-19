@@ -220,6 +220,36 @@ export interface AppError {
   message: string;
   details: string;
 }
+export type TaskAction =
+  | "backup"
+  | "restart"
+  | "start"
+  | "stop"
+  | "command"
+  | "cleanup";
+export type TaskMode = "interval" | "daily";
+export interface ScheduledTask {
+  id: string;
+  action: TaskAction;
+  mode: TaskMode;
+  everyMinutes: number;
+  atTime: string | null;
+  command: string | null;
+  keepDays: number;
+  enabled: boolean;
+  nextRunAt: string;
+  lastRunAt: string | null;
+  lastResult: string | null;
+}
+export interface TaskInput {
+  action: TaskAction;
+  mode: TaskMode;
+  everyMinutes: number;
+  atTime: string | null;
+  command: string | null;
+  keepDays: number;
+  enabled: boolean;
+}
 export const active = (s: Status) =>
   ["starting", "running", "stopping"].includes(s);
 export const idle = (s: Status) => !active(s) && s !== "installing";
