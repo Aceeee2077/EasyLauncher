@@ -26,6 +26,7 @@ import {
   Download,
   ShieldCheck,
   Stethoscope,
+  Package,
 } from "lucide-react";
 import {
   Button,
@@ -41,6 +42,7 @@ import { ServerSettings } from "./pages/ServerSettings";
 import { Players } from "./pages/Players";
 import { Backups } from "./pages/Backups";
 import { Ops } from "./pages/Ops";
+import { Content } from "./pages/Content";
 import { AppSettings } from "./pages/AppSettings";
 import { Splash } from "./components/Splash";
 import { useTask } from "./hooks/useTask";
@@ -747,6 +749,7 @@ export default function App() {
                         ["settings", "common.settings", Settings],
                         ["players", "common.players", Users],
                         ["backups", "common.backups", Archive],
+                        ["content", "common.content", Package],
                         ["ops", "common.ops", Stethoscope],
                       ].map(([v, label, Icon]) => {
                         const TabIcon = Icon as typeof Terminal;
@@ -774,6 +777,9 @@ export default function App() {
                   {(page === "backups" ||
                     (page === "detail" && tab === "backups")) && (
                     <Backups key={server.id} {...shared} server={server} />
+                  )}
+                  {page === "detail" && tab === "content" && (
+                    <Content key={server.id} {...shared} server={server} />
                   )}
                   {page === "detail" && tab === "ops" && (
                     <Ops key={server.id} {...shared} server={server} />

@@ -292,3 +292,77 @@ pub async fn open_guide(kind: String) -> Result<()> {
     open::that_detached(url)?;
     Ok(())
 }
+#[tauri::command]
+pub async fn modrinth_search(
+    m: Managed<'_>,
+    query: String,
+    project_type: String,
+    game_version: Option<String>,
+    loader: Option<String>,
+    offset: Option<u64>,
+) -> Result<crate::modrinth::ProjectPage> {
+    crate::modrinth::search(
+        &m.client(),
+        &query,
+        &project_type,
+        game_version.as_deref(),
+        loader.as_deref(),
+        offset.unwrap_or(0),
+    )
+    .await
+}
+#[tauri::command]
+pub async fn modrinth_versions(
+    m: Managed<'_>,
+    project_id: String,
+    game_version: Option<String>,
+    loader: Option<String>,
+) -> Result<Vec<crate::modrinth::ProjectVersion>> {
+    crate::modrinth::versions(
+        &m.client(),
+        &project_id,
+        game_version.as_deref(),
+        loader.as_deref(),
+    )
+    .await
+}
+#[tauri::command]
+pub async fn modrinth_install(
+    m: Managed<'_>,
+    id: String,
+    project_id: String,
+    version_id: String,
+    kind: String,
+) -> Result<crate::modrinth::ContentEntry> {
+    crate::modrinth::install(m.inner().clone(), id, project_id, version_id, kind).await
+}
+#[tauri::command]
+pub async fn modpack_install(
+    m: Managed<'_>,
+    id: String,
+    project_id: String,
+    version_id: String,
+) -> Result<crate::modrinth::ModpackReport> {
+    crate::modrinth::install_modpack(m.inner().clone(), id, project_id, version_id).await
+}
+#[tauri::command]
+pub async fn content_list(m: Managed<'_>, id: String) -> Result<crate::modrinth::ContentListing> {
+    crate::modrinth::listing(m.inner().as_ref(), &id)
+}
+#[tauri::command]
+pub async fn content_remove(
+    m: Managed<'_>,
+    id: String,
+    project_id: String,
+) -> Result<()> {
+    crate::modrinth::remove(m.inner().clone(), id, project_id).await
+}
+#[tauri::command]
+pub async fn content_remove_file(
+    m: Managed<'_>,
+    id: String,
+    kind: String,
+    name: String,
+) -> Result<()> {
+    crate::modrinth::remove_file(m.inner().clone(), id, kind, name).await
+}

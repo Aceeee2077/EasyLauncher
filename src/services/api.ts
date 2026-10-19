@@ -15,6 +15,11 @@ import type {
   LaunchInfo,
   HealthReport,
   DiagnosisReport,
+  ProjectPage,
+  ProjectVersion,
+  ContentEntry,
+  ContentListing,
+  ModpackReport,
 } from "../types";
 type Contract = {
   list_servers: [undefined, ServerView[]];
@@ -61,6 +66,31 @@ type Contract = {
   server_health: [{ id: string }, HealthReport];
   server_diagnosis: [{ id: string }, DiagnosisReport];
   open_guide: [{ kind: string }, void];
+  modrinth_search: [
+    {
+      query: string;
+      projectType: string;
+      gameVersion?: string;
+      loader?: string;
+      offset?: number;
+    },
+    ProjectPage,
+  ];
+  modrinth_versions: [
+    { projectId: string; gameVersion?: string; loader?: string },
+    ProjectVersion[],
+  ];
+  modrinth_install: [
+    { id: string; projectId: string; versionId: string; kind: string },
+    ContentEntry,
+  ];
+  modpack_install: [
+    { id: string; projectId: string; versionId: string },
+    ModpackReport,
+  ];
+  content_list: [{ id: string }, ContentListing];
+  content_remove: [{ id: string; projectId: string }, void];
+  content_remove_file: [{ id: string; kind: string; name: string }, void];
 };
 export const desktop = isTauri();
 export async function call<K extends keyof Contract>(

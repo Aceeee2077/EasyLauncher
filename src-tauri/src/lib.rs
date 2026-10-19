@@ -6,6 +6,7 @@ pub mod java;
 mod logger;
 pub mod minecraft;
 pub mod models;
+pub mod modrinth;
 pub mod network;
 pub mod server;
 pub mod storage;
@@ -70,7 +71,14 @@ pub fn run() {
             commands::open_folder,
             commands::server_health,
             commands::server_diagnosis,
-            commands::open_guide
+            commands::open_guide,
+            commands::modrinth_search,
+            commands::modrinth_versions,
+            commands::modrinth_install,
+            commands::modpack_install,
+            commands::content_list,
+            commands::content_remove,
+            commands::content_remove_file
         ])
         .on_window_event(move |window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

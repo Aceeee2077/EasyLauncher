@@ -146,6 +146,76 @@ export interface DiagnosisReport {
   generatedAt: string;
   findings: DiagnosisFinding[];
 }
+export interface ProjectHit {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  author: string;
+  iconUrl: string | null;
+  downloads: number;
+  follows: number;
+  categories: string[];
+  clientSide: string;
+  serverSide: string;
+  projectType: string;
+}
+export interface ProjectPage {
+  hits: ProjectHit[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+export interface VersionFile {
+  filename: string;
+  url: string;
+  size: number;
+  sha1: string | null;
+  sha512: string | null;
+  primary: boolean;
+}
+export interface ProjectVersion {
+  id: string;
+  name: string;
+  versionNumber: string;
+  channel: string;
+  gameVersions: string[];
+  loaders: string[];
+  downloads: number;
+  datePublished: string;
+  files: VersionFile[];
+}
+export interface ContentEntry {
+  file: string;
+  projectId: string;
+  title: string;
+  versionId: string;
+  versionNumber: string;
+  kind: string;
+  installedAt: string;
+}
+export interface ContentListing {
+  entries: ContentEntry[];
+  unmanaged: string[];
+}
+export interface ContentProgress {
+  id: string;
+  stage: string;
+  file: string;
+  completed: number;
+  total: number;
+  downloadedBytes: number;
+  totalBytes: number | null;
+}
+export interface ModpackReport {
+  name: string;
+  version: string;
+  files: number;
+  skipped: number;
+  overrides: number;
+  minecraft: string;
+  loader: string;
+}
 export interface AppError {
   message: string;
   details: string;
