@@ -448,6 +448,58 @@ main {
   color: var(--muted);
   margin-bottom: 0;
 }
+.page-actions,
+.welcome-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.welcome-actions {
+  justify-content: center;
+  margin-top: 4px;
+}
+.import-picker {
+  align-items: stretch;
+}
+.import-picker input {
+  flex: 1;
+  min-width: 0;
+}
+.import-section {
+  margin: 22px 0 12px;
+}
+.import-warnings {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+.import-warnings .warning-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+}
+.import-warnings svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.import-form {
+  margin-top: 18px;
+}
+.import-notes {
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.import-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+}
 .btn {
   min-height: 38px;
   padding: 9px 17px;

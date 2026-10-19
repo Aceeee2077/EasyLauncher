@@ -30,6 +30,7 @@ import type {
   WebConsoleInfo,
   NetworkReport,
   NetworkCheck,
+  ImportPreview,
 } from "../types";
 type Contract = {
   list_servers: [undefined, ServerView[]];
@@ -131,6 +132,17 @@ type Contract = {
   network_unmap: [{ id: string }, NetworkReport];
   network_check: [{ id: string }, NetworkCheck];
   firewall_allow: [{ port: number }, void];
+  pick_server_folder: [undefined, string | null];
+  preview_import: [{ path: string }, ImportPreview];
+  import_server: [
+    {
+      path: string;
+      name: string;
+      minecraftVersion: string;
+      eulaAccepted: boolean;
+    },
+    Server,
+  ];
 };
 export const desktop = isTauri();
 export async function call<K extends keyof Contract>(

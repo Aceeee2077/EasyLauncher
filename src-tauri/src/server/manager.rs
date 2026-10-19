@@ -31,7 +31,7 @@ pub struct Runtime {
     pub sequence: std::sync::atomic::AtomicU64,
 }
 impl Runtime {
-    fn new(id: &str, status: Status, message: Option<String>) -> Self {
+    pub(crate) fn new(id: &str, status: Status, message: Option<String>) -> Self {
         Self {
             gate: AsyncMutex::new(()),
             snapshot: Mutex::new(Snapshot {

@@ -2,6 +2,7 @@ pub mod backup;
 mod commands;
 pub mod error;
 pub mod extensions;
+pub mod import;
 pub mod java;
 mod logger;
 pub mod minecraft;
@@ -106,7 +107,10 @@ pub fn run() {
             commands::network_map,
             commands::network_unmap,
             commands::network_check,
-            commands::firewall_allow
+            commands::firewall_allow,
+            commands::pick_server_folder,
+            commands::preview_import,
+            commands::import_server
         ])
         .on_window_event(move |window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

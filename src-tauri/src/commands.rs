@@ -531,3 +531,25 @@ pub async fn network_check(m: Managed<'_>, id: String) -> Result<crate::network:
 pub fn firewall_allow(port: u16) -> Result<()> {
     crate::network::allow_firewall(port)
 }
+#[tauri::command]
+pub async fn pick_server_folder() -> Result<Option<String>> {
+    tokio::task::spawn_blocking(crate::import::pick_folder)
+        .await
+        .map_err(|e| AppError::new("The folder picker stopped unexpectedly.", e))?
+}
+#[tauri::command]
+pub async fn preview_import(path: String) -> Result<crate::import::ImportPreview> {
+    tokio::task::spawn_blocking(move || crate::import::preview(&path))
+        .await
+        .map_err(|e| AppError::new("The folder scan stopped unexpectedly.", e))?
+}
+#[tauri::command]
+pub async fn import_server(
+    m: Managed<'_>,
+    path: String,
+    name: String,
+    minecraft_version: String,
+    eula_accepted: bool,
+) -> Result<Server> {
+    crate::import::import_folder(m.inner(), path, name, minecraft_version, eula_accepted).await
+}

@@ -327,6 +327,33 @@ export interface NetworkReport {
   address: string | null;
   port: number;
 }
+export interface ImportPreview {
+  path: string;
+  suggestedName: string;
+  minecraftVersion: string;
+  versionSource:
+    | "versionHistory"
+    | "latestLog"
+    | "serverJar"
+    | "libraries"
+    | "versions"
+    | "jarName"
+    | "unknown";
+  serverType: ServerType;
+  port: number;
+  jar: string;
+  jarRenameNeeded: boolean;
+  eulaAccepted: boolean;
+  sizeBytes: number;
+  fileCount: number;
+  warnings: string[];
+}
+export interface ImportProgress {
+  copiedBytes: number;
+  totalBytes: number;
+  copiedFiles: number;
+  totalFiles: number;
+}
 export const active = (s: Status) =>
   ["starting", "running", "stopping", "restarting"].includes(s);
 export const idle = (s: Status) => !active(s) && s !== "installing";

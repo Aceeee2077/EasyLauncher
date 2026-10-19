@@ -28,6 +28,7 @@ import {
   Stethoscope,
   Package,
   Globe,
+  FolderInput,
 } from "lucide-react";
 import {
   Button,
@@ -38,6 +39,7 @@ import {
   bytes,
 } from "./components/ui";
 import { CreateWizard } from "./pages/CreateWizard";
+import { ImportServer } from "./pages/ImportServer";
 import { Console } from "./pages/Console";
 import { ServerSettings } from "./pages/ServerSettings";
 import { Players } from "./pages/Players";
@@ -87,6 +89,7 @@ export default function App() {
   const [page, setPage] = useState<Page>("dashboard");
   const [selected, setSelected] = useState("");
   const [wizard, setWizard] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [tab, setTab] = useState("console");
   const [progress, setProgress] = useState<Record<string, Progress>>({});
   const [confirmDelete, setConfirmDelete] = useState<ServerView | null>(null);
@@ -169,6 +172,15 @@ export default function App() {
       setPage("detail");
       setTab("console");
       install(s);
+    });
+  };
+  const imported = (s: Server) => {
+    setImportOpen(false);
+    void run("imported", async () => {
+      await load();
+      setSelected(s.id);
+      setPage("detail");
+      setTab("console");
     });
   };
   const shared = { run, busy };
@@ -392,14 +404,23 @@ export default function App() {
                   </h1>
                   <p>{t("page.subtitle")}</p>
                 </div>
-                <Button
-                  variant="primary"
-                  disabled={!desktop}
-                  onClick={() => setWizard(true)}
-                >
-                  <Plus size={17} />
-                  {t("common.createServer")}
-                </Button>
+                <div className="page-actions">
+                  <Button
+                    disabled={!desktop}
+                    onClick={() => setImportOpen(true)}
+                  >
+                    <FolderInput size={17} />
+                    {t("import.title")}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    disabled={!desktop}
+                    onClick={() => setWizard(true)}
+                  >
+                    <Plus size={17} />
+                    {t("common.createServer")}
+                  </Button>
+                </div>
               </div>
               <div className="stats-grid">
                 <div className="stat">
@@ -583,15 +604,24 @@ export default function App() {
                     <br />
                     {t("welcome.description2")}
                   </p>
-                  <Button
-                    variant="primary"
-                    disabled={!desktop}
-                    onClick={() => setWizard(true)}
-                  >
-                    <Plus size={17} />
-                    {t("welcome.createFirst")}
-                    <ArrowUpRight size={16} />
-                  </Button>
+                  <div className="welcome-actions">
+                    <Button
+                      variant="primary"
+                      disabled={!desktop}
+                      onClick={() => setWizard(true)}
+                    >
+                      <Plus size={17} />
+                      {t("welcome.createFirst")}
+                      <ArrowUpRight size={16} />
+                    </Button>
+                    <Button
+                      disabled={!desktop}
+                      onClick={() => setImportOpen(true)}
+                    >
+                      <FolderInput size={16} />
+                      {t("import.title")}
+                    </Button>
+                  </div>
                   <div className="welcome-notes">
                     <span>
                       <ShieldCheck size={14} />
@@ -844,6 +874,13 @@ export default function App() {
           info={info}
           onClose={() => setWizard(false)}
           onCreated={created}
+        />
+      )}
+      {importOpen && (
+        <ImportServer
+          {...shared}
+          onClose={() => setImportOpen(false)}
+          onImported={imported}
         />
       )}
       {confirmDelete && (
