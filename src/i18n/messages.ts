@@ -422,6 +422,15 @@ export const zh = {
   "recovery.lastExit": "最近一次退出",
   "recovery.exitCode": "退出码 {code}",
   "recovery.noExit": "尚未发生崩溃。",
+  "remote.title": "手机远程控制",
+  "remote.desc": "用手机浏览器查看状态、启停服务器并发送命令。手机需与电脑连接同一个 Wi-Fi。",
+  "remote.enabled": "启用手机控制台",
+  "remote.started": "手机控制台已开启，请用手机扫描二维码。",
+  "remote.stopped": "手机控制台已关闭，原链接已失效。",
+  "remote.scan": "用手机相机扫码打开",
+  "remote.copy": "复制链接",
+  "remote.copied": "链接已复制，请妥善保管。",
+  "remote.hint": "链接包含一次性访问令牌，关闭控制台或退出 EasyLauncher 后立即失效。若手机无法打开，请在 Windows 防火墙中允许 EasyLauncher 访问专用网络。",
 
   "console.live": "实时输出",
   "console.lines": "{shown} / 1,500 行",
@@ -1066,6 +1075,17 @@ export const en: Record<MessageKey, string> = {
   "recovery.lastExit": "Last exit",
   "recovery.exitCode": "Exit code {code}",
   "recovery.noExit": "No crash recorded yet.",
+  "remote.title": "Phone console",
+  "remote.desc":
+    "Check status, start or stop servers and send commands from your phone. Connect the phone to the same Wi-Fi.",
+  "remote.enabled": "Enable phone console",
+  "remote.started": "Phone console is running. Scan the QR code with your phone.",
+  "remote.stopped": "Phone console stopped. The previous link is no longer valid.",
+  "remote.scan": "Scan with your phone camera",
+  "remote.copy": "Copy link",
+  "remote.copied": "Link copied. Keep it private.",
+  "remote.hint":
+    "The link contains a one-time access token and expires when the console stops or EasyLauncher closes. If the phone cannot connect, allow EasyLauncher on private networks in Windows Firewall.",
 
   "console.live": "Live output",
   "console.lines": "{shown} / 1,500 lines",

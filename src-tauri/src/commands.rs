@@ -478,3 +478,16 @@ pub async fn save_monitor_rules(
         .await
         .map_err(|e| AppError::new("Could not save alert rules.", e))?
 }
+type Remote<'a> = State<'a, Arc<crate::remote::WebConsole>>;
+#[tauri::command]
+pub fn web_console_info(r: Remote<'_>) -> Option<crate::remote::WebConsoleInfo> {
+    r.info()
+}
+#[tauri::command]
+pub async fn start_web_console(r: Remote<'_>) -> Result<crate::remote::WebConsoleInfo> {
+    r.start().await
+}
+#[tauri::command]
+pub fn stop_web_console(r: Remote<'_>) {
+    r.stop();
+}

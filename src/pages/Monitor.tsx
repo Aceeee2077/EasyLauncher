@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import QRCode from "qrcode";
 import {
   Activity,
   BellRing,
+  Copy,
   Cpu,
   Eraser,
   Gauge,
   HeartPulse,
   MemoryStick,
   RefreshCw,
+  Smartphone,
   Timer,
   TriangleAlert,
   Users,
@@ -23,6 +26,7 @@ import type {
   ServerAlert,
   ServerMetrics,
   ServerView,
+  WebConsoleInfo,
 } from "../types";
 import type { TaskProps } from "../utils/task";
 
@@ -57,8 +61,44 @@ export function Monitor({
   const [message, setMessage] = useState("");
   const [recovery, setRecovery] = useState(server.autoRestart);
   const [recoveryMessage, setRecoveryMessage] = useState("");
+  const [web, setWeb] = useState<WebConsoleInfo | null>(null);
+  const [qr, setQr] = useState("");
+  const [webMessage, setWebMessage] = useState("");
   const key = `monitor-${server.id}`;
   useEffect(() => setRecovery(server.autoRestart), [server.autoRestart]);
+  useEffect(() => {
+    if (!desktop) return;
+    let alive = true;
+    call("web_console_info")
+      .then((info) => {
+        if (alive) setWeb(info);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!web) {
+      setQr("");
+      return;
+    }
+    let alive = true;
+    QRCode.toDataURL(web.url, {
+      width: 240,
+      margin: 1,
+      color: { dark: "#0d1a12", light: "#ffffff" },
+    })
+      .then((data) => {
+        if (alive) setQr(data);
+      })
+      .catch(() => {
+        if (alive) setQr("");
+      });
+    return () => {
+      alive = false;
+    };
+  }, [web]);
   const load = async () => {
     const [nextMetrics, nextHistory, nextAlerts, nextRules] = await Promise.all([
       call("monitor_metrics", { id: server.id }),
@@ -177,6 +217,24 @@ export function Monitor({
       });
       setRecovery(updated.autoRestart);
       setRecoveryMessage(t("recovery.saved"));
+    });
+  const toggleWeb = () =>
+    run(`${key}-web`, async () => {
+      if (web) {
+        await call("stop_web_console");
+        setWeb(null);
+        setWebMessage(t("remote.stopped"));
+      } else {
+        const info = await call("start_web_console");
+        setWeb(info);
+        setWebMessage(t("remote.started"));
+      }
+    });
+  const copyWeb = () =>
+    run(`${key}-web-copy`, async () => {
+      if (!web) return;
+      await navigator.clipboard.writeText(web.url);
+      setWebMessage(t("remote.copied"));
     });
   return (
     <div className="monitor-stack">
@@ -419,6 +477,59 @@ export function Monitor({
           </p>
         )}
         <p className="muted">{t("recovery.hint")}</p>
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <Smartphone size={18} />
+              {t("remote.title")}
+            </h2>
+            <p>{t("remote.desc")}</p>
+          </div>
+          <div className="task-toggle">
+            <button
+              type="button"
+              className={`switch ${web ? "on" : ""}`}
+              role="switch"
+              aria-checked={Boolean(web)}
+              aria-label={t("remote.enabled")}
+              disabled={busy.has(`${key}-web`)}
+              onClick={() => void toggleWeb()}
+            />
+            <span>{t("remote.enabled")}</span>
+          </div>
+        </div>
+        {web ? (
+          <div className="remote-console">
+            <div className="remote-qr">
+              {qr ? (
+                <img src={qr} alt={t("remote.scan")} />
+              ) : (
+                <p className="mini-empty">{t("common.loading")}</p>
+              )}
+              <small>{t("remote.scan")}</small>
+            </div>
+            <div className="remote-link">
+              <code>{web.url}</code>
+              <Button
+                busy={busy.has(`${key}-web-copy`)}
+                onClick={() => void copyWeb()}
+              >
+                <Copy size={15} />
+                {t("remote.copy")}
+              </Button>
+              <p className="muted">{t("remote.hint")}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="muted">{t("remote.hint")}</p>
+        )}
+        {webMessage && (
+          <p className="success-text" role="status">
+            {webMessage}
+          </p>
+        )}
       </section>
       <section className="panel">
         <div className="section-title">

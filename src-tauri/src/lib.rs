@@ -9,6 +9,7 @@ pub mod models;
 pub mod modrinth;
 pub mod monitor;
 pub mod network;
+pub mod remote;
 pub mod schedule;
 pub mod server;
 pub mod storage;
@@ -34,6 +35,7 @@ pub fn run() {
             let manager = server::manager::Manager::new(root, app.handle().clone())?;
             schedule::spawn(manager.clone());
             monitor::spawn(manager.clone());
+            app.manage(remote::WebConsole::new(manager.clone()));
             app.manage(manager);
             Ok(())
         })
@@ -95,7 +97,10 @@ pub fn run() {
             commands::monitor_alerts,
             commands::clear_monitor_alerts,
             commands::monitor_rules,
-            commands::save_monitor_rules
+            commands::save_monitor_rules,
+            commands::web_console_info,
+            commands::start_web_console,
+            commands::stop_web_console
         ])
         .on_window_event(move |window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

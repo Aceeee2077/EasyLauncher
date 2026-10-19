@@ -296,6 +296,12 @@ export interface AlertRules {
   memoryPercent: number;
   lagEvents: number;
 }
+export interface WebConsoleInfo {
+  running: boolean;
+  url: string;
+  token: string;
+  port: number;
+}
 export const active = (s: Status) =>
   ["starting", "running", "stopping", "restarting"].includes(s);
 export const idle = (s: Status) => !active(s) && s !== "installing";

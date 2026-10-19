@@ -27,6 +27,7 @@ import type {
   MetricsSample,
   ServerAlert,
   AlertRules,
+  WebConsoleInfo,
 } from "../types";
 type Contract = {
   list_servers: [undefined, ServerView[]];
@@ -120,6 +121,9 @@ type Contract = {
   clear_monitor_alerts: [{ id: string }, void];
   monitor_rules: [{ id: string }, AlertRules];
   save_monitor_rules: [{ id: string; rules: AlertRules }, AlertRules];
+  web_console_info: [undefined, WebConsoleInfo | null];
+  start_web_console: [undefined, WebConsoleInfo];
+  stop_web_console: [undefined, void];
 };
 export const desktop = isTauri();
 export async function call<K extends keyof Contract>(
