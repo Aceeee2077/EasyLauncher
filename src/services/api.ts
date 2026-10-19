@@ -28,6 +28,7 @@ import type {
   ServerAlert,
   AlertRules,
   WebConsoleInfo,
+  NetworkReport,
 } from "../types";
 type Contract = {
   list_servers: [undefined, ServerView[]];
@@ -124,6 +125,9 @@ type Contract = {
   web_console_info: [undefined, WebConsoleInfo | null];
   start_web_console: [undefined, WebConsoleInfo];
   stop_web_console: [undefined, void];
+  network_report: [{ id: string }, NetworkReport];
+  network_map: [{ id: string; externalPort?: number }, NetworkReport];
+  network_unmap: [{ id: string }, NetworkReport];
 };
 export const desktop = isTauri();
 export async function call<K extends keyof Contract>(

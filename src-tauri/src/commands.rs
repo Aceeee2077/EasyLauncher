@@ -491,3 +491,19 @@ pub async fn start_web_console(r: Remote<'_>) -> Result<crate::remote::WebConsol
 pub fn stop_web_console(r: Remote<'_>) {
     r.stop();
 }
+#[tauri::command]
+pub async fn network_report(m: Managed<'_>, id: String) -> Result<crate::upnp::NetworkReport> {
+    crate::upnp::report(m.inner().as_ref(), &id).await
+}
+#[tauri::command]
+pub async fn network_map(
+    m: Managed<'_>,
+    id: String,
+    external_port: Option<u16>,
+) -> Result<crate::upnp::NetworkReport> {
+    crate::upnp::map(m.inner().as_ref(), &id, external_port).await
+}
+#[tauri::command]
+pub async fn network_unmap(m: Managed<'_>, id: String) -> Result<crate::upnp::NetworkReport> {
+    crate::upnp::unmap(m.inner().as_ref(), &id).await
+}

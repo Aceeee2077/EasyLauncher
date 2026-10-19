@@ -2938,3 +2938,114 @@ progress::-webkit-progress-value {
     justify-content: center;
   }
 }
+.network-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.net-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.net-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 15px 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface2);
+  box-shadow: inset 0 1px 0 var(--glass-sheen);
+}
+.net-card small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.net-card code {
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.net-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.net-badge.ok {
+  border-color: rgba(52, 199, 123, 0.4);
+  background: rgba(52, 199, 123, 0.12);
+  color: #34c77b;
+}
+.net-share {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 17px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--fill);
+}
+.net-share > div {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+.net-share small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.net-share code {
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 14px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.net-share p {
+  margin: 0;
+  font-size: 12px;
+}
+.net-fallback {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-left: 3px solid rgba(255, 176, 69, 0.7);
+  border-radius: 14px;
+  background: var(--surface2);
+}
+.net-fallback svg {
+  flex: none;
+  margin-top: 2px;
+  color: #ffb045;
+}
+.net-fallback strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.net-fallback p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 760px) {
+  .net-share {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .net-share .btn {
+    justify-content: center;
+  }
+}

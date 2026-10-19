@@ -302,6 +302,24 @@ export interface WebConsoleInfo {
   token: string;
   port: number;
 }
+export interface PortMapping {
+  enabled: boolean;
+  externalPort: number;
+  internalPort: number;
+  internalIp: string;
+  publicIp: string | null;
+  router: string;
+  mappedAt: string | null;
+}
+export interface NetworkReport {
+  lanIp: string | null;
+  publicIp: string | null;
+  router: string | null;
+  igdFound: boolean;
+  mapping: PortMapping | null;
+  address: string | null;
+  port: number;
+}
 export const active = (s: Status) =>
   ["starting", "running", "stopping", "restarting"].includes(s);
 export const idle = (s: Status) => !active(s) && s !== "installing";

@@ -34,6 +34,7 @@ export const zh = {
   "common.ops": "体检与诊断",
   "common.monitor": "实时监控",
   "common.content": "内容中心",
+  "common.network": "联机开服",
 
   "status.stopped": "已停止",
   "status.installing": "安装中",
@@ -432,6 +433,28 @@ export const zh = {
   "remote.copied": "链接已复制，请妥善保管。",
   "remote.hint": "链接包含一次性访问令牌，关闭控制台或退出 EasyLauncher 后立即失效。若手机无法打开，请在 Windows 防火墙中允许 EasyLauncher 访问专用网络。",
 
+  "network.title": "一键联机",
+  "network.desc": "自动在路由器上开启端口映射，让朋友通过互联网加入你的世界。",
+  "network.refresh": "刷新网络信息",
+  "network.lan": "局域网地址",
+  "network.public": "公网 IP",
+  "network.router": "路由器",
+  "network.port": "服务器端口",
+  "network.externalPort": "外网端口",
+  "network.externalHint": "留空则与服务器端口一致；若提示被占用，可换成 25566 等。",
+  "network.igdOk": "路由器支持 UPnP",
+  "network.igdNo": "未发现支持 UPnP 的路由器",
+  "network.enable": "开启端口映射",
+  "network.disable": "关闭端口映射",
+  "network.address": "分享给朋友的地址",
+  "network.copy": "复制地址",
+  "network.copied": "地址已复制。",
+  "network.noAddress": "开启端口映射后生成分享地址。",
+  "network.mappedAt": "映射时间",
+  "network.fallbackTitle": "路由器不支持 UPnP？",
+  "network.fallbackDesc": "可在路由器管理页面手动将 TCP 端口 {port} 转发到这台电脑，或使用 playit.gg 等隧道服务。",
+  "network.hint": "端口映射会在路由器重启后失效，可随时重新开启。仅对 Java 版 TCP 端口生效。",
+
   "console.live": "实时输出",
   "console.lines": "{shown} / 1,500 行",
   "console.follow": "跟随输出",
@@ -654,6 +677,7 @@ export const en: Record<MessageKey, string> = {
   "common.ops": "Health & diagnosis",
   "common.monitor": "Live monitor",
   "common.content": "Content",
+  "common.network": "Multiplayer",
 
   "status.stopped": "Stopped",
   "status.installing": "Installing",
@@ -1086,6 +1110,32 @@ export const en: Record<MessageKey, string> = {
   "remote.copied": "Link copied. Keep it private.",
   "remote.hint":
     "The link contains a one-time access token and expires when the console stops or EasyLauncher closes. If the phone cannot connect, allow EasyLauncher on private networks in Windows Firewall.",
+
+  "network.title": "One-click multiplayer",
+  "network.desc":
+    "Open a port mapping on your router automatically so friends can join over the internet.",
+  "network.refresh": "Refresh network",
+  "network.lan": "LAN address",
+  "network.public": "Public IP",
+  "network.router": "Router",
+  "network.port": "Server port",
+  "network.externalPort": "External port",
+  "network.externalHint":
+    "Leave empty to match the server port. If it is taken, try 25566.",
+  "network.igdOk": "Router supports UPnP",
+  "network.igdNo": "No UPnP router was found",
+  "network.enable": "Enable port mapping",
+  "network.disable": "Disable port mapping",
+  "network.address": "Address to share",
+  "network.copy": "Copy address",
+  "network.copied": "Address copied.",
+  "network.noAddress": "Enable port mapping to get a shareable address.",
+  "network.mappedAt": "Mapped at",
+  "network.fallbackTitle": "Router without UPnP?",
+  "network.fallbackDesc":
+    "Forward TCP port {port} to this computer in the router settings, or use a tunnel such as playit.gg.",
+  "network.hint":
+    "Mappings are lost when the router restarts; re-enable any time. Applies to the Java TCP port only.",
 
   "console.live": "Live output",
   "console.lines": "{shown} / 1,500 lines",
