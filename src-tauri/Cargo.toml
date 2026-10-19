@@ -1,0 +1,54 @@
+[package]
+name = "easylauncher"
+version = "0.1.0"
+description = "Local Minecraft Java server manager"
+edition = "2021"
+rust-version = "1.85"
+default-run = "easylauncher"
+
+[features]
+test-fixtures = []
+
+[[bin]]
+name = "easylauncher-process-fixture"
+path = "tests/fixtures/process.rs"
+required-features = ["test-fixtures"]
+
+[[test]]
+name = "storage_safety"
+path = "tests/storage_safety.rs"
+
+[[bin]]
+name = "easylauncher"
+path = "src/main.rs"
+test = false
+bench = false
+
+[lib]
+name = "easylauncher_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["process", "io-util", "fs", "sync", "time", "rt-multi-thread", "macros"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+futures-util = "0.3"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+sha1 = "0.10"
+sha2 = "0.10"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+sysinfo = "0.33"
+open = "5"
+
+[dev-dependencies]
+tempfile = "3"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_JobObjects", "Win32_System_Threading", "Win32_Security"] }

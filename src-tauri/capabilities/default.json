@@ -1,0 +1,6 @@
+{
+  "identifier": "main-capability",
+  "description": "Local EasyLauncher window event access and appearance",
+  "windows": ["main"],
+  "permissions": ["core:default", "core:window:allow-set-theme"]
+}
