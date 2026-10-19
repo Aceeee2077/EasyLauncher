@@ -174,6 +174,23 @@ impl Manager {
                             "INFO",
                             &format!("Java exited for {}: {exit}", runtime.snapshot().id),
                         );
+                        if runtime.snapshot().status == Status::Crashed {
+                            let manager = m.clone();
+                            let server_id = runtime.snapshot().id;
+                            match tokio::task::spawn_blocking(move || {
+                                super::diagnostics::diagnose(&manager, &server_id)
+                            })
+                            .await
+                            {
+                                Ok(Ok(report)) => m.emit("server-diagnosis", report),
+                                Ok(Err(e)) => {
+                                    m.logger.log("WARN", &format!("Diagnosis failed: {e}"))
+                                }
+                                Err(e) => m
+                                    .logger
+                                    .log("WARN", &format!("Diagnosis task failed: {e}")),
+                            }
+                        }
                         break;
                     }
                     Ok(None) => {}

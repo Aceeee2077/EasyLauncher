@@ -121,6 +121,31 @@ export interface SystemInfo {
   logsPath: string;
   lanAddress: string | null;
 }
+export type HealthLevel = "ok" | "warning" | "critical" | "info";
+export interface HealthCheck {
+  id: string;
+  level: HealthLevel;
+  values: Record<string, string>;
+}
+export interface HealthReport {
+  serverId: string;
+  score: number;
+  checks: HealthCheck[];
+  generatedAt: string;
+}
+export type DiagnosisSeverity = "critical" | "warning";
+export interface DiagnosisFinding {
+  id: string;
+  severity: DiagnosisSeverity;
+  evidence: string[];
+}
+export interface DiagnosisReport {
+  serverId: string;
+  available: boolean;
+  source: string | null;
+  generatedAt: string;
+  findings: DiagnosisFinding[];
+}
 export interface AppError {
   message: string;
   details: string;

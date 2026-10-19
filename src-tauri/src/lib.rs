@@ -68,6 +68,8 @@ pub fn run() {
             commands::latest_log,
             commands::list_content,
             commands::open_folder,
+            commands::server_health,
+            commands::server_diagnosis,
             commands::open_guide
         ])
         .on_window_event(move |window, event| {

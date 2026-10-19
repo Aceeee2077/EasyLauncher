@@ -31,6 +31,7 @@ export const zh = {
   "common.console": "控制台",
   "common.players": "玩家",
   "common.backups": "备份",
+  "common.ops": "体检与诊断",
 
   "status.stopped": "已停止",
   "status.installing": "安装中",
@@ -100,6 +101,7 @@ export const zh = {
   "detail.started": "启动时间",
   "detail.addressNote": "局域网连接取决于防火墙权限。公网访问需要额外的网络配置。",
   "detail.viewLog": "查看最新日志",
+  "detail.diagnose": "查看诊断",
   "detail.deleteServer": "删除此服务器",
   "detail.deleteServerDesc": "永久删除它的世界、配置和本地备份。",
   "detail.deleteServerButton": "删除服务器",
@@ -364,6 +366,96 @@ export const zh = {
   "serverSettings.mods": "模组",
   "serverSettings.contentDesc": "服务器停止时可安装可信的 JAR 文件，重启后生效。",
   "serverSettings.noJars": "未检测到已安装的 JAR 文件。",
+
+  "ops.healthTitle": "开服体检",
+  "ops.healthDesc": "启动前检查安装、EULA、Java、内存、端口、配置、磁盘与备份状态。",
+  "ops.refresh": "重新体检",
+  "ops.score": "就绪评分",
+  "ops.checkedAt": "检查于 {time}",
+  "ops.verdict.good": "随时可以开服。",
+  "ops.verdict.fair": "可以启动，但有几处值得处理。",
+  "ops.verdict.poor": "建议先修复关键问题再启动。",
+  "ops.level.ok": "通过",
+  "ops.level.warning": "注意",
+  "ops.level.critical": "问题",
+  "ops.level.info": "提示",
+  "ops.diagnosisTitle": "崩溃诊断",
+  "ops.diagnosisDesc": "读取最新崩溃报告或 logs/latest.log 末尾，识别常见启动失败原因。",
+  "ops.analyze": "重新分析",
+  "ops.source": "日志来源：{source}",
+  "ops.evidence": "查看证据",
+  "ops.noLogsTitle": "还没有可分析的日志",
+  "ops.noLogsDesc": "启动一次服务器后，EasyLauncher 会读取崩溃报告与 logs/latest.log。",
+  "ops.cleanTitle": "没有发现已知错误",
+  "ops.cleanDesc": "日志中没有匹配到常见崩溃特征。若仍有异常，可在控制台查看完整输出。",
+  "ops.severity.critical": "严重",
+  "ops.severity.warning": "警告",
+
+  "health.install.title": "服务器文件",
+  "health.install.ok": "已安装 {artifact} {version}。",
+  "health.install.critical": "尚未安装服务器核心（Minecraft {version}）。",
+  "health.eula.title": "EULA",
+  "health.eula.ok": "已接受 Minecraft 最终用户许可协议。",
+  "health.eula.critical": "尚未接受 EULA，服务器会拒绝启动。",
+  "health.java.title": "Java 运行时",
+  "health.java.ok": "Java {version} 可用，要求 Java {required}。",
+  "health.java.critical": "找不到可用的 Java {required}：{message}",
+  "health.memory.title": "内存分配",
+  "health.memory.ok": "已分配 {max} MB，系统共 {total} MB。",
+  "health.memory.warning": "已分配 {max} MB，系统可用 {available} MB，建议降低内存。",
+  "health.port.title": "端口",
+  "health.port.ok": "端口 {port} 可用。",
+  "health.port.critical": "端口 {port} 已被其他程序占用。",
+  "health.port.info": "服务器运行中，跳过端口占用检查（{port}）。",
+  "health.properties.title": "服务器配置",
+  "health.properties.ok": "server.properties 校验通过。",
+  "health.properties.warning": "以下设置存在风险：{keys}",
+  "health.properties.critical": "server.properties 无法读取或包含不安全的配置。",
+  "health.restore.title": "回滚残留",
+  "health.restore.ok": "没有未完成的回滚。",
+  "health.restore.critical": "发现 {count} 个未完成的 restore 目录，可能影响世界数据。",
+  "health.partial.title": "下载残留",
+  "health.partial.ok": "没有未完成的下载文件。",
+  "health.partial.warning": "发现 {count} 个 .part 临时文件，可安全删除。",
+  "health.disk.title": "磁盘空间",
+  "health.disk.ok": "剩余 {availableMb} MB。",
+  "health.disk.warning": "磁盘仅剩 {availableMb} MB，建议清理空间。",
+  "health.disk.critical": "磁盘仅剩 {availableMb} MB，可能无法保存世界。",
+  "health.disk.info": "无法读取磁盘空间。",
+  "health.backup.title": "备份",
+  "health.backup.ok": "已有 {count} 份备份，最近一次在 {ageDays} 天前。",
+  "health.backup.warning": "当前 {count} 份备份，最近一次超过 7 天或尚未创建。",
+  "health.logs.title": "日志",
+  "health.logs.ok": "最近日志没有错误或警告。",
+  "health.logs.warning": "最近日志有 {errors} 条错误、{warnings} 条警告。",
+  "health.logs.info": "最近日志有 {warnings} 条警告。",
+
+  "diagnosis.outOfMemory.title": "内存不足",
+  "diagnosis.outOfMemory.advice": "增加最大内存，或减少模组、视距与模拟距离后重试。",
+  "diagnosis.portInUse.title": "端口被占用",
+  "diagnosis.portInUse.advice": "关闭占用该端口的程序，或在服务器设置中更换端口。",
+  "diagnosis.javaVersion.title": "Java 版本不匹配",
+  "diagnosis.javaVersion.advice": "安装服务器要求的 Java 主版本，并在运行时设置中选择它。",
+  "diagnosis.missingJar.title": "缺少 server.jar",
+  "diagnosis.missingJar.advice": "重新安装服务器核心后再启动。",
+  "diagnosis.eula.title": "EULA 未接受",
+  "diagnosis.eula.advice": "在服务器设置或创建向导中接受 Minecraft EULA。",
+  "diagnosis.diskSpace.title": "磁盘空间不足",
+  "diagnosis.diskSpace.advice": "清理磁盘空间，至少保留数百 MB 后再启动。",
+  "diagnosis.worldCorruption.title": "世界数据可能损坏",
+  "diagnosis.worldCorruption.advice": "从备份恢复世界；如无备份，先移走损坏的区域文件再尝试启动。",
+  "diagnosis.fileAccess.title": "文件访问被拒绝",
+  "diagnosis.fileAccess.advice": "检查杀毒软件或文件权限，确保 EasyLauncher 可以读写服务器目录。",
+  "diagnosis.modConflict.title": "模组冲突",
+  "diagnosis.modConflict.advice": "移除重复或不兼容的模组，并检查模组之间的依赖关系。",
+  "diagnosis.missingDependency.title": "缺少模组依赖",
+  "diagnosis.missingDependency.advice": "安装日志中提示的前置模组，或改用包含完整依赖的整合包。",
+  "diagnosis.watchdog.title": "服务器卡顿或看门狗超时",
+  "diagnosis.watchdog.advice": "排查性能压力过大的模组或区块加载器，并适当降低视距与模拟距离。",
+  "diagnosis.pluginError.title": "插件加载失败",
+  "diagnosis.pluginError.advice": "确认插件与服务器版本匹配，并在控制台查看该插件的完整堆栈。",
+  "diagnosis.generic.title": "未分类的启动异常",
+  "diagnosis.generic.advice": "展开证据查看完整堆栈，或到控制台查看启动前后的日志。",
 } as const;
 
 export type MessageKey = keyof typeof zh;
@@ -401,6 +493,7 @@ export const en: Record<MessageKey, string> = {
   "common.console": "Console",
   "common.players": "Players",
   "common.backups": "Backups",
+  "common.ops": "Health & diagnosis",
 
   "status.stopped": "Stopped",
   "status.installing": "Installing",
@@ -471,6 +564,7 @@ export const en: Record<MessageKey, string> = {
   "detail.addressNote":
     "LAN connections depend on firewall permissions. Public internet access requires separate network configuration.",
   "detail.viewLog": "View latest log",
+  "detail.diagnose": "View diagnosis",
   "detail.deleteServer": "Delete this server",
   "detail.deleteServerDesc": "Permanently remove its worlds, configurations and local backups.",
   "detail.deleteServerButton": "Delete server",
@@ -762,6 +856,124 @@ export const en: Record<MessageKey, string> = {
   "serverSettings.contentDesc":
     "Install trusted JAR files while the server is stopped. Restart to load changes.",
   "serverSettings.noJars": "No installed JAR files detected.",
+
+  "ops.healthTitle": "Pre-flight health check",
+  "ops.healthDesc":
+    "Checks installation, EULA, Java, memory, port, configuration, disk and backups before launch.",
+  "ops.refresh": "Run check again",
+  "ops.score": "Readiness score",
+  "ops.checkedAt": "Checked at {time}",
+  "ops.verdict.good": "Ready to start.",
+  "ops.verdict.fair": "Can start, but a few items deserve attention.",
+  "ops.verdict.poor": "Fix the critical items before starting.",
+  "ops.level.ok": "Pass",
+  "ops.level.warning": "Attention",
+  "ops.level.critical": "Problem",
+  "ops.level.info": "Info",
+  "ops.diagnosisTitle": "Crash diagnosis",
+  "ops.diagnosisDesc":
+    "Reads the newest crash report or the tail of logs/latest.log to identify common startup failures.",
+  "ops.analyze": "Analyze again",
+  "ops.source": "Log source: {source}",
+  "ops.evidence": "Show evidence",
+  "ops.noLogsTitle": "No logs to analyze yet",
+  "ops.noLogsDesc":
+    "Start the server once and EasyLauncher will read crash reports and logs/latest.log.",
+  "ops.cleanTitle": "No known errors found",
+  "ops.cleanDesc":
+    "No common crash signatures matched. If something still looks wrong, review the full console output.",
+  "ops.severity.critical": "Critical",
+  "ops.severity.warning": "Warning",
+
+  "health.install.title": "Server files",
+  "health.install.ok": "{artifact} {version} is installed.",
+  "health.install.critical":
+    "The server core for Minecraft {version} is not installed yet.",
+  "health.eula.title": "EULA",
+  "health.eula.ok": "The Minecraft EULA has been accepted.",
+  "health.eula.critical":
+    "The EULA has not been accepted, so the server will refuse to start.",
+  "health.java.title": "Java runtime",
+  "health.java.ok": "Java {version} is available; Java {required} is required.",
+  "health.java.critical": "No usable Java {required} found: {message}",
+  "health.memory.title": "Memory allocation",
+  "health.memory.ok": "{max} MB allocated out of {total} MB system memory.",
+  "health.memory.warning":
+    "{max} MB allocated while {available} MB is available. Lower the allocation.",
+  "health.port.title": "Port",
+  "health.port.ok": "Port {port} is available.",
+  "health.port.critical": "Port {port} is already in use by another program.",
+  "health.port.info":
+    "The server is running, so the port check was skipped ({port}).",
+  "health.properties.title": "Server configuration",
+  "health.properties.ok": "server.properties passed validation.",
+  "health.properties.warning": "These settings are risky: {keys}",
+  "health.properties.critical":
+    "server.properties could not be read or contains unsafe values.",
+  "health.restore.title": "Restore leftovers",
+  "health.restore.ok": "No unfinished restores.",
+  "health.restore.critical":
+    "{count} unfinished restore directories found; world data may be affected.",
+  "health.partial.title": "Download leftovers",
+  "health.partial.ok": "No unfinished downloads.",
+  "health.partial.warning":
+    "{count} temporary .part files found. They can be removed safely.",
+  "health.disk.title": "Disk space",
+  "health.disk.ok": "{availableMb} MB free.",
+  "health.disk.warning": "Only {availableMb} MB left on disk. Consider cleanup.",
+  "health.disk.critical":
+    "Only {availableMb} MB left on disk. Worlds may fail to save.",
+  "health.disk.info": "Disk space is unavailable.",
+  "health.backup.title": "Backups",
+  "health.backup.ok":
+    "{count} backups available; the newest is {ageDays} days old.",
+  "health.backup.warning":
+    "{count} backups available, but the newest is over 7 days old or none exists.",
+  "health.logs.title": "Logs",
+  "health.logs.ok": "No errors or warnings in the latest log.",
+  "health.logs.warning":
+    "The latest log has {errors} errors and {warnings} warnings.",
+  "health.logs.info": "The latest log has {warnings} warnings.",
+
+  "diagnosis.outOfMemory.title": "Out of memory",
+  "diagnosis.outOfMemory.advice":
+    "Increase the maximum memory, or reduce mods, view distance and simulation distance.",
+  "diagnosis.portInUse.title": "Port already in use",
+  "diagnosis.portInUse.advice":
+    "Close the program using that port, or change the port in server settings.",
+  "diagnosis.javaVersion.title": "Java version mismatch",
+  "diagnosis.javaVersion.advice":
+    "Install the Java major version the server requires and select it in the runtime settings.",
+  "diagnosis.missingJar.title": "Missing server.jar",
+  "diagnosis.missingJar.advice":
+    "Reinstall the server core before starting again.",
+  "diagnosis.eula.title": "EULA not accepted",
+  "diagnosis.eula.advice":
+    "Accept the Minecraft EULA in server settings or the creation wizard.",
+  "diagnosis.diskSpace.title": "Not enough disk space",
+  "diagnosis.diskSpace.advice":
+    "Free up disk space, leaving at least a few hundred MB before starting.",
+  "diagnosis.worldCorruption.title": "World data may be corrupted",
+  "diagnosis.worldCorruption.advice":
+    "Restore the world from a backup, or move the damaged region files away before retrying.",
+  "diagnosis.fileAccess.title": "File access denied",
+  "diagnosis.fileAccess.advice":
+    "Check antivirus or file permissions so EasyLauncher can read and write the server folder.",
+  "diagnosis.modConflict.title": "Mod conflict",
+  "diagnosis.modConflict.advice":
+    "Remove duplicate or incompatible mods and verify dependencies between them.",
+  "diagnosis.missingDependency.title": "Missing mod dependency",
+  "diagnosis.missingDependency.advice":
+    "Install the dependency named in the log, or use a modpack with complete dependencies.",
+  "diagnosis.watchdog.title": "Server stall or watchdog timeout",
+  "diagnosis.watchdog.advice":
+    "Look for expensive mods or chunk loaders and lower view and simulation distances.",
+  "diagnosis.pluginError.title": "Plugin failed to load",
+  "diagnosis.pluginError.advice":
+    "Verify the plugin matches the server version and read its full stack trace in the console.",
+  "diagnosis.generic.title": "Unclassified startup error",
+  "diagnosis.generic.advice":
+    "Expand the evidence to see the full stack trace, or review the console around startup.",
 };
 
 export const messages = { "zh-CN": zh, en } as const;

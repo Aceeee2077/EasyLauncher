@@ -25,6 +25,7 @@ import {
   Activity,
   Download,
   ShieldCheck,
+  Stethoscope,
 } from "lucide-react";
 import {
   Button,
@@ -39,6 +40,7 @@ import { Console } from "./pages/Console";
 import { ServerSettings } from "./pages/ServerSettings";
 import { Players } from "./pages/Players";
 import { Backups } from "./pages/Backups";
+import { Ops } from "./pages/Ops";
 import { AppSettings } from "./pages/AppSettings";
 import { Splash } from "./components/Splash";
 import { useTask } from "./hooks/useTask";
@@ -718,17 +720,22 @@ export default function App() {
                       <Activity size={18} />
                       <span>{server.runtime.message}</span>
                       {server.runtime.status === "crashed" && (
-                        <Button
-                          onClick={() =>
-                            void run("latestLog", async () =>
-                              setLog(
-                                await call("latest_log", { id: server.id }),
-                              ),
-                            )
-                          }
-                        >
-                          {t("detail.viewLog")}
-                        </Button>
+                        <>
+                          <Button
+                            onClick={() =>
+                              void run("latestLog", async () =>
+                                setLog(
+                                  await call("latest_log", { id: server.id }),
+                                ),
+                              )
+                            }
+                          >
+                            {t("detail.viewLog")}
+                          </Button>
+                          <Button onClick={() => setTab("ops")}>
+                            {t("detail.diagnose")}
+                          </Button>
+                        </>
                       )}
                     </div>
                   )}
@@ -740,6 +747,7 @@ export default function App() {
                         ["settings", "common.settings", Settings],
                         ["players", "common.players", Users],
                         ["backups", "common.backups", Archive],
+                        ["ops", "common.ops", Stethoscope],
                       ].map(([v, label, Icon]) => {
                         const TabIcon = Icon as typeof Terminal;
                         return (
@@ -766,6 +774,9 @@ export default function App() {
                   {(page === "backups" ||
                     (page === "detail" && tab === "backups")) && (
                     <Backups key={server.id} {...shared} server={server} />
+                  )}
+                  {page === "detail" && tab === "ops" && (
+                    <Ops key={server.id} {...shared} server={server} />
                   )}
                   {page === "detail" && tab === "settings" && (
                     <>

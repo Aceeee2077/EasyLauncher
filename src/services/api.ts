@@ -13,6 +13,8 @@ import type {
   Backup,
   ServerType,
   LaunchInfo,
+  HealthReport,
+  DiagnosisReport,
 } from "../types";
 type Contract = {
   list_servers: [undefined, ServerView[]];
@@ -56,6 +58,8 @@ type Contract = {
   latest_log: [{ id: string }, string];
   list_content: [{ id: string }, string[]];
   open_folder: [{ id?: string; kind: string }, void];
+  server_health: [{ id: string }, HealthReport];
+  server_diagnosis: [{ id: string }, DiagnosisReport];
   open_guide: [{ kind: string }, void];
 };
 export const desktop = isTauri();

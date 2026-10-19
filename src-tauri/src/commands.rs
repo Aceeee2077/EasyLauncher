@@ -266,6 +266,23 @@ pub async fn open_folder(m: Managed<'_>, id: Option<String>, kind: String) -> Re
     Ok(())
 }
 #[tauri::command]
+pub async fn server_health(
+    m: Managed<'_>,
+    id: String,
+) -> Result<crate::server::diagnostics::HealthReport> {
+    crate::server::diagnostics::health(m.inner().as_ref(), &id).await
+}
+#[tauri::command]
+pub async fn server_diagnosis(
+    m: Managed<'_>,
+    id: String,
+) -> Result<crate::server::diagnostics::DiagnosisReport> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::server::diagnostics::diagnose(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not analyze server logs.", e))?
+}
+#[tauri::command]
 pub async fn open_guide(kind: String) -> Result<()> {
     let url = match kind.as_str() {
         "eula" => "https://www.minecraft.net/eula",
