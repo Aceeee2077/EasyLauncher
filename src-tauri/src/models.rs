@@ -172,6 +172,14 @@ pub enum Appearance {
     Light,
     Dark,
 }
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum BackupReason {
+    #[default]
+    Manual,
+    Safety,
+    Scheduled,
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Backup {
@@ -181,6 +189,20 @@ pub struct Backup {
     pub worlds: Vec<String>,
     #[serde(default)]
     pub safety: bool,
+    #[serde(default)]
+    pub reason: BackupReason,
+    #[serde(default)]
+    pub label: Option<String>,
+    #[serde(default)]
+    pub minecraft_version: Option<String>,
+    #[serde(default)]
+    pub server_type: Option<ServerType>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoreOutcome {
+    pub backup_id: String,
+    pub safety_backup_id: Option<String>,
 }
 
 #[cfg(test)]

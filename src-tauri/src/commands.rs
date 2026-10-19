@@ -166,7 +166,7 @@ pub async fn save_settings(m: Managed<'_>, settings: Settings) -> Result<()> {
 }
 #[tauri::command]
 pub async fn create_backup(m: Managed<'_>, id: String) -> Result<Backup> {
-    crate::backup::create_backup(m.inner().clone(), id).await
+    crate::backup::create_backup(m.inner().clone(), id, BackupReason::Manual).await
 }
 #[tauri::command]
 pub async fn list_backups(m: Managed<'_>, id: String) -> Result<Vec<Backup>> {
@@ -181,8 +181,20 @@ pub async fn restore_backup(
     id: String,
     backup_id: String,
     confirmed: bool,
-) -> Result<()> {
+) -> Result<RestoreOutcome> {
     crate::backup::restore_backup(m.inner().clone(), id, backup_id, confirmed).await
+}
+#[tauri::command]
+pub async fn set_backup_label(
+    m: Managed<'_>,
+    id: String,
+    backup_id: String,
+    label: Option<String>,
+) -> Result<Backup> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::backup::set_label(&manager, &id, &backup_id, label))
+        .await
+        .map_err(|e| AppError::new("Could not update the backup label.", e))?
 }
 #[tauri::command]
 pub async fn delete_backup(

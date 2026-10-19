@@ -68,6 +68,7 @@ pub fn run() {
             commands::create_backup,
             commands::list_backups,
             commands::restore_backup,
+            commands::set_backup_label,
             commands::delete_backup,
             commands::player_action,
             commands::latest_log,

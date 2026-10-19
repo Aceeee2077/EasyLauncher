@@ -11,6 +11,7 @@ import type {
   SystemInfo,
   Settings,
   Backup,
+  RestoreOutcome,
   ServerType,
   LaunchInfo,
   HealthReport,
@@ -63,7 +64,14 @@ type Contract = {
   save_settings: [{ settings: Settings }, void];
   create_backup: [{ id: string }, Backup];
   list_backups: [{ id: string }, Backup[]];
-  restore_backup: [{ id: string; backupId: string; confirmed: boolean }, void];
+  restore_backup: [
+    { id: string; backupId: string; confirmed: boolean },
+    RestoreOutcome,
+  ];
+  set_backup_label: [
+    { id: string; backupId: string; label: string | null },
+    Backup,
+  ];
   delete_backup: [{ id: string; backupId: string; confirmed: boolean }, void];
   player_action: [{ id: string; player: string; action: string }, void];
   latest_log: [{ id: string }, string];

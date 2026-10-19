@@ -244,9 +244,13 @@ fn cleanup(m: &Manager, id: &str, keep_days: u32) -> Result<()> {
 
 async fn execute(m: &Arc<Manager>, id: &str, task: &Task) -> Result<()> {
     match task.action {
-        TaskAction::Backup => crate::backup::create_backup(m.clone(), id.to_string())
-            .await
-            .map(|_| ()),
+        TaskAction::Backup => crate::backup::create_backup(
+            m.clone(),
+            id.to_string(),
+            crate::models::BackupReason::Scheduled,
+        )
+        .await
+        .map(|_| ()),
         TaskAction::Restart => m.restart(id).await,
         TaskAction::Start => m.start(id).await,
         TaskAction::Stop => m.stop(id).await,

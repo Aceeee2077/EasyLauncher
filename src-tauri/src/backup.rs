@@ -1,6 +1,6 @@
 use crate::{
     error::{AppError, Result},
-    models::Backup,
+    models::{Backup, BackupReason, RestoreOutcome},
     server::manager::Manager,
     storage,
 };
@@ -31,8 +31,9 @@ fn backup_root(m: &Manager, id: &str) -> Result<std::path::PathBuf> {
     fs::create_dir_all(&p)?;
     Ok(p)
 }
-fn create(m: &Manager, id: &str, safety: bool) -> Result<Backup> {
+fn create(m: &Manager, id: &str, reason: BackupReason) -> Result<Backup> {
     let dir = m.dir(id)?;
+    let meta = m.metadata(id)?;
     let names = world_names(m, id)?;
     let root = backup_root(m, id)?;
     let bid = uuid::Uuid::new_v4().to_string();
@@ -56,7 +57,11 @@ fn create(m: &Manager, id: &str, safety: bool) -> Result<Backup> {
             created_at: chrono::Utc::now().to_rfc3339(),
             size_bytes: size,
             worlds,
-            safety,
+            safety: reason == BackupReason::Safety,
+            reason,
+            label: None,
+            minecraft_version: Some(meta.minecraft_version),
+            server_type: Some(meta.server_type),
         };
         storage::write_json(&storage::child(&temp, "backup.json")?, &backup)?;
         fs::rename(&temp, storage::managed(&root, &bid)?)?;
@@ -84,7 +89,11 @@ pub fn list(m: &Manager, id: &str) -> Result<Vec<Backup>> {
 }
 fn read(dir: &Path) -> Result<Backup> {
     storage::no_links(dir)?;
-    let b: Backup = serde_json::from_slice(&fs::read(storage::child(dir, "backup.json")?)?)?;
+    let mut b: Backup = serde_json::from_slice(&fs::read(storage::child(dir, "backup.json")?)?)?;
+    // Older safety snapshots predate the reason field.
+    if b.reason == BackupReason::Manual && b.safety {
+        b.reason = BackupReason::Safety;
+    }
     storage::validate_id(&b.id)?;
     if dir.file_name().and_then(|s| s.to_str()) != Some(&b.id) {
         return Err(AppError::user("Backup metadata does not match its folder."));
@@ -94,7 +103,11 @@ fn read(dir: &Path) -> Result<Backup> {
     }
     Ok(b)
 }
-pub async fn create_backup(m: Arc<Manager>, id: String) -> Result<Backup> {
+pub async fn create_backup(
+    m: Arc<Manager>,
+    id: String,
+    reason: BackupReason,
+) -> Result<Backup> {
     m.ready()?;
     let r = m.runtime(&id)?;
     let _g = r.gate.lock().await;
@@ -102,7 +115,7 @@ pub async fn create_backup(m: Arc<Manager>, id: String) -> Result<Backup> {
     let result = tokio::task::spawn_blocking({
         let m = m.clone();
         let id = id.clone();
-        move || create(&m, &id, false)
+        move || create(&m, &id, reason)
     })
     .await
     .map_err(|e| AppError::new("Backup task failed.", e))?;
@@ -117,7 +130,7 @@ pub async fn restore_backup(
     id: String,
     backup_id: String,
     confirmed: bool,
-) -> Result<()> {
+) -> Result<RestoreOutcome> {
     if !confirmed {
         return Err(AppError::user(
             "Confirm restoration before replacing world data.",
@@ -131,7 +144,7 @@ pub async fn restore_backup(
         .await
         .map_err(|e| AppError::new("Restore task failed.", e))?
 }
-fn restore(m: &Manager, id: &str, backup_id: &str) -> Result<()> {
+fn restore(m: &Manager, id: &str, backup_id: &str) -> Result<RestoreOutcome> {
     let dir = m.dir(id)?;
     let source = storage::managed(&backup_root(m, id)?, backup_id)?;
     let backup = read(&source)?;
@@ -141,9 +154,11 @@ fn restore(m: &Manager, id: &str, backup_id: &str) -> Result<()> {
     if backup.worlds.is_empty() || backup.worlds.iter().any(|w| !current.contains(w)) {
         return Err(AppError::user("This backup uses a different level-name. Restore the original level-name in server settings first."));
     }
-    if current.iter().any(|w| dir.join(w).is_dir()) {
-        create(m, id, true)?;
-    }
+    let safety = if current.iter().any(|w| dir.join(w).is_dir()) {
+        Some(create(m, id, BackupReason::Safety)?)
+    } else {
+        None
+    };
     let stage = storage::child(&dir, &format!("restore-{}", uuid::Uuid::new_v4()))?;
     fs::create_dir(&stage)?;
     let result = (|| {
@@ -205,7 +220,32 @@ fn restore(m: &Manager, id: &str, backup_id: &str) -> Result<()> {
     {
         let _ = fs::remove_dir_all(stage);
     }
-    result
+    result.map(|_| RestoreOutcome {
+        backup_id: backup.id,
+        safety_backup_id: safety.map(|b| b.id),
+    })
+}
+pub fn set_label(
+    m: &Manager,
+    id: &str,
+    backup_id: &str,
+    label: Option<String>,
+) -> Result<Backup> {
+    let dir = storage::managed(&backup_root(m, id)?, backup_id)?;
+    let mut backup = read(&dir)?;
+    let label = label
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty());
+    if let Some(l) = &label {
+        if l.chars().count() > 60 || l.contains(['\n', '\r', '\0']) {
+            return Err(AppError::user(
+                "Keep backup labels under 60 characters on a single line.",
+            ));
+        }
+    }
+    backup.label = label;
+    storage::write_json(&storage::child(&dir, "backup.json")?, &backup)?;
+    Ok(backup)
 }
 pub async fn delete_backup(
     m: Arc<Manager>,
@@ -248,8 +288,35 @@ mod tests {
             size_bytes: 10,
             worlds: vec!["../escape".into()],
             safety: false,
+            reason: BackupReason::Manual,
+            label: None,
+            minecraft_version: None,
+            server_type: None,
         };
         storage::write_json(&d.path().join("backup.json"), &b).unwrap();
         assert!(read(d.path()).is_err());
+    }
+    #[test]
+    fn legacy_metadata_defaults_without_new_fields() {
+        let d = tempfile::tempdir().unwrap();
+        let id = uuid::Uuid::new_v4().to_string();
+        let dir = d.path().join(&id);
+        fs::create_dir_all(dir.join("world")).unwrap();
+        fs::write(
+            dir.join("backup.json"),
+            format!(
+                r#"{{"id":"{id}","createdAt":"now","sizeBytes":1,"worlds":["world"],"safety":true}}"#
+            ),
+        )
+        .unwrap();
+        let b = read(&dir).unwrap();
+        assert_eq!(b.reason, BackupReason::Safety);
+        assert!(b.label.is_none());
+        assert!(b.minecraft_version.is_none());
+        assert!(b.server_type.is_none());
+        let manual: Backup =
+            serde_json::from_str(r#"{"id":"x","createdAt":"now","sizeBytes":1,"worlds":[]}"#)
+                .unwrap();
+        assert_eq!(manual.reason, BackupReason::Manual);
     }
 }

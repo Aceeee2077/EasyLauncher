@@ -90,12 +90,21 @@ export interface Progress {
   totalBytes: number | null;
   attempt: number;
 }
+export type BackupReason = "manual" | "safety" | "scheduled";
 export interface Backup {
   id: string;
   createdAt: string;
   sizeBytes: number;
   worlds: string[];
   safety: boolean;
+  reason: BackupReason;
+  label: string | null;
+  minecraftVersion: string | null;
+  serverType: ServerType | null;
+}
+export interface RestoreOutcome {
+  backupId: string;
+  safetyBackupId: string | null;
 }
 export interface Settings {
   appearance: "system" | "light" | "dark";

@@ -619,9 +619,13 @@ mod integration_tests {
     async fn backup_restore_properties_and_reopen() {
         let (_temp, m, id) = setup("unused-in-this-test".into());
         let dir = m.dir(&id).unwrap();
-        let backup = crate::backup::create_backup(m.clone(), id.clone())
-            .await
-            .unwrap();
+        let backup = crate::backup::create_backup(
+            m.clone(),
+            id.clone(),
+            crate::models::BackupReason::Manual,
+        )
+        .await
+        .unwrap();
         fs::write(dir.join("world/region/data"), b"changed world").unwrap();
         assert!(
             crate::backup::restore_backup(m.clone(), id.clone(), backup.id.clone(), false)
@@ -678,9 +682,13 @@ mod integration_tests {
             "exactly one duplicate start must succeed"
         );
         wait(&m, &id, Status::Running).await;
-        assert!(crate::backup::create_backup(m.clone(), id.clone())
-            .await
-            .is_err());
+        assert!(crate::backup::create_backup(
+            m.clone(),
+            id.clone(),
+            crate::models::BackupReason::Manual
+        )
+        .await
+        .is_err());
         assert!(m.send(&id, "say Hello\nstop").await.is_err());
         m.send(&id, "say Hello").await.unwrap();
         tokio::time::timeout(std::time::Duration::from_secs(3), async {
