@@ -18,6 +18,8 @@
   --accent: #b6e991;
   --accent-text: #203117;
   --shadow: 0 18px 70px #0005;
+  --sidebar-w: 232px;
+  --page-pad: 44px;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
@@ -141,7 +143,7 @@ small,
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
-  width: 224px;
+  width: var(--sidebar-w);
   background: var(--sidebar);
   border-right: 1px solid var(--border);
   padding: 30px 20px 20px;
@@ -276,17 +278,23 @@ nav > button small {
   margin-right: 5px;
 }
 .main-shell {
-  margin-left: 224px;
-  width: calc(100% - 224px);
+  margin-left: var(--sidebar-w);
+  width: calc(100% - var(--sidebar-w));
   min-width: 0;
 }
 .topbar {
-  height: 72px;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  height: 76px;
   border-bottom: 1px solid var(--border);
-  padding: 0 38px;
+  padding: 0 var(--page-pad);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--bg);
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(14px);
 }
 .breadcrumb {
   display: flex;
@@ -310,9 +318,10 @@ nav > button small {
   gap: 22px;
 }
 main {
-  max-width: 1500px;
-  margin: auto;
-  padding: 36px 38px 20px;
+  width: 100%;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 38px var(--page-pad) 28px;
 }
 .page-heading {
   display: flex;
@@ -367,9 +376,9 @@ main {
 }
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  margin-bottom: 36px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-bottom: 38px;
 }
 .stat {
   position: relative;
@@ -447,8 +456,8 @@ main {
 }
 .server-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 22px;
 }
 .server-card {
   border: 1px solid var(--border);
@@ -1145,24 +1154,39 @@ code {
 }
 .tabs {
   display: flex;
-  gap: 25px;
+  gap: 5px;
   border-bottom: 1px solid var(--border);
-  margin: 27px 0 23px;
+  margin: 28px 0 24px;
+  padding-bottom: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 .tabs button {
   display: flex;
+  flex: none;
   gap: 8px;
   align-items: center;
   background: none;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  padding: 0 1px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 9px 13px;
   font-size: 12px;
   color: var(--muted);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.tabs button:hover {
+  background: var(--surface);
+  color: var(--text);
 }
 .tabs button.active {
+  background: var(--surface2);
+  border-color: var(--border);
   color: var(--accent);
-  border-bottom-color: var(--accent);
 }
 .console-card {
   position: relative;
@@ -2029,19 +2053,12 @@ progress::-webkit-progress-value {
   overflow-wrap: anywhere;
 }
 @media (max-width: 1100px) {
+  :root {
+    --sidebar-w: 195px;
+    --page-pad: 25px;
+  }
   .sidebar {
-    width: 195px;
     padding: 25px 15px;
-  }
-  .main-shell {
-    margin-left: 195px;
-    width: calc(100% - 195px);
-  }
-  main {
-    padding: 28px 25px;
-  }
-  .topbar {
-    padding: 0 25px;
   }
   .stat {
     padding: 20px 12px 37px;

@@ -14,10 +14,11 @@
       {
         "title": "EasyLauncher",
         "theme": "Light",
-        "width": 1280,
-        "height": 850,
-        "minWidth": 900,
-        "minHeight": 640
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1080,
+        "minHeight": 680,
+        "center": true
       }
     ],
     "security": {
