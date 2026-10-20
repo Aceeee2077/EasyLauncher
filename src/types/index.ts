@@ -140,6 +140,20 @@ export interface Settings {
   javaPath: string | null;
   downloadSource: "official" | "china";
   proxy: string | null;
+  readOnly: boolean;
+  assistantEndpoint: string | null;
+  assistantModel: string | null;
+}
+export interface AuditEntry {
+  at: string;
+  action: string;
+  serverId: string | null;
+  serverName: string | null;
+  detail: string;
+}
+export interface SecretStatus {
+  available: boolean;
+  names: string[];
 }
 export interface LaunchInfo {
   javaPath: string;

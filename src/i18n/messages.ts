@@ -28,10 +28,13 @@ export const zh = {
   "assistant.desc": "本地规则始终可用。需要额外解释时，可连接自己的兼容接口。",
   "assistant.setup": "配置接口并预览日志",
   "assistant.privacy":
-    "使用兼容 Chat Completions 的完整接口地址。Key 仅用于本次请求，不写入设置或日志，请求后会清空。仅点击“发送所示片段分析”才会联网；服务可能产生费用。",
+    "使用兼容 Chat Completions 的完整接口地址。默认情况下 Key 只用于本次请求，不写入设置或日志。勾选“记住配置”后，Key 由 Windows DPAPI 绑定当前账户加密保存，接口地址与模型名保存到设置；随时取消勾选并发送即可删除已保存的 Key。仅点击“发送所示片段分析”才会联网；服务可能产生费用。",
   "assistant.endpoint": "完整接口地址（HTTPS 或本机 HTTP）",
   "assistant.model": "模型名称",
   "assistant.key": "API Key（本地免认证接口可留空）",
+  "assistant.remember": "记住配置",
+  "assistant.rememberHint":
+    "仅在支持 Windows DPAPI 的构建中显示。Key 加密后保存在本机，不会进入设置文件或应用日志。",
   "assistant.preview": "准备日志预览",
   "assistant.excerpt": "将发送的日志片段（可编辑）",
   "assistant.review":
@@ -414,6 +417,26 @@ export const zh = {
   "settings.downloads.proxyPlaceholder": "例如 http://127.0.0.1:7890",
   "settings.downloads.proxyHint":
     "仅支持 HTTP 或 HTTPS 代理，留空表示直连。保存后立即生效。",
+  "settings.security.title": "安全与审计",
+  "settings.security.desc":
+    "只读模式会在后端拦截创建、修改、删除与启动等操作；仍允许停止服务器、停止隧道和查看内容。",
+  "settings.security.readOnly": "只读模式",
+  "settings.security.readOnlyHint":
+    "适合演示或共享屏幕时防止误操作。关闭只读模式本身仍可在本页完成。",
+  "settings.security.audit": "操作审计",
+  "settings.security.auditDesc":
+    "仅在本机记录破坏性或改变状态的操作，不包含密钥内容。最多保留约 1 MB，超出后轮转两份历史文件。",
+  "settings.security.empty": "还没有记录到操作。",
+  "settings.security.refresh": "刷新记录",
+  "settings.security.clear": "清空审计记录",
+  "settings.security.clearTitle": "清空本地审计记录？",
+  "settings.security.clearBody":
+    "将删除当前与轮转的审计文件。此操作本身会留下一条新记录。",
+  "settings.security.cleared": "审计记录已清空。",
+  "settings.security.secrets": "已安全保存的密钥",
+  "settings.security.secretsEmpty": "没有保存的密钥。",
+  "settings.security.secretsUnsupported":
+    "当前构建不支持 Windows DPAPI，无法安全保存密钥。",
   "settings.about.desc": "独立软件。与 Mojang 或 Microsoft 无关联。",
   "settings.about.logs": "打开应用日志",
   "settings.save": "保存偏好设置",
@@ -1090,6 +1113,13 @@ export const zh = {
   "errors.rcon.playerList": "无法识别服务器返回的玩家列表。",
   "errors.rcon.protocol": "RCON 返回了无法识别的数据包。",
   "errors.rcon.io": "RCON 连接中断，请稍后重试。",
+  "errors.app.readOnly": "只读模式已开启。请在应用设置中关闭后再修改。",
+  "errors.secrets.name":
+    "密钥名称只能包含小写字母、数字、点、下划线和连字符，1–64 个字符。",
+  "errors.secrets.value": "密钥内容为空或超过 16 KiB，无法保存。",
+  "errors.secrets.unreadable": "无法读取密钥库。请检查文件权限或清理后重试。",
+  "errors.secrets.unsupported": "当前构建不支持 Windows DPAPI，无法安全保存密钥。",
+  "errors.secrets.dpapi": "Windows DPAPI 无法加密或解密该密钥。",
 } as const;
 
 export type MessageKey = keyof typeof zh;
@@ -1127,10 +1157,13 @@ export const en: Record<MessageKey, string> = {
     "Local rules always work. Connect your own compatible endpoint for further explanation.",
   "assistant.setup": "Configure endpoint and preview logs",
   "assistant.privacy":
-    "Use a complete Chat Completions compatible endpoint. The key is used only for this request, never saved in settings or logs, and cleared afterward. Only Send displayed excerpt makes the AI request; your provider may charge for it.",
+    "Use a complete Chat Completions compatible endpoint. By default the key is used only for this request and is never saved in settings or logs. With Remember configuration checked, the key is encrypted for the current Windows account with DPAPI and the endpoint and model are saved in settings; uncheck it and send once to delete the saved key. Only Send displayed excerpt makes the AI request; your provider may charge for it.",
   "assistant.endpoint": "Full endpoint URL (HTTPS or localhost HTTP)",
   "assistant.model": "Model name",
   "assistant.key": "API key (optional for unauthenticated local endpoints)",
+  "assistant.remember": "Remember configuration",
+  "assistant.rememberHint":
+    "Only shown on builds with Windows DPAPI. The encrypted key stays on this machine and never enters the settings file or application logs.",
   "assistant.preview": "Prepare log preview",
   "assistant.excerpt": "Log excerpt to send (editable)",
   "assistant.review":
@@ -1537,6 +1570,26 @@ export const en: Record<MessageKey, string> = {
   "settings.downloads.proxyPlaceholder": "e.g. http://127.0.0.1:7890",
   "settings.downloads.proxyHint":
     "HTTP or HTTPS proxies only. Leave empty for a direct connection. Takes effect immediately after saving.",
+  "settings.security.title": "Security & audit",
+  "settings.security.desc":
+    "Read-only mode blocks creating, changing, deleting and starting from the backend. Stopping servers, stopping tunnels and viewing content stay available.",
+  "settings.security.readOnly": "Read-only mode",
+  "settings.security.readOnlyHint":
+    "Useful when demonstrating or sharing your screen. You can always turn it off again on this page.",
+  "settings.security.audit": "Activity audit",
+  "settings.security.auditDesc":
+    "Records destructive or state-changing actions on this machine only, never secret values. Keeps about 1 MB, then rotates two older files.",
+  "settings.security.empty": "No actions recorded yet.",
+  "settings.security.refresh": "Refresh",
+  "settings.security.clear": "Clear audit log",
+  "settings.security.clearTitle": "Clear the local audit log?",
+  "settings.security.clearBody":
+    "The current and rotated audit files are deleted. This action itself leaves a new entry.",
+  "settings.security.cleared": "Audit log cleared.",
+  "settings.security.secrets": "Secrets stored securely",
+  "settings.security.secretsEmpty": "No secrets stored.",
+  "settings.security.secretsUnsupported":
+    "This build cannot use Windows DPAPI, so secrets cannot be stored securely.",
   "settings.about.desc":
     "Independent software. Not affiliated with Mojang or Microsoft.",
   "settings.about.logs": "Open application logs",
@@ -2268,6 +2321,17 @@ export const en: Record<MessageKey, string> = {
   "errors.rcon.playerList": "The server returned an unrecognized player list.",
   "errors.rcon.protocol": "The RCON endpoint returned an unrecognized packet.",
   "errors.rcon.io": "The RCON connection was interrupted. Try again shortly.",
+  "errors.app.readOnly":
+    "Read-only mode is on. Turn it off in app settings to make changes.",
+  "errors.secrets.name":
+    "Secret names may contain lowercase letters, digits, dots, underscores and hyphens, 1–64 characters.",
+  "errors.secrets.value":
+    "The secret is empty or longer than 16 KiB, so it was not saved.",
+  "errors.secrets.unreadable":
+    "The secret vault cannot be read. Check file permissions or clear it and retry.",
+  "errors.secrets.unsupported":
+    "This build cannot use Windows DPAPI, so secrets cannot be stored securely.",
+  "errors.secrets.dpapi": "Windows DPAPI could not encrypt or decrypt this secret.",
 };
 
 export const messages = { "zh-CN": zh, en } as const;

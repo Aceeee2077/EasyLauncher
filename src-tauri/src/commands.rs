@@ -9,6 +9,13 @@ use std::{
 };
 use tauri::State;
 type Managed<'a> = State<'a, Arc<Manager>>;
+fn audit(m: &Manager, action: &str, id: &str, detail: impl ToString) {
+    let name = m.metadata(id).ok().map(|server| server.name);
+    crate::audit::record(m, action, Some(id), name.as_deref(), detail);
+}
+fn server_name(m: &Manager, id: &str) -> Option<String> {
+    m.metadata(id).ok().map(|server| server.name)
+}
 #[tauri::command]
 pub async fn tunnel_info(m: Managed<'_>, id: String) -> Result<crate::tunnel::Info> {
     crate::tunnel::info(&m, &id).await
@@ -19,11 +26,17 @@ pub async fn tunnel_start(
     id: String,
     config: crate::tunnel::Config,
 ) -> Result<crate::tunnel::Info> {
-    crate::tunnel::start(&m, &id, config).await
+    m.ensure_writable()?;
+    let info = crate::tunnel::start(&m, &id, config).await?;
+    audit(&m, "tunnel.start", &id, "");
+    Ok(info)
 }
 #[tauri::command]
 pub async fn tunnel_stop(m: Managed<'_>, id: String) -> Result<crate::tunnel::Info> {
-    crate::tunnel::stop(&m, &id).await
+    // Read-only mode still allows stopping, never starting, network services.
+    let info = crate::tunnel::stop(&m, &id).await?;
+    audit(&m, "tunnel.stop", &id, "");
+    Ok(info)
 }
 #[tauri::command]
 pub async fn log_assistant_preview(
@@ -79,10 +92,26 @@ pub async fn clean_disk(
     targets: Vec<String>,
     confirmed: bool,
 ) -> Result<crate::disk::DiskCleanupResult> {
+    m.ensure_writable()?;
     let manager = m.inner().clone();
-    tokio::task::spawn_blocking(move || crate::disk::clean(&manager, &id, targets, confirmed))
-        .await
-        .map_err(|e| AppError::new("Could not clean the selected files.", e))?
+    let server_id = id.clone();
+    let scan = targets.clone();
+    let result =
+        tokio::task::spawn_blocking(move || crate::disk::clean(&manager, &id, targets, confirmed))
+            .await
+            .map_err(|e| AppError::new("Could not clean the selected files.", e))??;
+    audit(
+        &m,
+        "disk.clean",
+        &server_id,
+        format!(
+            "{} files, {} bytes; {}",
+            result.removed_files,
+            result.freed_bytes,
+            scan.join(",")
+        ),
+    );
+    Ok(result)
 }
 #[tauri::command]
 pub fn open_share_cards(m: Managed<'_>) -> Result<()> {
@@ -120,19 +149,45 @@ pub async fn list_servers(m: Managed<'_>) -> Result<Vec<ServerView>> {
 }
 #[tauri::command]
 pub async fn create_server(m: Managed<'_>, input: CreateServer) -> Result<Server> {
-    m.create(input).await
+    m.ensure_writable()?;
+    let created = m.create(input).await?;
+    crate::audit::record(
+        &m,
+        "server.create",
+        Some(&created.id),
+        Some(&created.name),
+        format!(
+            "{} {}",
+            created.minecraft_version,
+            match created.server_type {
+                ServerType::Vanilla => "vanilla",
+                ServerType::Paper => "paper",
+                ServerType::Fabric => "fabric",
+            }
+        ),
+    );
+    Ok(created)
 }
 #[tauri::command]
 pub async fn delete_server(m: Managed<'_>, id: String, confirmed: bool) -> Result<()> {
-    m.delete(&id, confirmed).await
+    m.ensure_writable()?;
+    let name = server_name(&m, &id);
+    m.delete(&id, confirmed).await?;
+    crate::audit::record(&m, "server.delete", Some(&id), name.as_deref(), "");
+    Ok(())
 }
 #[tauri::command]
 pub async fn install_server(m: Managed<'_>, id: String) -> Result<()> {
-    m.install(&id).await
+    m.ensure_writable()?;
+    m.install(&id).await?;
+    audit(&m, "server.install", &id, "");
+    Ok(())
 }
 #[tauri::command]
 pub async fn cancel_install(m: Managed<'_>, id: String) -> Result<()> {
+    m.ensure_writable()?;
     m.runtime(&id)?.cancelled.store(true, Ordering::Relaxed);
+    audit(&m, "server.cancelInstall", &id, "");
     Ok(())
 }
 /// Critical pre-flight findings that should stop a start attempt before Java launches.
@@ -150,6 +205,7 @@ pub async fn start_preflight(
 }
 #[tauri::command]
 pub async fn start_server(m: Managed<'_>, id: String, force: Option<bool>) -> Result<()> {
+    m.ensure_writable()?;
     if !force.unwrap_or(false) {
         let report = crate::server::diagnostics::health(m.inner().as_ref(), &id).await?;
         if report.checks.iter().any(|check| check.level == "critical") {
@@ -159,15 +215,24 @@ pub async fn start_server(m: Managed<'_>, id: String, force: Option<bool>) -> Re
             .with_code("server.preflightBlocked"));
         }
     }
-    m.start(&id).await
+    m.start(&id).await?;
+    audit(&m, "server.start", &id, "");
+    Ok(())
 }
 #[tauri::command]
 pub async fn stop_server(m: Managed<'_>, id: String) -> Result<()> {
-    m.stop(&id).await
+    // Read-only mode still allows stopping, so a running server can always be
+    // shut down; starting and restarting stay blocked.
+    m.stop(&id).await?;
+    audit(&m, "server.stop", &id, "");
+    Ok(())
 }
 #[tauri::command]
 pub async fn restart_server(m: Managed<'_>, id: String) -> Result<()> {
-    m.restart(&id).await
+    m.ensure_writable()?;
+    m.restart(&id).await?;
+    audit(&m, "server.restart", &id, "");
+    Ok(())
 }
 #[tauri::command]
 pub async fn get_server_status(m: Managed<'_>, id: String) -> Result<Snapshot> {
@@ -175,7 +240,15 @@ pub async fn get_server_status(m: Managed<'_>, id: String) -> Result<Snapshot> {
 }
 #[tauri::command]
 pub async fn send_console_command(m: Managed<'_>, id: String, command: String) -> Result<()> {
-    m.send(&id, &command).await
+    m.ensure_writable()?;
+    m.send(&id, &command).await?;
+    audit(
+        &m,
+        "console.command",
+        &id,
+        command.lines().next().unwrap_or(""),
+    );
+    Ok(())
 }
 #[tauri::command]
 pub async fn launch_command(m: Managed<'_>, id: String) -> Result<LaunchInfo> {
@@ -215,7 +288,10 @@ pub async fn update_server_properties(
     properties: Option<BTreeMap<String, String>>,
     raw: Option<String>,
 ) -> Result<()> {
-    m.save_properties(&id, properties, raw).await
+    m.ensure_writable()?;
+    m.save_properties(&id, properties, raw).await?;
+    audit(&m, "properties.update", &id, "");
+    Ok(())
 }
 #[tauri::command]
 pub async fn preview_properties_template(
@@ -227,7 +303,10 @@ pub async fn preview_properties_template(
 }
 #[tauri::command]
 pub async fn apply_properties_template(m: Managed<'_>, id: String, template: String) -> Result<()> {
-    m.apply_properties_template(&id, &template).await
+    m.ensure_writable()?;
+    m.apply_properties_template(&id, &template).await?;
+    audit(&m, "properties.template", &id, &template);
+    Ok(())
 }
 #[tauri::command]
 pub async fn update_resources(
@@ -237,11 +316,17 @@ pub async fn update_resources(
     max: u32,
     java_path: String,
 ) -> Result<()> {
-    m.update_resources(&id, min, max, java_path).await
+    m.ensure_writable()?;
+    m.update_resources(&id, min, max, java_path).await?;
+    audit(&m, "server.resources", &id, format!("{min}-{max} MB"));
+    Ok(())
 }
 #[tauri::command]
 pub async fn update_auto_restart(m: Managed<'_>, id: String, enabled: bool) -> Result<Server> {
-    m.update_auto_restart(&id, enabled).await
+    m.ensure_writable()?;
+    let server = m.update_auto_restart(&id, enabled).await?;
+    audit(&m, "server.autoRestart", &id, enabled.to_string());
+    Ok(server)
 }
 #[tauri::command]
 pub async fn update_jvm(
@@ -250,7 +335,10 @@ pub async fn update_jvm(
     preset: JvmPreset,
     flags: Vec<String>,
 ) -> Result<Server> {
-    m.update_jvm(&id, preset, flags).await
+    m.ensure_writable()?;
+    let server = m.update_jvm(&id, preset, flags).await?;
+    audit(&m, "server.jvm", &id, format!("{preset:?}"));
+    Ok(server)
 }
 #[tauri::command]
 pub async fn detect_java(
@@ -266,12 +354,18 @@ pub async fn list_managed_java(m: Managed<'_>) -> Result<Vec<crate::java::manage
 #[tauri::command]
 pub async fn install_java(m: Managed<'_>, major: u32) -> Result<crate::java::managed::ManagedJava> {
     m.ready()?;
-    crate::java::managed::install(m.inner().as_ref(), major).await
+    m.ensure_writable()?;
+    let runtime = crate::java::managed::install(m.inner().as_ref(), major).await?;
+    crate::audit::record(&m, "java.install", None, None, format!("Java {major}"));
+    Ok(runtime)
 }
 #[tauri::command]
 pub async fn delete_java(m: Managed<'_>, id: String, confirmed: bool) -> Result<()> {
     m.ready()?;
-    crate::java::managed::delete(m.inner().as_ref(), &id, confirmed).await
+    m.ensure_writable()?;
+    crate::java::managed::delete(m.inner().as_ref(), &id, confirmed).await?;
+    crate::audit::record(&m, "java.delete", None, None, &id);
+    Ok(())
 }
 #[tauri::command]
 pub async fn validate_java(
@@ -310,11 +404,63 @@ pub async fn get_settings(m: Managed<'_>) -> Result<Settings> {
 }
 #[tauri::command]
 pub async fn save_settings(m: Managed<'_>, settings: Settings) -> Result<()> {
-    m.save_settings(settings).await
+    let before = m.settings()?.read_only;
+    m.save_settings(settings.clone()).await?;
+    if before != settings.read_only {
+        crate::audit::record(
+            &m,
+            "settings.readOnly",
+            None,
+            None,
+            if settings.read_only {
+                "enabled"
+            } else {
+                "disabled"
+            },
+        );
+    }
+    Ok(())
+}
+#[tauri::command]
+pub fn audit_list(m: Managed<'_>, limit: Option<u32>) -> Result<Vec<crate::audit::Entry>> {
+    crate::audit::list(&m, limit.unwrap_or(100) as usize)
+}
+#[tauri::command]
+pub fn audit_clear(m: Managed<'_>) -> Result<()> {
+    m.ensure_writable()?;
+    crate::audit::clear(&m)?;
+    crate::audit::record(&m, "audit.clear", None, None, "cleared by user");
+    Ok(())
+}
+#[tauri::command]
+pub fn secret_status(m: Managed<'_>) -> Result<crate::secrets::Status> {
+    crate::secrets::status(&m)
+}
+#[tauri::command]
+pub fn secret_save(m: Managed<'_>, name: String, value: String) -> Result<()> {
+    m.ensure_writable()?;
+    crate::secrets::save(&m, &name, &value)?;
+    crate::audit::record(&m, "secret.save", None, None, &name);
+    Ok(())
+}
+#[tauri::command]
+pub fn secret_load(m: Managed<'_>, name: String) -> Result<Option<String>> {
+    crate::secrets::load(&m, &name)
+}
+#[tauri::command]
+pub fn secret_delete(m: Managed<'_>, name: String) -> Result<()> {
+    m.ensure_writable()?;
+    crate::secrets::delete(&m, &name)?;
+    crate::audit::record(&m, "secret.delete", None, None, &name);
+    Ok(())
 }
 #[tauri::command]
 pub async fn create_backup(m: Managed<'_>, id: String) -> Result<Backup> {
-    crate::backup::create_backup(m.inner().clone(), id, BackupReason::Manual).await
+    m.ensure_writable()?;
+    let backup =
+        crate::backup::create_backup(m.inner().clone(), id.clone(), BackupReason::Manual).await?;
+    audit(&m, "backup.create", &id, &backup.id);
+    Ok(backup)
 }
 #[tauri::command]
 pub async fn list_backups(m: Managed<'_>, id: String) -> Result<Vec<Backup>> {
@@ -330,7 +476,20 @@ pub async fn restore_backup(
     backup_id: String,
     confirmed: bool,
 ) -> Result<RestoreOutcome> {
-    crate::backup::restore_backup(m.inner().clone(), id, backup_id, confirmed).await
+    m.ensure_writable()?;
+    let outcome =
+        crate::backup::restore_backup(m.inner().clone(), id.clone(), backup_id.clone(), confirmed)
+            .await?;
+    audit(
+        &m,
+        "backup.restore",
+        &id,
+        format!(
+            "{backup_id} (safety: {})",
+            outcome.safety_backup_id.as_deref().unwrap_or("none")
+        ),
+    );
+    Ok(outcome)
 }
 #[tauri::command]
 pub async fn set_backup_label(
@@ -339,10 +498,16 @@ pub async fn set_backup_label(
     backup_id: String,
     label: Option<String>,
 ) -> Result<Backup> {
+    m.ensure_writable()?;
     let manager = m.inner().clone();
-    tokio::task::spawn_blocking(move || crate::backup::set_label(&manager, &id, &backup_id, label))
-        .await
-        .map_err(|e| AppError::new("Could not update the backup label.", e))?
+    let server_id = id.clone();
+    let backup = tokio::task::spawn_blocking(move || {
+        crate::backup::set_label(&manager, &id, &backup_id, label)
+    })
+    .await
+    .map_err(|e| AppError::new("Could not update the backup label.", e))??;
+    audit(&m, "backup.label", &server_id, &backup.id);
+    Ok(backup)
 }
 #[tauri::command]
 pub async fn delete_backup(
@@ -351,7 +516,11 @@ pub async fn delete_backup(
     backup_id: String,
     confirmed: bool,
 ) -> Result<()> {
-    crate::backup::delete_backup(m.inner().clone(), id, backup_id, confirmed).await
+    m.ensure_writable()?;
+    crate::backup::delete_backup(m.inner().clone(), id.clone(), backup_id.clone(), confirmed)
+        .await?;
+    audit(&m, "backup.delete", &id, &backup_id);
+    Ok(())
 }
 #[tauri::command]
 pub async fn player_action(
@@ -360,6 +529,7 @@ pub async fn player_action(
     player: String,
     action: String,
 ) -> Result<()> {
+    m.ensure_writable()?;
     if !crate::server::process::valid_player(&player) {
         return Err(AppError::user(
             "Player names must be 1–16 letters, numbers or underscores.",
@@ -375,7 +545,9 @@ pub async fn player_action(
         "whitelistRemove" => "whitelist remove",
         _ => return Err(AppError::user("Unknown player action.")),
     };
-    m.send(&id, &format!("{prefix} {player}")).await
+    m.send(&id, &format!("{prefix} {player}")).await?;
+    audit(&m, "player.action", &id, format!("{action} {player}"));
+    Ok(())
 }
 #[tauri::command]
 pub async fn rcon_info(m: Managed<'_>, id: String) -> Result<crate::rcon::RconInfo> {
@@ -387,15 +559,24 @@ pub async fn rcon_enable(
     id: String,
     port: Option<u16>,
 ) -> Result<crate::rcon::RconInfo> {
-    crate::rcon::enable(m.inner(), &id, port).await
+    m.ensure_writable()?;
+    let info = crate::rcon::enable(m.inner(), &id, port).await?;
+    audit(&m, "rcon.enable", &id, info.port.to_string());
+    Ok(info)
 }
 #[tauri::command]
 pub async fn rcon_disable(m: Managed<'_>, id: String) -> Result<crate::rcon::RconInfo> {
-    crate::rcon::disable(m.inner(), &id).await
+    m.ensure_writable()?;
+    let info = crate::rcon::disable(m.inner(), &id).await?;
+    audit(&m, "rcon.disable", &id, "");
+    Ok(info)
 }
 #[tauri::command]
 pub async fn rcon_execute(m: Managed<'_>, id: String, command: String) -> Result<String> {
-    crate::rcon::execute(m.inner(), &id, &command).await
+    m.ensure_writable()?;
+    let output = crate::rcon::execute(m.inner(), &id, &command).await?;
+    audit(&m, "rcon.execute", &id, &command);
+    Ok(output)
 }
 #[tauri::command]
 pub async fn rcon_players(m: Managed<'_>, id: String) -> Result<Vec<String>> {
@@ -518,7 +699,17 @@ pub async fn modrinth_install(
     version_id: String,
     kind: String,
 ) -> Result<crate::modrinth::ContentEntry> {
-    crate::modrinth::install(m.inner().clone(), id, project_id, version_id, kind).await
+    m.ensure_writable()?;
+    let server_id = id.clone();
+    let entry =
+        crate::modrinth::install(m.inner().clone(), id, project_id, version_id, kind).await?;
+    audit(
+        &m,
+        "content.install",
+        &server_id,
+        format!("{} {}", entry.title, entry.version_number),
+    );
+    Ok(entry)
 }
 #[tauri::command]
 pub async fn modpack_install(
@@ -527,7 +718,17 @@ pub async fn modpack_install(
     project_id: String,
     version_id: String,
 ) -> Result<crate::modrinth::ModpackReport> {
-    crate::modrinth::install_modpack(m.inner().clone(), id, project_id, version_id).await
+    m.ensure_writable()?;
+    let server_id = id.clone();
+    let report =
+        crate::modrinth::install_modpack(m.inner().clone(), id, project_id, version_id).await?;
+    audit(
+        &m,
+        "modpack.install",
+        &server_id,
+        format!("{} {}", report.name, report.version),
+    );
+    Ok(report)
 }
 #[tauri::command]
 pub async fn content_list(m: Managed<'_>, id: String) -> Result<crate::modrinth::ContentListing> {
@@ -535,7 +736,10 @@ pub async fn content_list(m: Managed<'_>, id: String) -> Result<crate::modrinth:
 }
 #[tauri::command]
 pub async fn content_remove(m: Managed<'_>, id: String, project_id: String) -> Result<()> {
-    crate::modrinth::remove(m.inner().clone(), id, project_id).await
+    m.ensure_writable()?;
+    crate::modrinth::remove(m.inner().clone(), id.clone(), project_id.clone()).await?;
+    audit(&m, "content.remove", &id, &project_id);
+    Ok(())
 }
 #[tauri::command]
 pub async fn content_remove_file(
@@ -544,7 +748,10 @@ pub async fn content_remove_file(
     kind: String,
     name: String,
 ) -> Result<()> {
-    crate::modrinth::remove_file(m.inner().clone(), id, kind, name).await
+    m.ensure_writable()?;
+    crate::modrinth::remove_file(m.inner().clone(), id.clone(), kind, name.clone()).await?;
+    audit(&m, "content.removeFile", &id, &name);
+    Ok(())
 }
 #[tauri::command]
 pub async fn list_tasks(m: Managed<'_>, id: String) -> Result<Vec<crate::schedule::Task>> {
@@ -559,10 +766,19 @@ pub async fn create_task(
     id: String,
     input: crate::schedule::TaskInput,
 ) -> Result<crate::schedule::Task> {
+    m.ensure_writable()?;
     let manager = m.inner().clone();
-    tokio::task::spawn_blocking(move || crate::schedule::create(&manager, &id, input))
+    let server_id = id.clone();
+    let task = tokio::task::spawn_blocking(move || crate::schedule::create(&manager, &id, input))
         .await
-        .map_err(|e| AppError::new("Could not save the scheduled task.", e))?
+        .map_err(|e| AppError::new("Could not save the scheduled task.", e))??;
+    audit(
+        &m,
+        "task.create",
+        &server_id,
+        format!("{:?} {}", task.action, task.id),
+    );
+    Ok(task)
 }
 #[tauri::command]
 pub async fn update_task(
@@ -571,21 +787,36 @@ pub async fn update_task(
     task_id: String,
     input: crate::schedule::TaskInput,
 ) -> Result<crate::schedule::Task> {
+    m.ensure_writable()?;
     let manager = m.inner().clone();
-    tokio::task::spawn_blocking(move || crate::schedule::update(&manager, &id, &task_id, input))
-        .await
-        .map_err(|e| AppError::new("Could not save the scheduled task.", e))?
+    let server_id = id.clone();
+    let audit_id = task_id.clone();
+    let task = tokio::task::spawn_blocking(move || {
+        crate::schedule::update(&manager, &id, &task_id, input)
+    })
+    .await
+    .map_err(|e| AppError::new("Could not save the scheduled task.", e))??;
+    audit(&m, "task.update", &server_id, &audit_id);
+    Ok(task)
 }
 #[tauri::command]
 pub async fn delete_task(m: Managed<'_>, id: String, task_id: String) -> Result<()> {
+    m.ensure_writable()?;
     let manager = m.inner().clone();
+    let server_id = id.clone();
+    let audit_id = task_id.clone();
     tokio::task::spawn_blocking(move || crate::schedule::delete(&manager, &id, &task_id))
         .await
-        .map_err(|e| AppError::new("Could not delete the scheduled task.", e))?
+        .map_err(|e| AppError::new("Could not delete the scheduled task.", e))??;
+    audit(&m, "task.delete", &server_id, &audit_id);
+    Ok(())
 }
 #[tauri::command]
 pub async fn run_task_now(m: Managed<'_>, id: String, task_id: String) -> Result<()> {
-    crate::schedule::run_now(m.inner(), &id, &task_id).await
+    m.ensure_writable()?;
+    crate::schedule::run_now(m.inner(), &id, &task_id).await?;
+    audit(&m, "task.run", &id, &task_id);
+    Ok(())
 }
 #[tauri::command]
 pub async fn monitor_metrics(
@@ -619,6 +850,7 @@ pub async fn monitor_alerts(
 }
 #[tauri::command]
 pub async fn clear_monitor_alerts(m: Managed<'_>, id: String) -> Result<()> {
+    m.ensure_writable()?;
     let manager = m.inner().clone();
     tokio::task::spawn_blocking(move || crate::monitor::clear_alerts(&manager, &id))
         .await
@@ -637,6 +869,7 @@ pub async fn save_monitor_rules(
     id: String,
     rules: crate::monitor::AlertRules,
 ) -> Result<crate::monitor::AlertRules> {
+    m.ensure_writable()?;
     let manager = m.inner().clone();
     tokio::task::spawn_blocking(move || crate::monitor::save_rules(&manager, &id, rules))
         .await
@@ -648,7 +881,11 @@ pub fn web_console_info(r: Remote<'_>) -> Option<crate::remote::WebConsoleInfo> 
     r.info()
 }
 #[tauri::command]
-pub async fn start_web_console(r: Remote<'_>) -> Result<crate::remote::WebConsoleInfo> {
+pub async fn start_web_console(
+    m: Managed<'_>,
+    r: Remote<'_>,
+) -> Result<crate::remote::WebConsoleInfo> {
+    m.ensure_writable()?;
     r.start().await
 }
 #[tauri::command]
@@ -665,11 +902,26 @@ pub async fn network_map(
     id: String,
     external_port: Option<u16>,
 ) -> Result<crate::upnp::NetworkReport> {
-    crate::upnp::map(m.inner().as_ref(), &id, external_port).await
+    m.ensure_writable()?;
+    let report = crate::upnp::map(m.inner().as_ref(), &id, external_port).await?;
+    audit(
+        &m,
+        "network.map",
+        &id,
+        report
+            .mapping
+            .as_ref()
+            .map(|mapping| format!("{}->{}", mapping.external_port, mapping.internal_port))
+            .unwrap_or_default(),
+    );
+    Ok(report)
 }
 #[tauri::command]
 pub async fn network_unmap(m: Managed<'_>, id: String) -> Result<crate::upnp::NetworkReport> {
-    crate::upnp::unmap(m.inner().as_ref(), &id).await
+    m.ensure_writable()?;
+    let report = crate::upnp::unmap(m.inner().as_ref(), &id).await?;
+    audit(&m, "network.unmap", &id, "");
+    Ok(report)
 }
 #[tauri::command]
 pub async fn network_check(m: Managed<'_>, id: String) -> Result<crate::network::NetworkCheck> {
@@ -692,8 +944,11 @@ pub async fn network_check(m: Managed<'_>, id: String) -> Result<crate::network:
     })
 }
 #[tauri::command]
-pub fn firewall_allow(port: u16) -> Result<()> {
-    crate::network::allow_firewall(port)
+pub fn firewall_allow(m: Managed<'_>, port: u16) -> Result<()> {
+    m.ensure_writable()?;
+    crate::network::allow_firewall(port)?;
+    crate::audit::record(&m, "network.firewall", None, None, port.to_string());
+    Ok(())
 }
 #[tauri::command]
 pub async fn pick_server_folder() -> Result<Option<String>> {
@@ -715,5 +970,16 @@ pub async fn import_server(
     minecraft_version: String,
     eula_accepted: bool,
 ) -> Result<Server> {
-    crate::import::import_folder(m.inner(), path, name, minecraft_version, eula_accepted).await
+    m.ensure_writable()?;
+    let server =
+        crate::import::import_folder(m.inner(), path, name, minecraft_version, eula_accepted)
+            .await?;
+    crate::audit::record(
+        &m,
+        "server.import",
+        Some(&server.id),
+        Some(&server.name),
+        "",
+    );
+    Ok(server)
 }

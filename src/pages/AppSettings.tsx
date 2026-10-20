@@ -8,15 +8,20 @@ import {
   Download,
   Languages,
   PackagePlus,
+  RefreshCw,
+  ScrollText,
+  Shield,
   Trash2,
 } from "lucide-react";
 import { Button, Field, GuideLink, Modal, bytes, date } from "../components/ui";
 import { brand, call, desktop } from "../services/api";
 import { useI18n } from "../i18n";
 import type {
+  AuditEntry,
   JavaProgress,
   JavaRuntime,
   ManagedJava,
+  SecretStatus,
   Settings,
   SystemInfo,
 } from "../types";
@@ -40,21 +45,32 @@ export function AppSettings({
     javaPath: null,
     downloadSource: "official",
     proxy: null,
+    readOnly: false,
+    assistantEndpoint: null,
+    assistantModel: null,
   });
   const [java, setJava] = useState<JavaRuntime[]>([]);
   const [managed, setManaged] = useState<ManagedJava[]>([]);
   const [progress, setProgress] = useState<JavaProgress | null>(null);
   const [installing, setInstalling] = useState<number | null>(null);
   const [removing, setRemoving] = useState<ManagedJava | null>(null);
+  const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [secrets, setSecrets] = useState<SecretStatus | null>(null);
+  const [clearingAudit, setClearingAudit] = useState(false);
   const [message, setMessage] = useState("");
 
   const reload = async () => setManaged(await call("list_managed_java"));
+  const reloadAudit = async () =>
+    setAudit(await call("audit_list", { limit: 50 }));
+  const reloadSecrets = async () => setSecrets(await call("secret_status"));
 
   useEffect(() => {
     void run(`getSettings-${crypto.randomUUID()}`, async () =>
       setSettings(await call("get_settings")),
     );
     void run("listManaged", reload);
+    void run("loadAudit", reloadAudit);
+    void run("loadSecrets", reloadSecrets);
   }, []);
 
   useEffect(() => {
@@ -115,6 +131,23 @@ export function AppSettings({
       setRemoving(null);
       await reload();
       setMessage(t("settings.java.removed", { major: item.major }));
+    });
+
+  const toggleReadOnly = () =>
+    void run("toggleReadOnly", async () => {
+      const updated = { ...settings, readOnly: !settings.readOnly };
+      await call("save_settings", { settings: updated });
+      setSettings(updated);
+      setMessage(t("settings.saved"));
+      await reloadAudit();
+    });
+
+  const clearAudit = () =>
+    void run("clearAudit", async () => {
+      await call("audit_clear");
+      setClearingAudit(false);
+      await reloadAudit();
+      setMessage(t("settings.security.cleared"));
     });
 
   return (
@@ -379,6 +412,95 @@ export function AppSettings({
         <div className="section-title">
           <div>
             <h2>
+              <Shield size={18} />
+              {t("settings.security.title")}
+            </h2>
+            <p>{t("settings.security.desc")}</p>
+          </div>
+        </div>
+        <label className="inline-check">
+          <input
+            type="checkbox"
+            checked={settings.readOnly}
+            disabled={busy.has("toggleReadOnly")}
+            onChange={toggleReadOnly}
+          />
+          <strong>{t("settings.security.readOnly")}</strong>
+        </label>
+        <p className="small muted">{t("settings.security.readOnlyHint")}</p>
+        <div className="section-title">
+          <div>
+            <h3>
+              <ScrollText size={15} />
+              {t("settings.security.audit")}
+            </h3>
+            <p>{t("settings.security.auditDesc")}</p>
+          </div>
+          <div className="row">
+            <Button
+              busy={busy.has("loadAudit")}
+              onClick={() => void run("loadAudit", reloadAudit)}
+            >
+              <RefreshCw size={15} />
+              {t("settings.security.refresh")}
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={settings.readOnly || !audit.length}
+              onClick={() => setClearingAudit(true)}
+            >
+              <Trash2 size={15} />
+              {t("settings.security.clear")}
+            </Button>
+          </div>
+        </div>
+        {audit.length ? (
+          <div className="alert-list">
+            {audit.map((entry, index) => (
+              <article
+                className="alert-item"
+                key={`${entry.at}-${entry.action}-${index}`}
+              >
+                <span className="alert-icon">
+                  <ScrollText size={15} />
+                </span>
+                <div>
+                  <strong>
+                    <code>{entry.action}</code>
+                    {entry.serverName ? ` · ${entry.serverName}` : ""}
+                  </strong>
+                  <small>{entry.detail}</small>
+                </div>
+                <time>{date(entry.at)}</time>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="small muted">{t("settings.security.empty")}</p>
+        )}
+        <h3>{t("settings.security.secrets")}</h3>
+        {secrets?.available ? (
+          secrets.names.length ? (
+            <div className="row">
+              {secrets.names.map((name) => (
+                <code className="tag" key={name}>
+                  {name}
+                </code>
+              ))}
+            </div>
+          ) : (
+            <p className="small muted">{t("settings.security.secretsEmpty")}</p>
+          )
+        ) : (
+          <p className="small muted">
+            {t("settings.security.secretsUnsupported")}
+          </p>
+        )}
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
               <Info size={18} />
               {brand.name} {brand.version}
             </h2>
@@ -430,6 +552,26 @@ export function AppSettings({
               onClick={() => removeJava(removing)}
             >
               {t("settings.java.remove")}
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {clearingAudit && (
+        <Modal
+          title={t("settings.security.clearTitle")}
+          onClose={() => setClearingAudit(false)}
+        >
+          <p>{t("settings.security.clearBody")}</p>
+          <div className="modal-actions">
+            <Button onClick={() => setClearingAudit(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="danger"
+              busy={busy.has("clearAudit")}
+              onClick={clearAudit}
+            >
+              {t("settings.security.clear")}
             </Button>
           </div>
         </Modal>

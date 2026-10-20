@@ -1,3 +1,4 @@
+pub mod audit;
 pub mod backup;
 pub mod backup_diff;
 mod commands;
@@ -18,6 +19,7 @@ pub mod player_stats;
 pub mod rcon;
 pub mod remote;
 pub mod schedule;
+pub mod secrets;
 pub mod server;
 pub mod storage;
 pub mod tunnel;
@@ -84,6 +86,12 @@ pub fn run() {
             commands::system_info,
             commands::get_settings,
             commands::save_settings,
+            commands::audit_list,
+            commands::audit_clear,
+            commands::secret_status,
+            commands::secret_save,
+            commands::secret_load,
+            commands::secret_delete,
             commands::create_backup,
             commands::list_backups,
             commands::compare_backups,

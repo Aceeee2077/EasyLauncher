@@ -160,6 +160,14 @@ pub struct Settings {
     pub download_source: DownloadSource,
     #[serde(default)]
     pub proxy: Option<String>,
+    /// Blocks state-changing commands while enabled. Kept in Settings so the
+    /// frontend and backend read one source of truth.
+    #[serde(default)]
+    pub read_only: bool,
+    #[serde(default)]
+    pub assistant_endpoint: Option<String>,
+    #[serde(default)]
+    pub assistant_model: Option<String>,
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]

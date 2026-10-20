@@ -43,6 +43,8 @@ import type {
   TunnelConfig,
   TunnelInfo,
   RconInfo,
+  AuditEntry,
+  SecretStatus,
 } from "../types";
 type Contract = {
   tunnel_info: [{ id: string }, TunnelInfo];
@@ -115,6 +117,12 @@ type Contract = {
   system_info: [undefined, SystemInfo];
   get_settings: [undefined, Settings];
   save_settings: [{ settings: Settings }, void];
+  audit_list: [{ limit?: number }, AuditEntry[]];
+  audit_clear: [undefined, void];
+  secret_status: [undefined, SecretStatus];
+  secret_save: [{ name: string; value: string }, void];
+  secret_load: [{ name: string }, string | null];
+  secret_delete: [{ name: string }, void];
   create_backup: [{ id: string }, Backup];
   list_backups: [{ id: string }, Backup[]];
   restore_backup: [

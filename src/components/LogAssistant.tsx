@@ -1,21 +1,65 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Button, Field } from "./ui";
 import { call } from "../services/api";
 import { useI18n } from "../i18n";
+import type { Settings } from "../types";
 import type { TaskProps } from "../utils/task";
 
 export function LogAssistant({ id, run, busy }: TaskProps & { id: string }) {
   const { t, locale } = useI18n();
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [endpoint, setEndpoint] = useState("");
   const [model, setModel] = useState("");
   const [key, setKey] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [secretAvailable, setSecretAvailable] = useState(false);
   const [preview, setPreview] = useState<{
     excerpt: string;
     source: string | null;
   } | null>(null);
   const [answer, setAnswer] = useState("");
   const task = `log-ai-${id}`;
+  useEffect(() => {
+    let alive = true;
+    void run(`log-ai-load-${id}`, async () => {
+      const [saved, status] = await Promise.all([
+        call("get_settings"),
+        call("secret_status"),
+      ]);
+      if (!alive) return;
+      setSettings(saved);
+      setEndpoint(saved.assistantEndpoint ?? "");
+      setModel(saved.assistantModel ?? "");
+      setSecretAvailable(status.available);
+      if (status.available && status.names.includes("assistant.key")) {
+        const stored = await call("secret_load", { name: "assistant.key" });
+        if (alive && stored) {
+          setKey(stored);
+          setRemember(true);
+        }
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+  const rememberSettings = async () => {
+    if (!settings) return;
+    if (
+      settings.assistantEndpoint === endpoint &&
+      settings.assistantModel === model
+    ) {
+      return;
+    }
+    const updated = {
+      ...settings,
+      assistantEndpoint: endpoint,
+      assistantModel: model,
+    };
+    await call("save_settings", { settings: updated });
+    setSettings(updated);
+  };
   return (
     <section className="panel">
       <h2>
@@ -57,6 +101,20 @@ export function LogAssistant({ id, run, busy }: TaskProps & { id: string }) {
             />
           </Field>
         </div>
+        {secretAvailable && (
+          <label className="small inline-check">
+            <input
+              type="checkbox"
+              checked={remember}
+              disabled={busy.has(task)}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            {t("assistant.remember")}
+          </label>
+        )}
+        {secretAvailable && (
+          <p className="small muted">{t("assistant.rememberHint")}</p>
+        )}
         <Button
           busy={busy.has(`${task}-preview`)}
           disabled={busy.has(task)}
@@ -95,6 +153,19 @@ export function LogAssistant({ id, run, busy }: TaskProps & { id: string }) {
                 void run(task, async () => {
                   setAnswer("");
                   try {
+                    if (secretAvailable) {
+                      if (remember) {
+                        await call("secret_save", {
+                          name: "assistant.key",
+                          value: key,
+                        });
+                      } else {
+                        await call("secret_delete", {
+                          name: "assistant.key",
+                        });
+                      }
+                    }
+                    await rememberSettings();
                     setAnswer(
                       await call("analyze_log", {
                         id,
@@ -106,7 +177,7 @@ export function LogAssistant({ id, run, busy }: TaskProps & { id: string }) {
                       }),
                     );
                   } finally {
-                    setKey("");
+                    if (!remember) setKey("");
                   }
                 })
               }

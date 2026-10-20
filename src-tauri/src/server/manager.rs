@@ -562,6 +562,18 @@ impl Manager {
     pub fn settings(&self) -> Result<Settings> {
         load_settings(&self.root)
     }
+    /// Rejects state-changing commands while read-only mode is on. Settings
+    /// remain editable so the mode can be turned off again.
+    pub fn ensure_writable(&self) -> Result<()> {
+        if self.settings()?.read_only {
+            Err(AppError::user(
+                "Read-only mode is on. Turn it off in app settings to make changes.",
+            )
+            .with_code("app.readOnly"))
+        } else {
+            Ok(())
+        }
+    }
     pub async fn save_settings(&self, mut s: Settings) -> Result<()> {
         let _g = self.settings_gate.lock().await;
         if let Some(p) = &s.java_path {
