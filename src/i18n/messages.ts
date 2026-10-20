@@ -42,6 +42,20 @@ export const zh = {
   "serverSettings.profile.performance": "优先流畅",
   "serverSettings.profile.hint":
     "预设仅填入视距、模拟距离和玩家上限；检查后点击“保存设置”。",
+  "serverSettings.template.title": "配置模板",
+  "serverSettings.template.desc":
+    "用内置模板快速调整玩法或性能，先预览逐项差异，再决定是否写入。",
+  "serverSettings.template.survival": "生存模式",
+  "serverSettings.template.creative": "创造模式",
+  "serverSettings.template.performance": "性能优先",
+  "serverSettings.template.hint":
+    "模板只修改玩法与性能相关的键，端口、MOTD、世界名和文件中的注释都会保留。",
+  "serverSettings.template.previewTitle": "应用模板：{name}",
+  "serverSettings.template.previewHint":
+    "确认后只写入下列改动，其他配置与注释保持不变。",
+  "serverSettings.template.apply": "应用这些更改",
+  "serverSettings.template.noChanges": "当前配置已符合这个模板。",
+  "serverSettings.template.unset": "（未设置）",
   "serverSettings.memory.recommend": "填入内存建议",
   "serverSettings.memory.note":
     "建议为当前可用内存的一部分；大型整合包可能需要调整，保存与启动时会再次校验。",
@@ -1021,6 +1035,21 @@ export const en: Record<MessageKey, string> = {
   "serverSettings.profile.performance": "Prefer performance",
   "serverSettings.profile.hint":
     "Presets fill view distance, simulation distance and player cap. Review, then save settings.",
+  "serverSettings.template.title": "Configuration templates",
+  "serverSettings.template.desc":
+    "Apply a built-in gameplay or performance template after reviewing every change.",
+  "serverSettings.template.survival": "Survival",
+  "serverSettings.template.creative": "Creative",
+  "serverSettings.template.performance": "Performance first",
+  "serverSettings.template.hint":
+    "Templates only touch gameplay and performance keys. Ports, MOTD, the world name and file comments stay intact.",
+  "serverSettings.template.previewTitle": "Apply template: {name}",
+  "serverSettings.template.previewHint":
+    "Only the changes below are written after you confirm.",
+  "serverSettings.template.apply": "Apply these changes",
+  "serverSettings.template.noChanges":
+    "The current configuration already matches this template.",
+  "serverSettings.template.unset": "(not set)",
   "serverSettings.memory.recommend": "Suggest memory",
   "serverSettings.memory.note":
     "Uses a portion of currently available RAM. Large modpacks may need adjustment; limits are validated on save and launch.",

@@ -19,6 +19,12 @@ export interface Snapshot {
   players: string[];
 }
 export type JvmPreset = "balanced" | "aikar" | "paper" | "custom";
+export type PropertyTemplate = "survival" | "creative" | "performance";
+export interface PropertyChange {
+  key: string;
+  before: string | null;
+  after: string;
+}
 export interface Server {
   id: string;
   name: string;

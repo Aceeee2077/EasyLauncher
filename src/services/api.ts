@@ -16,6 +16,8 @@ import type {
   LaunchInfo,
   HealthReport,
   HealthCheck,
+  PropertyChange,
+  PropertyTemplate,
   DiagnosisReport,
   ProjectPage,
   ProjectVersion,
@@ -84,6 +86,14 @@ type Contract = {
   get_raw_properties: [{ id: string }, string];
   update_server_properties: [
     { id: string; properties?: Record<string, string>; raw?: string },
+    void,
+  ];
+  preview_properties_template: [
+    { id: string; template: PropertyTemplate },
+    PropertyChange[],
+  ];
+  apply_properties_template: [
+    { id: string; template: PropertyTemplate },
     void,
   ];
   update_resources: [

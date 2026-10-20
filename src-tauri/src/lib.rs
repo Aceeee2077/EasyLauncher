@@ -67,6 +67,8 @@ pub fn run() {
             commands::get_server_properties,
             commands::get_raw_properties,
             commands::update_server_properties,
+            commands::preview_properties_template,
+            commands::apply_properties_template,
             commands::update_resources,
             commands::update_auto_restart,
             commands::update_jvm,

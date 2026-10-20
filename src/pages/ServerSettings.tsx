@@ -7,13 +7,17 @@ import {
   Copy,
   Check,
   Cpu,
+  Layers,
+  ArrowRight,
 } from "lucide-react";
-import { Button, Field } from "../components/ui";
+import { Button, Field, Modal } from "../components/ui";
 import { call } from "../services/api";
 import {
   idle,
   type JvmPreset,
   type LaunchInfo,
+  type PropertyChange,
+  type PropertyTemplate,
   type ServerView,
 } from "../types";
 import type { TaskProps } from "../utils/task";
@@ -25,6 +29,7 @@ const numeric = [
   ["view-distance", "serverSettings.viewDistance", 2, 32],
   ["simulation-distance", "serverSettings.simulationDistance", 2, 32],
 ] as const satisfies readonly (readonly [string, MessageKey, number, number])[];
+const templates = ["survival", "creative", "performance"] as const;
 export function ServerSettings({
   server,
   run,
@@ -45,6 +50,10 @@ export function ServerSettings({
   const [jvmSaved, setJvmSaved] = useState(false);
   const [launch, setLaunch] = useState<LaunchInfo | null>(null);
   const [copied, setCopied] = useState(false);
+  const [preview, setPreview] = useState<{
+    template: PropertyTemplate;
+    changes: PropertyChange[];
+  } | null>(null);
   useEffect(() => {
     let live = true;
     void run(`properties-${server.id}-${crypto.randomUUID()}`, async () => {
@@ -263,6 +272,38 @@ export function ServerSettings({
             ))}
           </fieldset>
         )}
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <Layers size={18} />
+              {t("serverSettings.template.title")}
+            </h2>
+            <p>{t("serverSettings.template.desc")}</p>
+          </div>
+        </div>
+        <div className="row template-row">
+          {templates.map((name) => (
+            <Button
+              key={name}
+              disabled={!editable}
+              busy={busy.has(`template-${name}`)}
+              onClick={() =>
+                void run(`template-${name}`, async () => {
+                  const changes = await call("preview_properties_template", {
+                    id: server.id,
+                    template: name,
+                  });
+                  setPreview({ template: name, changes });
+                })
+              }
+            >
+              {t(`serverSettings.template.${name}` as MessageKey)}
+            </Button>
+          ))}
+        </div>
+        <p className="small muted">{t("serverSettings.template.hint")}</p>
       </section>
       <section className="panel">
         <div className="section-title">
@@ -549,6 +590,66 @@ export function ServerSettings({
             <p className="muted small">{t("serverSettings.noJars")}</p>
           )}
         </section>
+      )}
+      {preview && (
+        <Modal
+          title={t("serverSettings.template.previewTitle", {
+            name: t(
+              `serverSettings.template.${preview.template}` as MessageKey,
+            ),
+          })}
+          onClose={() => setPreview(null)}
+        >
+          <p className="small muted">{t("serverSettings.template.previewHint")}</p>
+          {preview.changes.length ? (
+            <ul className="diff-list">
+              {preview.changes.map((change) => (
+                <li key={change.key} className="diff-row">
+                  <code>{change.key}</code>
+                  <div className="diff-values">
+                    <span className="diff-before">
+                      {change.before ?? t("serverSettings.template.unset")}
+                    </span>
+                    <ArrowRight size={14} />
+                    <span className="diff-after">{change.after}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">{t("serverSettings.template.noChanges")}</p>
+          )}
+          <div className="modal-actions">
+            <Button onClick={() => setPreview(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              disabled={!preview.changes.length}
+              busy={busy.has("applyTemplate")}
+              onClick={() => {
+                const template = preview.template;
+                void run("applyTemplate", async () => {
+                  await call("apply_properties_template", {
+                    id: server.id,
+                    template,
+                  });
+                  const [p, r] = await Promise.all([
+                    call("get_server_properties", { id: server.id }),
+                    call("get_raw_properties", { id: server.id }),
+                  ]);
+                  setValues(p);
+                  setRaw(r);
+                  setPreview(null);
+                  setSaved(true);
+                  await onSaved();
+                });
+              }}
+            >
+              {t("serverSettings.template.apply")}
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

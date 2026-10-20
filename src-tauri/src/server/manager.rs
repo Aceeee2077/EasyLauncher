@@ -327,6 +327,27 @@ impl Manager {
         storage::save_server(&self.servers, &s)?;
         Ok(())
     }
+    /// Show what a built-in template would change without touching the file.
+    pub fn preview_properties_template(
+        &self,
+        id: &str,
+        template: &str,
+    ) -> Result<Vec<crate::minecraft::properties::PropertyChange>> {
+        let pairs = crate::minecraft::properties::template(template)?;
+        Ok(crate::minecraft::properties::preview(
+            &self.properties(id)?,
+            &pairs,
+        ))
+    }
+    /// Apply only the template's whitelisted keys, leaving comments and other keys intact.
+    pub async fn apply_properties_template(&self, id: &str, template: &str) -> Result<()> {
+        let pairs = crate::minecraft::properties::template(template)?;
+        let values = pairs
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        self.save_properties(id, Some(values), None).await
+    }
     pub async fn create(self: &Arc<Self>, input: CreateServer) -> Result<Server> {
         self.ready()?;
         if !input.eula_accepted {

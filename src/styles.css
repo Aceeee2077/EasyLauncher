@@ -3345,6 +3345,50 @@ progress::-webkit-progress-value {
 .configuration-presets .row {
   flex-wrap: wrap;
 }
+.template-row {
+  flex-wrap: wrap;
+  margin: 4px 0 10px;
+}
+.diff-list {
+  display: grid;
+  gap: 2px;
+  margin: 18px 0 22px;
+  padding: 0;
+  list-style: none;
+}
+.diff-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.diff-row:last-child {
+  border-bottom: none;
+}
+.diff-row code {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.diff-values {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  max-width: 60%;
+}
+.diff-before {
+  color: #e5705f;
+  text-decoration: line-through;
+  overflow-wrap: anywhere;
+}
+.diff-after {
+  color: var(--accent);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
 .panel details {
   margin-top: 16px;
 }

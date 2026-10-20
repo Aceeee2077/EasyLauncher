@@ -77,6 +77,68 @@ fn escape(s: &str, key: bool) -> String {
     }
     out
 }
+/// A single template-driven change, rendered in the UI before anything is written.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PropertyChange {
+    pub key: String,
+    pub before: Option<String>,
+    pub after: String,
+}
+/// Built-in presets. They only touch gameplay and performance keys, never ports,
+/// MOTDs or paths, so applying one cannot break connectivity or world layout.
+pub fn template(name: &str) -> Result<Vec<(&'static str, &'static str)>> {
+    Ok(match name {
+        "survival" => vec![
+            ("gamemode", "survival"),
+            ("difficulty", "normal"),
+            ("pvp", "true"),
+            ("allow-flight", "false"),
+            ("spawn-protection", "16"),
+            ("max-players", "20"),
+            ("view-distance", "10"),
+            ("simulation-distance", "6"),
+        ],
+        "creative" => vec![
+            ("gamemode", "creative"),
+            ("difficulty", "peaceful"),
+            ("pvp", "true"),
+            ("allow-flight", "true"),
+            ("spawn-protection", "0"),
+            ("max-players", "20"),
+            ("view-distance", "12"),
+            ("simulation-distance", "8"),
+        ],
+        "performance" => vec![
+            ("spawn-protection", "0"),
+            ("max-players", "10"),
+            ("view-distance", "6"),
+            ("simulation-distance", "4"),
+        ],
+        _ => {
+            return Err(AppError::user(
+                "Choose a built-in configuration template: survival, creative or performance.",
+            ))
+        }
+    })
+}
+/// List the actual differences a template would introduce, in template order.
+pub fn preview(p: &Properties, pairs: &[(&'static str, &'static str)]) -> Vec<PropertyChange> {
+    pairs
+        .iter()
+        .filter_map(|(key, after)| {
+            let before = p.values.get(*key).cloned();
+            if before.as_deref() == Some(*after) {
+                return None;
+            }
+            Some(PropertyChange {
+                key: key.to_string(),
+                before,
+                after: after.to_string(),
+            })
+        })
+        .collect()
+}
 impl Properties {
     pub fn parse(text: &str) -> Self {
         let mut p = Self {
@@ -280,5 +342,26 @@ mod tests {
     fn duplicate_keys_last_value_wins() {
         let p = Properties::parse("x=1\nx=2");
         assert_eq!(p.serialize(), "x=2\n");
+    }
+    #[test]
+    fn template_preview_skips_equal_values_and_keeps_comments() {
+        let pairs = template("survival").unwrap();
+        let mut p = Properties::parse("# keep me\nmotd=Stay\nview-distance=10\n");
+        let changes = preview(&p, &pairs);
+        assert!(!changes.iter().any(|c| c.key == "view-distance"));
+        let view = changes.iter().find(|c| c.key == "gamemode").unwrap();
+        assert_eq!(view.before, None);
+        assert_eq!(view.after, "survival");
+        for (key, value) in &pairs {
+            p.set(key, value);
+        }
+        p.validate().unwrap();
+        let text = p.serialize();
+        assert!(text.contains("# keep me"));
+        assert!(text.contains("motd=Stay"));
+        let parsed = Properties::parse(&text);
+        assert_eq!(parsed.values["gamemode"], "survival");
+        assert_eq!(preview(&parsed, &pairs), Vec::new());
+        assert!(template("unknown").is_err());
     }
 }

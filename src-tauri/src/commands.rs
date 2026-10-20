@@ -199,6 +199,18 @@ pub async fn update_server_properties(
     m.save_properties(&id, properties, raw).await
 }
 #[tauri::command]
+pub async fn preview_properties_template(
+    m: Managed<'_>,
+    id: String,
+    template: String,
+) -> Result<Vec<crate::minecraft::properties::PropertyChange>> {
+    m.preview_properties_template(&id, &template)
+}
+#[tauri::command]
+pub async fn apply_properties_template(m: Managed<'_>, id: String, template: String) -> Result<()> {
+    m.apply_properties_template(&id, &template).await
+}
+#[tauri::command]
 pub async fn update_resources(
     m: Managed<'_>,
     id: String,
