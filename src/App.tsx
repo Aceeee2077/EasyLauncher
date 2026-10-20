@@ -56,6 +56,7 @@ import { Content } from "./pages/Content";
 import { AppSettings } from "./pages/AppSettings";
 import { Splash } from "./components/Splash";
 import { CommandPalette } from "./components/CommandPalette";
+import { NotificationCenter } from "./components/NotificationCenter";
 import { useTask } from "./hooks/useTask";
 import { useI18n, type MessageKey } from "./i18n";
 import { brand, call, desktop } from "./services/api";
@@ -66,6 +67,7 @@ import {
   type AppError,
   type ConsoleLine,
   type HealthCheck,
+  type Notice,
   type Progress,
   type Server,
   type ServerView,
@@ -111,6 +113,7 @@ export default function App() {
   } | null>(null);
   const [log, setLog] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(desktop);
   const [closing, setClosing] = useState(false);
   const load = useCallback(async () => {
@@ -132,6 +135,11 @@ export default function App() {
       }),
       listen<Progress>("download-progress", (e) => {
         if (alive) setProgress((p) => ({ ...p, [e.payload.id]: e.payload }));
+      }),
+      listen<Notice>("notice", (e) => {
+        if (alive) {
+          setNotices((list) => [e.payload, ...list].slice(0, 50));
+        }
       }),
       listen<void>("app-closing", () => setClosing(true)),
       listen<AppError>("app-error", (e) => {
@@ -415,6 +423,14 @@ export default function App() {
               <ShieldCheck size={14} />
               {t("topbar.hostedLocally")}
             </span>
+            <NotificationCenter
+              notices={notices}
+              onClear={() => setNotices([])}
+              onOpen={(id) => {
+                const target = servers.find((s) => s.id === id);
+                if (target) manage(target, "console");
+              }}
+            />
             <button
               className="palette-trigger"
               disabled={!desktop}

@@ -307,6 +307,19 @@ async fn execute(m: &Arc<Manager>, id: &str, task: &Task) -> Result<()> {
     }
 }
 
+fn action_key(action: TaskAction) -> &'static str {
+    match action {
+        TaskAction::Backup => "backup",
+        TaskAction::Restart => "restart",
+        TaskAction::Start => "start",
+        TaskAction::Stop => "stop",
+        TaskAction::Command => "command",
+        TaskAction::Cleanup => "cleanup",
+        TaskAction::Broadcast => "broadcast",
+        TaskAction::Maintenance => "maintenance",
+    }
+}
+
 fn record(m: &Manager, id: &str, task_id: &str, result: &Result<()>) -> Result<()> {
     let mut tasks = read(m, id)?;
     if let Some(task) = tasks.iter_mut().find(|t| t.id == task_id) {
@@ -327,6 +340,13 @@ pub async fn run_now(m: &Arc<Manager>, id: &str, task_id: &str) -> Result<()> {
         .ok_or_else(|| AppError::user("This scheduled task no longer exists."))?;
     let result = execute(m, id, &task).await;
     let _ = record(m, id, task_id, &result);
+    if let Err(e) = &result {
+        m.notice(
+            "taskFailed",
+            id,
+            Some(format!("{} · {}", action_key(task.action), e.message)),
+        );
+    }
     m.emit(
         "schedule-updated",
         serde_json::json!({ "id": id, "taskId": task_id }),
@@ -376,6 +396,11 @@ async fn tick(m: &Arc<Manager>, id: &str) -> Result<()> {
         if let Err(e) = &result {
             m.logger
                 .log("WARN", &format!("Scheduled task {task_id} on {id}: {e}"));
+            m.notice(
+                "taskFailed",
+                id,
+                Some(format!("{} · {}", action_key(task.action), e.message)),
+            );
         }
         let _ = record(m, id, &task_id, &result);
         m.emit(

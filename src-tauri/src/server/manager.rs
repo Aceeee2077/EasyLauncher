@@ -221,6 +221,23 @@ impl Manager {
             let _ = app.emit(name, payload);
         }
     }
+    /// Publishes a user-facing notification that stays useful after the page changes.
+    pub fn notice(&self, kind: &str, id: &str, detail: Option<String>) {
+        let server_name = self
+            .metadata(id)
+            .map(|s| s.name)
+            .unwrap_or_else(|_| id.to_string());
+        self.emit(
+            "notice",
+            serde_json::json!({
+                "kind": kind,
+                "serverId": id,
+                "serverName": server_name,
+                "detail": detail,
+                "at": chrono::Utc::now().to_rfc3339(),
+            }),
+        );
+    }
     pub fn transition(&self, r: &Runtime, status: Status, message: Option<String>) -> Result<()> {
         {
             let mut s = r.snapshot.lock().unwrap();

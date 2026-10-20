@@ -217,6 +217,11 @@ impl Manager {
                         );
                         if runtime.snapshot().status == Status::Crashed {
                             let crashed_id = runtime.snapshot().id;
+                            m.notice(
+                                "serverCrashed",
+                                &crashed_id,
+                                runtime.snapshot().exit_reason.clone(),
+                            );
                             let auto = m
                                 .metadata(&crashed_id)
                                 .map(|s| s.auto_restart)
@@ -596,11 +601,16 @@ fn observe(m: &Manager, r: &Runtime, text: &str, stream: &str) {
     if readiness(text) && r.snapshot().status == Status::Starting {
         // A full startup proves the crash loop is over.
         r.restart_attempts.store(0, Ordering::Relaxed);
-        let _ = m.transition(
+        let id = r.snapshot().id;
+        if m.transition(
             r,
             Status::Running,
             Some("Minecraft is ready for connections.".into()),
-        );
+        )
+        .is_ok()
+        {
+            m.notice("serverStarted", &id, None);
+        }
     }
     if let Some((name, joined)) = player_event(text) {
         if let Err(e) = crate::player_stats::observe(m, &r.snapshot().id, &name, joined) {

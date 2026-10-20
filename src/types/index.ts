@@ -106,6 +106,18 @@ export interface Progress {
   totalBytes: number | null;
   attempt: number;
 }
+export type NoticeKind =
+  | "serverStarted"
+  | "serverCrashed"
+  | "backupComplete"
+  | "taskFailed";
+export interface Notice {
+  kind: NoticeKind;
+  serverId: string;
+  serverName: string;
+  detail: string | null;
+  at: string;
+}
 export type BackupReason = "manual" | "safety" | "scheduled";
 export interface Backup {
   id: string;

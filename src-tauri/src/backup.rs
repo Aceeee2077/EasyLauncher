@@ -139,6 +139,13 @@ pub async fn create_backup(m: Arc<Manager>, id: String, reason: BackupReason) ->
         "backup-progress",
         serde_json::json!({"id":id,"complete":result.is_ok()}),
     );
+    if result.is_ok() && reason != BackupReason::Safety {
+        m.notice(
+            "backupComplete",
+            &id,
+            result.as_ref().ok().and_then(|b| b.label.clone()),
+        );
+    }
     result
 }
 pub async fn restore_backup(
