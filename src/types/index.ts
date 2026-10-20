@@ -292,7 +292,14 @@ export interface AppError {
   details: string;
 }
 export type TaskAction =
-  "backup" | "restart" | "start" | "stop" | "command" | "cleanup";
+  | "backup"
+  | "restart"
+  | "start"
+  | "stop"
+  | "command"
+  | "cleanup"
+  | "broadcast"
+  | "maintenance";
 export type TaskMode = "interval" | "daily";
 export interface ScheduledTask {
   id: string;
@@ -301,6 +308,7 @@ export interface ScheduledTask {
   everyMinutes: number;
   atTime: string | null;
   command: string | null;
+  message: string | null;
   keepDays: number;
   enabled: boolean;
   nextRunAt: string;
@@ -313,6 +321,7 @@ export interface TaskInput {
   everyMinutes: number;
   atTime: string | null;
   command: string | null;
+  message: string | null;
   keepDays: number;
   enabled: boolean;
 }

@@ -539,6 +539,8 @@ export const zh = {
   "schedule.action.stop": "停止服务器",
   "schedule.action.command": "发送控制台命令",
   "schedule.action.cleanup": "清理旧日志",
+  "schedule.action.broadcast": "发送游戏内公告",
+  "schedule.action.maintenance": "进入维护窗口",
   "schedule.mode": "执行频率",
   "schedule.mode.interval": "按间隔",
   "schedule.mode.daily": "每天定时",
@@ -549,6 +551,9 @@ export const zh = {
   "schedule.commandHint": "只支持单行命令，例如 say 服务器将在 5 分钟后重启。",
   "schedule.keepDays": "保留天数",
   "schedule.keepDaysHint": "删除 logs 目录中早于该天数的 .log / .log.gz 文件。",
+  "schedule.message": "公告内容",
+  "schedule.messageHint":
+    "通过 say 广播到游戏内聊天，单行、最多 256 字。维护窗口会先广播这条内容，再停服并创建安全备份；留空则直接停服备份。",
   "schedule.enabled": "启用此任务",
   "schedule.nextRun": "下次执行",
   "schedule.lastRun": "上次执行",
@@ -568,6 +573,9 @@ export const zh = {
   "schedule.frequencyDaily": "每天 {time}",
   "schedule.commandSummary": "命令：{command}",
   "schedule.cleanupSummary": "清理 {n} 天前的日志",
+  "schedule.broadcastSummary": "广播：{message}",
+  "schedule.maintenanceSummary": "广播「{message}」，随后停服并创建安全备份",
+  "schedule.maintenanceSummaryBare": "停服并创建安全备份",
   "schedule.success": "成功",
   "schedule.failed": "失败",
 
@@ -1543,6 +1551,8 @@ export const en: Record<MessageKey, string> = {
   "schedule.action.stop": "Stop the server",
   "schedule.action.command": "Send a console command",
   "schedule.action.cleanup": "Clean up old logs",
+  "schedule.action.broadcast": "Broadcast an in-game announcement",
+  "schedule.action.maintenance": "Enter a maintenance window",
   "schedule.mode": "Frequency",
   "schedule.mode.interval": "Every interval",
   "schedule.mode.daily": "Daily at a time",
@@ -1555,6 +1565,9 @@ export const en: Record<MessageKey, string> = {
   "schedule.keepDays": "Keep for (days)",
   "schedule.keepDaysHint":
     "Deletes .log and .log.gz files in the logs folder older than this many days.",
+  "schedule.message": "Announcement",
+  "schedule.messageHint":
+    "Sent to in-game chat with say, one line up to 256 characters. A maintenance window broadcasts this first, then stops the server and creates a safety backup; leave it empty to stop and back up directly.",
   "schedule.enabled": "Enable this task",
   "schedule.nextRun": "NEXT RUN",
   "schedule.lastRun": "Last run",
@@ -1575,6 +1588,10 @@ export const en: Record<MessageKey, string> = {
   "schedule.frequencyDaily": "Daily at {time}",
   "schedule.commandSummary": "Command: {command}",
   "schedule.cleanupSummary": "Delete logs older than {n} days",
+  "schedule.broadcastSummary": "Broadcast: {message}",
+  "schedule.maintenanceSummary":
+    "Broadcast \u201c{message}\u201d, then stop and create a safety backup",
+  "schedule.maintenanceSummaryBare": "Stop and create a safety backup",
   "schedule.success": "Success",
   "schedule.failed": "Failed",
 

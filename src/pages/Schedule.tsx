@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import {
   Archive,
   Clock,
+  Megaphone,
   Pencil,
   Play,
   Plus,
@@ -11,6 +12,7 @@ import {
   Square,
   Terminal,
   Trash2,
+  Wrench,
 } from "lucide-react";
 import { Button, Field, Modal, date } from "../components/ui";
 import { call, desktop } from "../services/api";
@@ -31,6 +33,8 @@ const actions: TaskAction[] = [
   "stop",
   "command",
   "cleanup",
+  "broadcast",
+  "maintenance",
 ];
 
 const icons = {
@@ -40,6 +44,8 @@ const icons = {
   stop: Square,
   command: Terminal,
   cleanup: Trash2,
+  broadcast: Megaphone,
+  maintenance: Wrench,
 } as const;
 
 type Draft = {
@@ -48,6 +54,7 @@ type Draft = {
   everyMinutes: number;
   atTime: string;
   command: string;
+  message: string;
   keepDays: number;
   enabled: boolean;
 };
@@ -58,6 +65,7 @@ const blank: Draft = {
   everyMinutes: 720,
   atTime: "04:00",
   command: "",
+  message: "",
   keepDays: 14,
   enabled: true,
 };
@@ -69,6 +77,7 @@ function draft(task: ScheduledTask): Draft {
     everyMinutes: task.everyMinutes || 720,
     atTime: task.atTime || "04:00",
     command: task.command || "",
+    message: task.message || "",
     keepDays: task.keepDays || 14,
     enabled: task.enabled,
   };
@@ -81,6 +90,10 @@ function payload(value: Draft): TaskInput {
     everyMinutes: value.everyMinutes,
     atTime: value.mode === "daily" ? value.atTime : null,
     command: value.action === "command" ? value.command : null,
+    message:
+      value.action === "broadcast" || value.action === "maintenance"
+        ? value.message
+        : null,
     keepDays: value.keepDays,
     enabled: value.enabled,
   };
@@ -134,6 +147,12 @@ export function Schedule({
       });
     if (task.action === "cleanup")
       return t("schedule.cleanupSummary", { n: task.keepDays });
+    if (task.action === "broadcast")
+      return t("schedule.broadcastSummary", { message: task.message || "" });
+    if (task.action === "maintenance")
+      return task.message
+        ? t("schedule.maintenanceSummary", { message: task.message })
+        : t("schedule.maintenanceSummaryBare");
     return task.mode === "daily"
       ? t("schedule.frequencyDaily", { time: task.atTime || "—" })
       : t("schedule.frequencyInterval", { n: task.everyMinutes });
@@ -378,6 +397,24 @@ export function Schedule({
                         ...form.value,
                         keepDays: Number(e.target.value),
                       },
+                    })
+                  }
+                />
+              </Field>
+            )}
+            {(form.value.action === "broadcast" ||
+              form.value.action === "maintenance") && (
+              <Field
+                label={t("schedule.message")}
+                hint={t("schedule.messageHint")}
+              >
+                <input
+                  maxLength={256}
+                  value={form.value.message}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      value: { ...form.value, message: e.target.value },
                     })
                   }
                 />

@@ -19,6 +19,8 @@ pub enum TaskAction {
     Stop,
     Command,
     Cleanup,
+    Broadcast,
+    Maintenance,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -45,6 +47,8 @@ pub struct Task {
     #[serde(default)]
     pub command: Option<String>,
     #[serde(default)]
+    pub message: Option<String>,
+    #[serde(default)]
     pub keep_days: u32,
     #[serde(default = "enabled")]
     pub enabled: bool,
@@ -66,6 +70,8 @@ pub struct TaskInput {
     pub at_time: Option<String>,
     #[serde(default)]
     pub command: Option<String>,
+    #[serde(default)]
+    pub message: Option<String>,
     #[serde(default)]
     pub keep_days: u32,
     #[serde(default = "enabled")]
@@ -104,6 +110,24 @@ fn validate(input: &TaskInput) -> Result<()> {
     }
     if input.action == TaskAction::Cleanup && !(1..=365).contains(&input.keep_days) {
         return Err(AppError::user("Keep log files for between 1 and 365 days."));
+    }
+    if matches!(
+        input.action,
+        TaskAction::Broadcast | TaskAction::Maintenance
+    ) {
+        let message = input.message.as_deref().unwrap_or("").trim();
+        if input.action == TaskAction::Broadcast && message.is_empty() {
+            return Err(AppError::user(
+                "Enter an announcement message, up to 256 characters.",
+            ));
+        }
+        if !message.is_empty()
+            && (message.chars().count() > 256 || message.contains(['\n', '\r', '\0']))
+        {
+            return Err(AppError::user(
+                "Announcements must fit on one line, up to 256 characters.",
+            ));
+        }
     }
     Ok(())
 }
@@ -173,6 +197,7 @@ pub fn create(m: &Manager, id: &str, input: TaskInput) -> Result<Task> {
         every_minutes: input.every_minutes,
         at_time: input.at_time.map(|t| t.trim().to_string()),
         command: input.command.map(|c| c.trim().to_string()),
+        message: input.message.map(|m| m.trim().to_string()),
         keep_days: input.keep_days,
         enabled: input.enabled,
         next_run_at,
@@ -198,6 +223,7 @@ pub fn update(m: &Manager, id: &str, task_id: &str, input: TaskInput) -> Result<
     task.every_minutes = input.every_minutes;
     task.at_time = input.at_time.map(|t| t.trim().to_string());
     task.command = input.command.map(|c| c.trim().to_string());
+    task.message = input.message.map(|m| m.trim().to_string());
     task.keep_days = input.keep_days;
     task.enabled = input.enabled;
     task.next_run_at = next_run_at;
@@ -259,6 +285,24 @@ async fn execute(m: &Arc<Manager>, id: &str, task: &Task) -> Result<()> {
         TaskAction::Start => m.start(id).await,
         TaskAction::Stop => m.stop(id).await,
         TaskAction::Command => m.send(id, task.command.as_deref().unwrap_or("")).await,
+        TaskAction::Broadcast => {
+            let message = task.message.as_deref().unwrap_or("");
+            m.send(id, &format!("say {message}")).await
+        }
+        TaskAction::Maintenance => {
+            let message = task.message.as_deref().unwrap_or("").trim();
+            if !message.is_empty() && m.runtime(id)?.snapshot().status.active() {
+                m.send(id, &format!("say {message}")).await?;
+            }
+            m.stop(id).await?;
+            crate::backup::create_backup(
+                m.clone(),
+                id.to_string(),
+                crate::models::BackupReason::Scheduled,
+            )
+            .await
+            .map(|_| ())
+        }
         TaskAction::Cleanup => cleanup(m, id, task.keep_days),
     }
 }
@@ -310,6 +354,7 @@ async fn tick(m: &Arc<Manager>, id: &str) -> Result<()> {
             every_minutes: task.every_minutes,
             at_time: task.at_time.clone(),
             command: task.command.clone(),
+            message: task.message.clone(),
             keep_days: task.keep_days,
             enabled: task.enabled,
         };
@@ -374,6 +419,7 @@ mod tests {
             every_minutes: 30,
             at_time: None,
             command: None,
+            message: None,
             keep_days: 0,
             enabled: true,
         }
@@ -412,6 +458,24 @@ mod tests {
         assert!(validate(&c).is_err());
         c.keep_days = 14;
         assert!(validate(&c).is_ok());
+    }
+
+    #[test]
+    fn broadcast_and_maintenance_validation() {
+        let mut broadcast = input(TaskAction::Broadcast, TaskMode::Daily);
+        broadcast.at_time = Some("04:00".into());
+        assert!(validate(&broadcast).is_err());
+        broadcast.message = Some("Server restarting soon".into());
+        assert!(validate(&broadcast).is_ok());
+        broadcast.message = Some("line one\nline two".into());
+        assert!(validate(&broadcast).is_err());
+        broadcast.message = Some("x".repeat(257));
+        assert!(validate(&broadcast).is_err());
+        let mut window = input(TaskAction::Maintenance, TaskMode::Daily);
+        window.at_time = Some("04:00".into());
+        assert!(validate(&window).is_ok());
+        window.message = Some("Maintenance starting".into());
+        assert!(validate(&window).is_ok());
     }
 
     #[test]

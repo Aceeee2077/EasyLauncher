@@ -24,6 +24,7 @@ The interface uses **Shan Shui Glass**: frosted layers, azurite blue, malachite 
 - Pre-flight health check on the Ops page: installation, EULA, Java, memory, JVM flags, port, firewall, router mapping, configuration, disk, backups and logs with a 0–100 readiness score. Problems are listed first and passing checks collapse; the check is read-only and never edits firewall or router settings.
 - Live overview page: counts running and attention-needed servers, then batch starts, stops or restarts the selected ones. Only servers whose current state accepts the action are touched, and failures are listed per server.
 - Pre-flight gate: starting reuses the health check and lists blocking issues such as an unaccepted EULA or missing files; you can still force a start after confirming the risk.
+- Scheduled announcements and maintenance windows: tasks can broadcast a one-line `say` message or enter maintenance, which broadcasts first, then stops the server and creates a safety backup.
 
 ## Screenshots
 
