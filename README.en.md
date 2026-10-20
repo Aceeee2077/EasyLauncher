@@ -21,6 +21,7 @@ The interface uses **Shan Shui Glass**: frosted layers, azurite blue, malachite 
 - Manual stopped-server world backups, listing, confirmed restore/delete, automatic safety snapshots and restore rollback.
 - Local port conflict checks, local/LAN addresses, managed mod/plugin directories and JAR listings.
 - Light/dark/system appearance, Chinese/English/system language selection, global Java preference, managed folder shortcuts, friendly errors with technical details, and separate rotating application logs.
+- Pre-flight health check on the Ops page: installation, EULA, Java, memory, JVM flags, port, firewall, router mapping, configuration, disk, backups and logs with a 0–100 readiness score. Problems are listed first and passing checks collapse; the check is read-only and never edits firewall or router settings.
 
 ## Screenshots
 

@@ -2063,6 +2063,32 @@ progress::-webkit-progress-value {
   font-size: 10px;
   color: var(--muted);
 }
+.health-counts {
+  letter-spacing: 0.2px;
+}
+.health-passed {
+  margin-top: 2px;
+}
+.health-passed summary {
+  padding: 11px 0;
+  font-size: 10px;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+}
+.health-passed summary::-webkit-details-marker {
+  display: none;
+}
+.health-passed summary::before {
+  content: "▸";
+  margin-right: 6px;
+}
+.health-passed[open] summary::before {
+  content: "▾";
+}
+.health-passed .health-list .health-row:last-child {
+  border-bottom: none;
+}
 .health-list {
   display: grid;
 }

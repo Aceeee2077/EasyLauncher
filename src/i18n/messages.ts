@@ -807,10 +807,12 @@ export const zh = {
 
   "ops.healthTitle": "开服体检",
   "ops.healthDesc":
-    "启动前检查安装、EULA、Java、内存、端口、配置、磁盘与备份状态。",
+    "启动前检查安装、EULA、Java、内存、JVM 参数、端口、防火墙、路由器映射、配置、磁盘与备份状态。",
   "ops.refresh": "重新体检",
   "ops.score": "就绪评分",
   "ops.checkedAt": "检查于 {time}",
+  "ops.summary": "{passed} 项通过 · {warnings} 项注意 · {critical} 项问题",
+  "ops.passed": "查看通过项（{count}）",
   "ops.verdict.good": "随时可以开服。",
   "ops.verdict.fair": "可以启动，但有几处值得处理。",
   "ops.verdict.poor": "建议先修复关键问题再启动。",
@@ -846,10 +848,21 @@ export const zh = {
   "health.memory.ok": "已分配 {max} MB，系统共 {total} MB。",
   "health.memory.warning":
     "已分配 {max} MB，系统可用 {available} MB，建议降低内存。",
+  "health.jvm.title": "JVM 参数",
+  "health.jvm.ok": "预设 {preset}，额外参数 {flags} 个。",
+  "health.jvm.critical": "预设 {preset}，但自定义参数无法通过校验（{flags} 个）。",
+  "health.jvm.info": "预设 {preset}，已附加 {flags} 个自定义参数（会被忽略）。",
   "health.port.title": "端口",
   "health.port.ok": "端口 {port} 可用。",
   "health.port.critical": "端口 {port} 已被其他程序占用。",
   "health.port.info": "服务器运行中，跳过端口占用检查（{port}）。",
+  "health.firewall.title": "防火墙",
+  "health.firewall.ok": "已允许端口 {port}（规则 {rule}）。",
+  "health.firewall.warning": "未找到放行端口 {port} 的规则 {rule}，局域网玩家可能无法连接。",
+  "health.firewall.info": "无法读取防火墙规则（端口 {port}），请在系统中确认。",
+  "health.upnp.title": "路由器映射",
+  "health.upnp.ok": "已映射外网端口 {external} 到内网端口 {internal}。",
+  "health.upnp.info": "未启用 UPnP 映射，外网玩家需手动配置端口转发（{port}）。",
   "health.properties.title": "服务器配置",
   "health.properties.ok": "server.properties 校验通过。",
   "health.properties.warning": "以下设置存在风险：{keys}",
@@ -868,8 +881,9 @@ export const zh = {
   "health.disk.critical": "磁盘仅剩 {availableMb} MB，可能无法保存世界。",
   "health.disk.info": "无法读取磁盘空间。",
   "health.backup.title": "备份",
-  "health.backup.ok": "已有 {count} 份备份，最近一次在 {ageDays} 天前。",
-  "health.backup.warning": "当前 {count} 份备份，最近一次超过 7 天或尚未创建。",
+  "health.backup.ok": "已有 {count} 份备份，最近一次在 {ageDays} 天前，自动备份任务 {scheduled} 个。",
+  "health.backup.warning":
+    "当前 {count} 份备份，最近一次超过 7 天或尚未创建，自动备份任务 {scheduled} 个。",
   "health.logs.title": "日志",
   "health.logs.ok": "最近日志没有错误或警告。",
   "health.logs.warning": "最近日志有 {errors} 条错误、{warnings} 条警告。",
@@ -1786,10 +1800,12 @@ export const en: Record<MessageKey, string> = {
 
   "ops.healthTitle": "Pre-flight health check",
   "ops.healthDesc":
-    "Checks installation, EULA, Java, memory, port, configuration, disk and backups before launch.",
+    "Checks installation, EULA, Java, memory, JVM flags, port, firewall, router mapping, configuration, disk and backups before launch.",
   "ops.refresh": "Run check again",
   "ops.score": "Readiness score",
   "ops.checkedAt": "Checked at {time}",
+  "ops.summary": "{passed} passed · {warnings} to review · {critical} problems",
+  "ops.passed": "Show passing checks ({count})",
   "ops.verdict.good": "Ready to start.",
   "ops.verdict.fair": "Can start, but a few items deserve attention.",
   "ops.verdict.poor": "Fix the critical items before starting.",
@@ -1827,11 +1843,27 @@ export const en: Record<MessageKey, string> = {
   "health.memory.ok": "{max} MB allocated out of {total} MB system memory.",
   "health.memory.warning":
     "{max} MB allocated while {available} MB is available. Lower the allocation.",
+  "health.jvm.title": "JVM flags",
+  "health.jvm.ok": "Preset {preset} with {flags} extra flags.",
+  "health.jvm.critical":
+    "Preset {preset}, but the {flags} custom flags failed validation.",
+  "health.jvm.info":
+    "Preset {preset} with {flags} custom flags attached (they will be ignored).",
   "health.port.title": "Port",
   "health.port.ok": "Port {port} is available.",
   "health.port.critical": "Port {port} is already in use by another program.",
   "health.port.info":
     "The server is running, so the port check was skipped ({port}).",
+  "health.firewall.title": "Firewall",
+  "health.firewall.ok": "Port {port} is allowed (rule {rule}).",
+  "health.firewall.warning":
+    "No rule named {rule} allows port {port}; LAN players may not connect.",
+  "health.firewall.info":
+    "Firewall rules could not be read (port {port}). Verify them in the system.",
+  "health.upnp.title": "Router mapping",
+  "health.upnp.ok": "External port {external} is mapped to internal port {internal}.",
+  "health.upnp.info":
+    "No UPnP mapping is enabled; internet players need manual port forwarding ({port}).",
   "health.properties.title": "Server configuration",
   "health.properties.ok": "server.properties passed validation.",
   "health.properties.warning": "These settings are risky: {keys}",
@@ -1854,9 +1886,9 @@ export const en: Record<MessageKey, string> = {
   "health.disk.info": "Disk space is unavailable.",
   "health.backup.title": "Backups",
   "health.backup.ok":
-    "{count} backups available; the newest is {ageDays} days old.",
+    "{count} backups available; the newest is {ageDays} days old; {scheduled} scheduled backup tasks.",
   "health.backup.warning":
-    "{count} backups available, but the newest is over 7 days old or none exists.",
+    "{count} backups available, but the newest is over 7 days old or none exists; {scheduled} scheduled backup tasks.",
   "health.logs.title": "Logs",
   "health.logs.ok": "No errors or warnings in the latest log.",
   "health.logs.warning":

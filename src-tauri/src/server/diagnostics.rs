@@ -1,7 +1,7 @@
 use crate::{
     error::Result,
     minecraft::properties::Properties,
-    models::Status,
+    models::{JvmPreset, Status},
     server::manager::{read_limited, Manager},
     storage,
 };
@@ -59,6 +59,28 @@ fn item(id: &str, level: &str, values: Vec<(&str, String)>) -> HealthCheck {
             .map(|(k, v)| (k.to_string(), v))
             .collect(),
     }
+}
+
+fn preset_name(preset: JvmPreset) -> &'static str {
+    match preset {
+        JvmPreset::Balanced => "Balanced",
+        JvmPreset::Aikar => "Aikar",
+        JvmPreset::Paper => "Paper",
+        JvmPreset::Custom => "Custom",
+    }
+}
+
+/// 0–100 readiness score; critical findings weigh more than warnings.
+fn readiness(checks: &[HealthCheck]) -> u32 {
+    let mut score: i32 = 100;
+    for check in checks {
+        match check.level.as_str() {
+            "critical" => score -= 25,
+            "warning" => score -= 8,
+            _ => {}
+        }
+    }
+    score.max(0) as u32
 }
 
 fn eula_accepted(dir: &Path) -> bool {
@@ -224,6 +246,20 @@ pub async fn health(m: &Manager, id: &str) -> Result<HealthReport> {
         ],
     ));
 
+    // JVM flags: a broken custom preset prevents startup, ignored flags are only a hint.
+    let jvm = vec![
+        ("preset", preset_name(s.jvm_preset).into()),
+        ("flags", s.jvm_flags.len().to_string()),
+    ];
+    checks.push(match s.jvm_preset {
+        JvmPreset::Custom if crate::server::process::validate_jvm_flags(&s.jvm_flags).is_ok() => {
+            item("jvm", "ok", jvm)
+        }
+        JvmPreset::Custom => item("jvm", "critical", jvm),
+        _ if !s.jvm_flags.is_empty() => item("jvm", "info", jvm),
+        _ => item("jvm", "ok", jvm),
+    });
+
     // Port availability is only meaningful while nothing is listening.
     let port = m
         .properties(id)
@@ -237,6 +273,35 @@ pub async fn health(m: &Manager, id: &str) -> Result<HealthReport> {
             Ok(()) => item("port", "ok", vec![("port", port.to_string())]),
             Err(_) => item("port", "critical", vec![("port", port.to_string())]),
         }
+    });
+
+    // Windows firewall rule used by LAN players. A missing rule is only advisory.
+    #[cfg(windows)]
+    {
+        let rule = crate::network::rule_name(port);
+        let values = vec![("port", port.to_string()), ("rule", rule)];
+        let allowed =
+            tokio::task::spawn_blocking(move || crate::network::firewall_rule(port)).await;
+        checks.push(match allowed {
+            Ok(true) => item("firewall", "ok", values),
+            Ok(false) => item("firewall", "warning", values),
+            Err(_) => item("firewall", "info", values),
+        });
+    }
+    #[cfg(not(windows))]
+    checks.push(item("firewall", "info", vec![("port", port.to_string())]));
+
+    // Internet reachability is optional; an absent UPnP mapping never lowers the score.
+    checks.push(match crate::upnp::mapping(m, id) {
+        Some(mapping) if mapping.enabled => item(
+            "upnp",
+            "ok",
+            vec![
+                ("external", mapping.external_port.to_string()),
+                ("internal", mapping.internal_port.to_string()),
+            ],
+        ),
+        _ => item("upnp", "info", vec![("port", port.to_string())]),
     });
 
     // Properties schema plus risky-but-legal values.
@@ -321,8 +386,16 @@ pub async fn health(m: &Manager, id: &str) -> Result<HealthReport> {
         None => item("disk", "info", vec![]),
     });
 
-    // Backup freshness.
+    // Backup freshness, plus whether an automatic backup task is enabled.
     let backups = crate::backup::list(m, id).unwrap_or_default();
+    let scheduled = crate::schedule::list(m, id)
+        .map(|tasks| {
+            tasks
+                .iter()
+                .filter(|task| task.enabled && task.action == crate::schedule::TaskAction::Backup)
+                .count()
+        })
+        .unwrap_or(0);
     let age = backups
         .first()
         .and_then(|b| chrono::DateTime::parse_from_rfc3339(&b.created_at).ok())
@@ -332,13 +405,18 @@ pub async fn health(m: &Manager, id: &str) -> Result<HealthReport> {
                 .num_days()
         });
     checks.push(match age {
-        None => item("backup", "warning", vec![("count", "0".into())]),
+        None => item(
+            "backup",
+            "warning",
+            vec![("count", "0".into()), ("scheduled", scheduled.to_string())],
+        ),
         Some(days) if days > 7 => item(
             "backup",
             "warning",
             vec![
                 ("count", backups.len().to_string()),
                 ("ageDays", days.to_string()),
+                ("scheduled", scheduled.to_string()),
             ],
         ),
         Some(days) => item(
@@ -347,6 +425,7 @@ pub async fn health(m: &Manager, id: &str) -> Result<HealthReport> {
             vec![
                 ("count", backups.len().to_string()),
                 ("ageDays", days.to_string()),
+                ("scheduled", scheduled.to_string()),
             ],
         ),
     });
@@ -366,17 +445,9 @@ pub async fn health(m: &Manager, id: &str) -> Result<HealthReport> {
         None => item("logs", "info", vec![]),
     });
 
-    let mut score: i32 = 100;
-    for check in &checks {
-        match check.level.as_str() {
-            "critical" => score -= 25,
-            "warning" => score -= 8,
-            _ => {}
-        }
-    }
     Ok(HealthReport {
         server_id: s.id,
-        score: score.max(0) as u32,
+        score: readiness(&checks),
         checks,
         generated_at: chrono::Utc::now().to_rfc3339(),
     })
@@ -674,5 +745,16 @@ mod tests {
         let report = analyze("fixture", None, "");
         assert!(!report.available);
         assert!(report.findings.is_empty());
+    }
+    #[test]
+    fn readiness_penalizes_problems_only() {
+        let passing = vec![item("install", "ok", vec![]), item("port", "info", vec![])];
+        assert_eq!(readiness(&passing), 100);
+        let problems = vec![
+            item("install", "critical", vec![]),
+            item("memory", "warning", vec![]),
+        ];
+        assert_eq!(readiness(&problems), 67);
+        assert_eq!(readiness(&vec![item("eula", "critical", vec![]); 8]), 0);
     }
 }

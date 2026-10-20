@@ -71,6 +71,13 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
           ? "ops.verdict.fair"
           : "ops.verdict.poor") as MessageKey,
     );
+  const checks = health?.checks ?? [];
+  const issues = checks.filter(
+    (check) => check.level === "critical" || check.level === "warning",
+  );
+  const rest = checks.filter(
+    (check) => check.level === "ok" || check.level === "info",
+  );
   return (
     <div className="ops-stack">
       <LogAssistant id={server.id} run={run} busy={busy} />
@@ -106,9 +113,31 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
                     time: new Date(health.generatedAt).toLocaleTimeString(),
                   })}
                 </p>
+                <p className="health-counts">
+                  {t("ops.summary", {
+                    passed: checks.filter((check) => check.level === "ok").length,
+                    warnings: issues.filter((check) => check.level === "warning")
+                      .length,
+                    critical: issues.filter(
+                      (check) => check.level === "critical",
+                    ).length,
+                  })}
+                </p>
               </div>
             </div>
-            <div className="health-list">{health.checks.map(row)}</div>
+            {issues.length > 0 ? (
+              <>
+                <div className="health-list">{issues.map(row)}</div>
+                <details className="health-passed">
+                  <summary>
+                    {t("ops.passed", { count: rest.length })}
+                  </summary>
+                  <div className="health-list">{rest.map(row)}</div>
+                </details>
+              </>
+            ) : (
+              <div className="health-list">{checks.map(row)}</div>
+            )}
           </>
         ) : (
           <p className="mini-empty">{t("common.loading")}</p>

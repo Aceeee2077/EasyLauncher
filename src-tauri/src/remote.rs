@@ -187,9 +187,10 @@ impl WebConsole {
                 }
             }
         });
-        self.manager
-            .logger
-            .log("INFO", &format!("Phone console listening on http://{host}:{port}/"));
+        self.manager.logger.log(
+            "INFO",
+            &format!("Phone console listening on http://{host}:{port}/"),
+        );
         Ok(self.info().expect("session was just created"))
     }
     pub fn stop(&self) {
@@ -242,7 +243,11 @@ struct Request {
     body: Vec<u8>,
 }
 
-async fn serve(stream: &mut TcpStream, manager: &Arc<Manager>, auth: &Arc<Auth>) -> std::io::Result<()> {
+async fn serve(
+    stream: &mut TcpStream,
+    manager: &Arc<Manager>,
+    auth: &Arc<Auth>,
+) -> std::io::Result<()> {
     let request = match read_request(stream).await {
         Ok(Some(request)) => request,
         Ok(None) => return Ok(()),
@@ -298,19 +303,21 @@ async fn serve(stream: &mut TcpStream, manager: &Arc<Manager>, auth: &Arc<Auth>)
                         )
                         .await
                     }
-                    Err(LoginError::Rate) => {
-                        respond_with(
+                    Err(LoginError::Rate) => respond_with(
+                        stream,
+                        "429 Too Many Requests",
+                        "application/json; charset=utf-8",
+                        br#"{"error":"Too many failed attempts. Wait a minute and try again."}"#,
+                        "Retry-After: 60\r\n",
+                    )
+                    .await,
+                    Err(LoginError::Bad) => {
+                        json_error(
                             stream,
-                            "429 Too Many Requests",
-                            "application/json; charset=utf-8",
-                            br#"{"error":"Too many failed attempts. Wait a minute and try again."}"#,
-                            "Retry-After: 60\r\n",
+                            "401 Unauthorized",
+                            "Invalid or expired access token.",
                         )
                         .await
-                    }
-                    Err(LoginError::Bad) => {
-                        json_error(stream, "401 Unauthorized", "Invalid or expired access token.")
-                            .await
                     }
                 }
             }
@@ -649,10 +656,7 @@ mod tests {
         assert!(auth.validate(&id, &csrf));
         assert!(!auth.validate(&id, "wrong"));
         assert!(!auth.validate("unknown", &csrf));
-        assert!(matches!(
-            auth.login("wrong-token"),
-            Err(LoginError::Bad)
-        ));
+        assert!(matches!(auth.login("wrong-token"), Err(LoginError::Bad)));
     }
 
     #[test]

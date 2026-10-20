@@ -169,6 +169,11 @@ fn read_mapping(manager: &Manager, id: &str) -> Option<PortMapping> {
     serde_json::from_slice(&std::fs::read(path).ok()?).ok()
 }
 
+/// The mapping this app last stored for the server, used by the health check.
+pub fn mapping(manager: &Manager, id: &str) -> Option<PortMapping> {
+    read_mapping(manager, id)
+}
+
 fn write_mapping(manager: &Manager, id: &str, mapping: &PortMapping) -> Result<()> {
     storage::write_json(&mapping_path(manager, id)?, mapping)
 }
