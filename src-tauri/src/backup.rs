@@ -50,7 +50,7 @@ fn create(m: &Manager, id: &str, reason: BackupReason) -> Result<Backup> {
             }
         }
         if worlds.is_empty() {
-            return Err(AppError::user("No world data exists yet. Start the server once, then stop it before creating a backup."));
+            return Err(AppError::user("No world data exists yet. Start the server once, then stop it before creating a backup.").with_code("backup.noWorld"));
         }
         let backup = Backup {
             id: bid.clone(),

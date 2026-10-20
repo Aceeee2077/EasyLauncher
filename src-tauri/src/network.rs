@@ -69,7 +69,13 @@ pub fn allow_firewall(port: u16) -> Result<()> {
 }
 
 pub fn check_port(port: u16) -> Result<()> {
-    let _listener=std::net::TcpListener::bind(("0.0.0.0",port)).map_err(|e|AppError::new(format!("Port {port} is already being used or unavailable. Choose another port or stop the application using it."),e))?;
+    let _listener = std::net::TcpListener::bind(("0.0.0.0", port)).map_err(|e| {
+        AppError::new(
+            "The server port is already in use or unavailable.",
+            format!("Port {port}: {e}"),
+        )
+        .with_code("network.portInUse")
+    })?;
     Ok(())
 }
 pub fn lan_address() -> Option<String> {

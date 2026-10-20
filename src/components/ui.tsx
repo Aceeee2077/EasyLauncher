@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { Status, AppError } from "../types";
 import { useI18n, type MessageKey } from "../i18n";
+import { errorMessageKey } from "../i18n/messages";
 export function Button({
   children,
   variant = "secondary",
@@ -181,14 +182,15 @@ export function ErrorNotice({
   onClose: () => void;
 }) {
   const { t } = useI18n();
+  const key = errorMessageKey(error.code);
   return (
     <div className="notice error" role="alert">
       <div>
-        <strong>{error.message}</strong>
-        {error.details && (
+        <strong>{key ? t(key) : error.message}</strong>
+        {(error.details || key) && (
           <details>
             <summary>{t("common.showDetails")}</summary>
-            <pre>{error.details}</pre>
+            <pre>{key ? `${error.message}\n${error.details}`.trim() : error.details}</pre>
           </details>
         )}
       </div>

@@ -204,6 +204,7 @@ impl Manager {
             .cloned()
             .ok_or_else(|| {
                 AppError::user("This server could not be found. Refresh your server list.")
+                    .with_code("server.notFound")
             })
     }
     pub fn dir(&self, id: &str) -> Result<PathBuf> {
@@ -435,7 +436,8 @@ impl Manager {
         r.idle()?;
         let mut s = self.metadata(id)?;
         if s.installed {
-            return Err(AppError::user("This server is already installed."));
+            return Err(AppError::user("This server is already installed.")
+                .with_code("server.alreadyInstalled"));
         }
         r.cancelled.store(false, Ordering::Relaxed);
         self.transition(
@@ -445,7 +447,7 @@ impl Manager {
         )?;
         let client = self.client();
         let source = self.settings()?.download_source;
-        let result: Result<()> = tokio::select! { _=super::installer::cancelled(&r.cancelled)=>Err(AppError::user("Installation cancelled. You can retry from the server card.")), result=async {
+        let result: Result<()> = tokio::select! { _=super::installer::cancelled(&r.cancelled)=>Err(AppError::user("Installation cancelled. You can retry from the server card.").with_code("server.installCancelled")), result=async {
             let artifact = super::installer::ServerInstaller::resolve(
                 &client,
                 &s.minecraft_version,
@@ -648,10 +650,10 @@ pub fn memory_info() -> (u64, u64, u32) {
 pub fn validate_memory(min: u32, max: u32) -> Result<()> {
     let (total, available, _) = memory_info();
     if min < 256 || max < min || max as u64 > total.saturating_sub(1024).min(total * 80 / 100) {
-        return Err(AppError::user("Choose at least 256 MB and keep maximum RAM above minimum. Leave at least 1 GB and 20% of system RAM for other apps."));
+        return Err(AppError::user("Choose at least 256 MB and keep maximum RAM above minimum. Leave at least 1 GB and 20% of system RAM for other apps.").with_code("server.memoryInvalid"));
     }
     if max as u64 > available.saturating_sub(512) {
-        return Err(AppError::user("There is not enough available memory for this maximum. Close other applications or lower the RAM limit."));
+        return Err(AppError::user("There is not enough available memory for this maximum. Close other applications or lower the RAM limit.").with_code("server.memoryLow"));
     }
     Ok(())
 }

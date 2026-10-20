@@ -23,7 +23,8 @@ pub async fn inspect(path: &str) -> Result<JavaRuntime> {
     if !p.is_absolute() || !p.is_file() {
         return Err(AppError::user(
             "Choose the full path to the Java executable (java.exe on Windows).",
-        ));
+        )
+        .with_code("server.javaPathInvalid"));
     }
     let mut command = Command::new(&p);
     command
@@ -36,12 +37,14 @@ pub async fn inspect(path: &str) -> Result<JavaRuntime> {
         .await
         .map_err(|_| {
             AppError::user("Java did not respond within 8 seconds. Choose another runtime.")
+                .with_code("server.javaTimeout")
         })?
         .map_err(|e| {
             AppError::new(
                 "Could not run Java. Check that the selected executable is installed correctly.",
                 e,
             )
+            .with_code("server.javaUnusable")
         })?;
     let text = format!(
         "{}{}",
@@ -55,6 +58,7 @@ pub async fn inspect(path: &str) -> Result<JavaRuntime> {
                 "The selected executable did not report a valid Java runtime.",
                 &text,
             )
+            .with_code("server.javaInvalid")
         })?;
     Ok(JavaRuntime {
         path: p.canonicalize()?.to_string_lossy().into(),
@@ -66,7 +70,14 @@ pub async fn inspect(path: &str) -> Result<JavaRuntime> {
 pub async fn validate(path: &str, required: u32) -> Result<JavaRuntime> {
     let j = inspect(path).await?;
     if !compatible(j.major, required) {
-        return Err(AppError::user(format!("This server requires Java {required}. The selected runtime is Java {}. Install a matching runtime or choose another path.",j.major)));
+        return Err(AppError::new(
+            "This server requires a different Java version.",
+            format!(
+                "Required Java {required}, selected runtime is Java {}. Install a matching runtime or choose another path.",
+                j.major
+            ),
+        )
+        .with_code("server.javaMismatch"));
     }
     Ok(j)
 }

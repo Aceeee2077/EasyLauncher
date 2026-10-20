@@ -32,17 +32,20 @@ impl Manager {
             r.idle()?;
         }
         if r.child.lock().await.is_some() {
-            return Err(AppError::user("This server already has a managed process."));
+            return Err(AppError::user("This server already has a managed process.")
+                .with_code("server.alreadyRunning"));
         }
         let mut s = self.metadata(id)?;
         if s.jvm_preset == crate::models::JvmPreset::Custom {
             validate_jvm_flags(&s.jvm_flags)?;
         }
         if !s.installed {
-            return Err(AppError::user("Install the server files before starting."));
+            return Err(AppError::user("Install the server files before starting.")
+                .with_code("server.notInstalled"));
         }
         if s.eula_accepted_at.is_none() {
-            return Err(AppError::user("Accept the Minecraft EULA before starting."));
+            return Err(AppError::user("Accept the Minecraft EULA before starting.")
+                .with_code("server.eulaNotAccepted"));
         }
         validate_memory(s.memory_min_mb, s.memory_max_mb)?;
         let dir = self.dir(id)?;
@@ -55,7 +58,8 @@ impl Manager {
         {
             return Err(AppError::user(
                 "The Minecraft EULA has not been accepted in this server's eula.txt.",
-            ));
+            )
+            .with_code("server.eulaNotAccepted"));
         }
         let properties = self.properties(id)?;
         properties.validate()?;
@@ -74,11 +78,12 @@ impl Manager {
         if !jar.is_file() {
             return Err(AppError::user(
                 "The server JAR is missing. Re-create the server or restore its files.",
-            ));
+            )
+            .with_code("server.jarMissing"));
         }
         for e in std::fs::read_dir(&dir)?.flatten() {
             if e.file_name().to_string_lossy().starts_with("restore-") {
-                return Err(AppError::user("This server has preserved restore recovery files. Open its folder and recover or remove the restore folder before starting."));
+                return Err(AppError::user("This server has preserved restore recovery files. Open its folder and recover or remove the restore folder before starting.").with_code("server.restorePending"));
             }
         }
         let checked_dir = dir.clone();
@@ -105,6 +110,7 @@ impl Manager {
                 "Could not start Java. Check the configured runtime and folder permissions.",
                 e,
             )
+            .with_code("server.javaStartFailed")
         })?;
         self.process_group.attach(&child)?;
         let stdin = child.stdin.take();

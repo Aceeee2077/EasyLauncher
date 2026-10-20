@@ -47,6 +47,33 @@ export const zh = {
     "建议为当前可用内存的一部分；大型整合包可能需要调整，保存与启动时会再次校验。",
 
   "common.refresh": "刷新",
+
+  "errors.server.notFound": "找不到这个服务器。请刷新服务器列表后重试。",
+  "errors.server.alreadyRunning": "这个服务器已经在运行，或正在启动/停止。",
+  "errors.server.notInstalled": "还没有安装服务器文件，请先安装再启动。",
+  "errors.server.eulaNotAccepted":
+    "尚未接受 Minecraft EULA。请在服务器设置中同意，或修改服务器的 eula.txt。",
+  "errors.server.jarMissing": "缺少 server.jar。请重新安装服务器或恢复文件。",
+  "errors.server.restorePending":
+    "存在未处理的世界恢复文件。请先在服务器文件夹中完成或清理恢复内容。",
+  "errors.server.javaStartFailed": "无法启动 Java。请检查运行时路径和文件夹权限。",
+  "errors.server.javaPathInvalid":
+    "请选择 Java 可执行文件的完整路径（Windows 上是 java.exe）。",
+  "errors.server.javaTimeout": "Java 在 8 秒内没有响应。请换一个运行时。",
+  "errors.server.javaUnusable": "无法运行所选 Java。请确认它已正确安装。",
+  "errors.server.javaInvalid": "所选程序不是有效的 Java 运行时。",
+  "errors.server.javaMismatch":
+    "Java 版本不匹配。请安装服务器要求的版本，或换一个运行时。",
+  "errors.server.alreadyInstalled": "这个服务器已经安装过了。",
+  "errors.server.installCancelled": "安装已取消，可以在服务器卡片上重试。",
+  "errors.server.memoryInvalid":
+    "内存设置无效：至少 256 MB，最大值需大于最小值，并为系统预留至少 1 GB 和 20% 内存。",
+  "errors.server.memoryLow": "可用内存不足。请关闭其他程序或降低最大内存。",
+  "errors.network.portInUse":
+    "服务器端口已被占用或不可用。请换个端口，或停止占用它的程序。",
+  "errors.backup.noWorld":
+    "还没有世界数据。先启动一次服务器，停止后再创建备份。",
+
   "deps.title": "依赖与冲突检查",
   "deps.desc": "读取本地 Fabric 元数据，并按需查询 Modrinth 依赖图。",
   "deps.limit":
@@ -941,6 +968,37 @@ export const en: Record<MessageKey, string> = {
     "Uses a portion of currently available RAM. Large modpacks may need adjustment; limits are validated on save and launch.",
 
   "common.refresh": "Refresh",
+
+  "errors.server.notFound": "This server could not be found. Refresh your server list.",
+  "errors.server.alreadyRunning":
+    "This server is already running, or is starting or stopping.",
+  "errors.server.notInstalled": "Server files are not installed yet. Install them before starting.",
+  "errors.server.eulaNotAccepted":
+    "The Minecraft EULA has not been accepted. Accept it in server settings or edit eula.txt.",
+  "errors.server.jarMissing": "server.jar is missing. Reinstall the server or restore its files.",
+  "errors.server.restorePending":
+    "Unfinished world recovery files were found. Complete or remove the recovery files in the server folder first.",
+  "errors.server.javaStartFailed":
+    "Could not start Java. Check the runtime path and folder permissions.",
+  "errors.server.javaPathInvalid":
+    "Choose the full path to the Java executable (java.exe on Windows).",
+  "errors.server.javaTimeout": "Java did not respond within 8 seconds. Choose another runtime.",
+  "errors.server.javaUnusable":
+    "Could not run the selected Java. Make sure it is installed correctly.",
+  "errors.server.javaInvalid": "The selected program is not a valid Java runtime.",
+  "errors.server.javaMismatch":
+    "Java version mismatch. Install the version the server requires, or choose another runtime.",
+  "errors.server.alreadyInstalled": "This server is already installed.",
+  "errors.server.installCancelled": "Installation cancelled. Retry from the server card.",
+  "errors.server.memoryInvalid":
+    "Invalid memory settings: at least 256 MB, maximum above minimum, and at least 1 GB plus 20% of RAM left for the system.",
+  "errors.server.memoryLow":
+    "Not enough available memory. Close other applications or lower the maximum RAM.",
+  "errors.network.portInUse":
+    "The server port is already in use or unavailable. Choose another port or stop the program using it.",
+  "errors.backup.noWorld":
+    "No world data exists yet. Start the server once, stop it, then create a backup.",
+
   "deps.title": "Dependencies and conflicts",
   "deps.desc":
     "Inspect local Fabric metadata and query Modrinth dependencies on demand.",
@@ -1847,3 +1905,10 @@ export const en: Record<MessageKey, string> = {
 };
 
 export const messages = { "zh-CN": zh, en } as const;
+
+/** Resolve a backend error code to a translation key, or null when unmapped. */
+export function errorMessageKey(code?: string): MessageKey | null {
+  if (!code) return null;
+  const key = `errors.${code}` as MessageKey;
+  return key in zh ? key : null;
+}

@@ -14,6 +14,7 @@ export function useTask() {
       } catch (e) {
         const err = e as Partial<AppError>;
         setError({
+          code: err.code,
           message: err.message || String(e),
           details: err.details || "",
         });
