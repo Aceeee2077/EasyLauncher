@@ -38,3 +38,8 @@ The final Windows optimized executable and NSIS installer build both passed. The
 An opt-in harness (`src-tauri/tests/minecraft_e2e.rs`) and a Windows workflow were added. Before the user requested that no further game launches be used for verification, two local Vanilla 1.21.4 runs completed in isolated temporary directories that were deleted afterwards: the harness installed a managed Temurin 21 JRE, downloaded the official server, confirmed the readiness line, an accepting port and the console `list` reply, stopped with exit code 0, created and restored a backup with a safety snapshot, and detected a forced crash and its automatic recovery.
 
 After that request, the workflow was reduced to `workflow_dispatch` only (no schedule or push trigger), local default tests keep the harness ignored, no further server was launched, and both the temporary directory and all Java processes were confirmed gone. The Paper and Fabric branches are implemented but were not executed locally; they require an explicit manual invocation of the harness.
+
+
+## Consistent live backups (2026-10-20)
+
+Live backups (`create_live_backup`) pause autosave, flush, copy and resume autosave over the existing local RCON channel. The change was validated without starting Minecraft: 88 library tests and one storage integration test pass, including new checks that a stopped server and a running server with RCON disabled are rejected with the stable codes `backup.notRunning` and `backup.rconRequired`. TypeScript checking, the Vite production build and Rust formatting pass. No Java process, RCON connection or real world copy was exercised here, so the successful running-server path and the `save-on` recovery behaviour still need an explicitly requested acceptance run.

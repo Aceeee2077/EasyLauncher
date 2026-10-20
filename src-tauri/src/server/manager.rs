@@ -844,6 +844,25 @@ mod integration_tests {
         assert_eq!(crate::backup::list(&m, &id).unwrap().len(), 1);
     }
     #[tokio::test]
+    async fn live_backup_rejects_a_stopped_server_or_missing_rcon() {
+        let (_temp, m, id) = setup("unused-in-this-test".into());
+        let err =
+            crate::backup::create_consistent_backup(m.clone(), id.clone(), BackupReason::Manual)
+                .await
+                .unwrap_err();
+        assert_eq!(err.code, "backup.notRunning");
+        // Pretend Java is ready; no process is launched and RCON stays disabled.
+        m.runtimes.lock().unwrap().insert(
+            id.clone(),
+            Arc::new(Runtime::new(&id, Status::Running, None)),
+        );
+        let err =
+            crate::backup::create_consistent_backup(m.clone(), id.clone(), BackupReason::Manual)
+                .await
+                .unwrap_err();
+        assert_eq!(err.code, "backup.rconRequired");
+    }
+    #[tokio::test]
     async fn insights_dependencies_diff_and_jvm_persist() {
         use std::io::Write;
         let (_temp, m, id) = setup("unused-in-this-test".into());

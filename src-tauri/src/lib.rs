@@ -93,6 +93,7 @@ pub fn run() {
             commands::secret_load,
             commands::secret_delete,
             commands::create_backup,
+            commands::create_live_backup,
             commands::list_backups,
             commands::compare_backups,
             commands::check_dependencies,

@@ -92,6 +92,12 @@ export const zh = {
     "服务器端口已被占用或不可用。请换个端口，或停止占用它的程序。",
   "errors.backup.noWorld":
     "还没有世界数据。先启动一次服务器，停止后再创建备份。",
+  "errors.backup.notRunning":
+    "在线备份需要服务器正在运行。请启动并等待就绪，或停止服务器后创建普通备份。",
+  "errors.backup.rconRequired":
+    "需要先在服务器设置中启用 RCON 并重启服务器，才能在不停止服务器的情况下备份。",
+  "errors.backup.saveOnFailed":
+    "备份流程已结束，但未能重新开启自动保存。请重启服务器，或在控制台执行 save-on 后再继续。",
   "errors.server.preflightBlocked":
     "启动前检查发现严重问题。请先处理，或确认风险后仍然启动。",
 
@@ -560,7 +566,11 @@ export const zh = {
   "backups.desc": "世界及其维度的本地快照。",
   "backups.create": "创建备份",
   "backups.tip":
-    "备份或恢复前请先停止服务器。恢复前会自动为当前世界创建一份安全备份。",
+    "停机后可创建普通备份；运行中启用 RCON 后可创建在线一致性备份。恢复前会自动为当前世界创建一份安全备份。",
+  "backups.liveCreate": "在线备份",
+  "backups.liveCreated": "已创建在线备份，自动保存已恢复。",
+  "backups.liveRconHint":
+    "在线备份需要先在服务器设置中启用 RCON 并重启服务器；也可以停止服务器后创建普通备份。",
   "backups.rollbackTitle": "一键回滚",
   "backups.rollbackDesc":
     "用最近一个还原点覆盖当前世界。回滚前的世界会自动保存为安全备份，可随时撤销。",
@@ -1227,6 +1237,12 @@ export const en: Record<MessageKey, string> = {
     "The server port is already in use or unavailable. Choose another port or stop the program using it.",
   "errors.backup.noWorld":
     "No world data exists yet. Start the server once, stop it, then create a backup.",
+  "errors.backup.notRunning":
+    "A live backup needs the server to be running. Start it and wait until ready, or stop it and create a normal backup.",
+  "errors.backup.rconRequired":
+    "Enable RCON in server settings and restart the server to back up while it keeps running.",
+  "errors.backup.saveOnFailed":
+    "The backup attempt finished, but autosave could not be re-enabled. Restart the server or run save-on before continuing.",
   "errors.server.preflightBlocked":
     "The pre-flight check found blocking issues. Fix them, or confirm the risk and start anyway.",
 
@@ -1718,7 +1734,11 @@ export const en: Record<MessageKey, string> = {
   "backups.desc": "Local snapshots of your world and its dimensions.",
   "backups.create": "Create backup",
   "backups.tip":
-    "Stop your server before backup or restore. Restoring first creates a safety backup of the current world.",
+    "Stop the server for a normal backup, or enable RCON to take a consistent backup while it runs. Restoring first creates a safety backup of the current world.",
+  "backups.liveCreate": "Live backup",
+  "backups.liveCreated": "Live backup created and autosave resumed.",
+  "backups.liveRconHint":
+    "Live backups need RCON enabled in server settings and a restart. You can also stop the server and create a normal backup.",
   "backups.rollbackTitle": "One-click rollback",
   "backups.rollbackDesc":
     "Replace the current world with the latest restore point. The world before rollback is saved as a safety backup you can undo anytime.",

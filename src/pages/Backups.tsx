@@ -8,11 +8,12 @@ import {
   History,
   Pencil,
   Undo2,
+  Zap,
 } from "lucide-react";
 import { Button, Field, Modal, bytes, date } from "../components/ui";
 import { BackupComparison } from "../components/BackupComparison";
 import { call } from "../services/api";
-import { idle, type Backup, type ServerView } from "../types";
+import { idle, type Backup, type RconInfo, type ServerView } from "../types";
 import type { TaskProps } from "../utils/task";
 import { useI18n } from "../i18n";
 export function Backups({
@@ -32,13 +33,33 @@ export function Backups({
   } | null>(null);
   const [label, setLabel] = useState<{ b: Backup; value: string } | null>(null);
   const [message, setMessage] = useState("");
+  const [rcon, setRcon] = useState<RconInfo | null>(null);
   const load = async () =>
     setBackups(await call("list_backups", { id: server.id }));
   useEffect(() => {
     void run(`backups-${server.id}-${crypto.randomUUID()}`, load);
   }, [server.id]);
+  const live = server.runtime.status === "running";
+  useEffect(() => {
+    if (!live) {
+      setRcon(null);
+      return;
+    }
+    let alive = true;
+    call("rcon_info", { id: server.id })
+      .then((info) => {
+        if (alive) setRcon(info);
+      })
+      .catch(() => {
+        if (alive) setRcon(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [server.id, live]);
   const available = idle(server.runtime.status);
-  const working = busy.has("backup") || busy.has("backupAction");
+  const working =
+    busy.has("backup") || busy.has("backupAction") || busy.has("liveBackup");
   const latest = backups.find((b) => b.reason !== "safety") ?? backups[0];
   const reasonLabel = (b: Backup) =>
     b.reason === "safety"
@@ -76,26 +97,54 @@ export function Backups({
           </h2>
           <p>{t("backups.desc")}</p>
         </div>
-        <Button
-          variant="primary"
-          disabled={!available || working}
-          busy={busy.has("backup")}
-          onClick={() =>
-            void run("backup", async () => {
-              await call("create_backup", { id: server.id });
-              await load();
-              setMessage(t("backups.created"));
-            })
-          }
-        >
-          <Plus size={16} />
-          {t("backups.create")}
-        </Button>
+        <div className="row">
+          {live && (
+            <Button
+              variant="primary"
+              disabled={!rcon?.enabled || working}
+              busy={busy.has("liveBackup")}
+              title={
+                rcon && !rcon.enabled ? t("backups.liveRconHint") : undefined
+              }
+              onClick={() =>
+                void run("liveBackup", async () => {
+                  try {
+                    await call("create_live_backup", { id: server.id });
+                    setMessage(t("backups.liveCreated"));
+                  } finally {
+                    await load().catch(() => undefined);
+                  }
+                })
+              }
+            >
+              <Zap size={16} />
+              {t("backups.liveCreate")}
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            disabled={!available || working}
+            busy={busy.has("backup")}
+            onClick={() =>
+              void run("backup", async () => {
+                await call("create_backup", { id: server.id });
+                await load();
+                setMessage(t("backups.created"));
+              })
+            }
+          >
+            <Plus size={16} />
+            {t("backups.create")}
+          </Button>
+        </div>
       </div>
       <div className="info-strip">
         <ShieldCheck size={18} />
         <span>{t("backups.tip")}</span>
       </div>
+      {live && rcon && !rcon.enabled && (
+        <p className="small muted">{t("backups.liveRconHint")}</p>
+      )}
       <div className="rollback-card">
         <div className="rollback-icon">
           <History size={20} />

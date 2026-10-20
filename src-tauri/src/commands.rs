@@ -462,6 +462,22 @@ pub async fn create_backup(m: Managed<'_>, id: String) -> Result<Backup> {
     audit(&m, "backup.create", &id, &backup.id);
     Ok(backup)
 }
+/// Back up a running server through RCON without a restart.
+#[tauri::command]
+pub async fn create_live_backup(m: Managed<'_>, id: String) -> Result<Backup> {
+    m.ensure_writable()?;
+    let result = crate::backup::create_consistent_backup(
+        m.inner().clone(),
+        id.clone(),
+        BackupReason::Manual,
+    )
+    .await;
+    match &result {
+        Ok(backup) => audit(&m, "backup.live", &id, &backup.id),
+        Err(error) => audit(&m, "backup.live.failed", &id, &error.code),
+    }
+    result
+}
 #[tauri::command]
 pub async fn list_backups(m: Managed<'_>, id: String) -> Result<Vec<Backup>> {
     let manager = m.inner().clone();

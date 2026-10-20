@@ -124,6 +124,7 @@ type Contract = {
   secret_load: [{ name: string }, string | null];
   secret_delete: [{ name: string }, void];
   create_backup: [{ id: string }, Backup];
+  create_live_backup: [{ id: string }, Backup];
   list_backups: [{ id: string }, Backup[]];
   restore_backup: [
     { id: string; backupId: string; confirmed: boolean },

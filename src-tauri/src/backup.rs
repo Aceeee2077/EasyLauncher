@@ -1,10 +1,10 @@
 use crate::{
     error::{AppError, Result},
-    models::{Backup, BackupReason, RestoreOutcome},
+    models::{Backup, BackupReason, RestoreOutcome, Status},
     server::manager::Manager,
     storage,
 };
-use std::{fs, path::Path, sync::Arc};
+use std::{fs, path::Path, sync::Arc, time::Duration};
 
 fn world_names(m: &Manager, id: &str) -> Result<Vec<String>> {
     let p = m.properties(id)?;
@@ -122,6 +122,71 @@ fn read(dir: &Path) -> Result<Backup> {
         storage::child(dir, name)?;
     }
     Ok(b)
+}
+/// Back up a running server without stopping it.
+///
+/// RCON pauses autosave (`save-off`), flushes pending writes (`save-all
+/// flush`), then the world directories are copied. Autosave is always resumed
+/// with `save-on`. If RCON is unavailable the caller must stop the server and
+/// use a normal backup instead: this function never pretends a running copy is
+/// consistent.
+pub async fn create_consistent_backup(
+    m: Arc<Manager>,
+    id: String,
+    reason: BackupReason,
+) -> Result<Backup> {
+    m.ready()?;
+    let r = m.runtime(&id)?;
+    let _gate = r.gate.lock().await;
+    if r.snapshot().status != Status::Running {
+        return Err(AppError::user(
+            "A consistent backup needs a running server. Start it and enable RCON, or stop it and create a normal backup.",
+        )
+        .with_code("backup.notRunning"));
+    }
+    if !crate::rcon::info(&m, &id)?.enabled {
+        return Err(AppError::user(
+            "Enable RCON in server settings to back up a running server without stopping it.",
+        )
+        .with_code("backup.rconRequired"));
+    }
+    crate::rcon::execute(&m, &id, "save-off").await?;
+    let result = async {
+        crate::rcon::execute(&m, &id, "save-all flush").await?;
+        let worker = m.clone();
+        let server_id = id.clone();
+        tokio::task::spawn_blocking(move || create(&worker, &server_id, reason))
+            .await
+            .map_err(|e| AppError::new("Backup task failed.", e))?
+    }
+    .await;
+    let mut resume_error = None;
+    for attempt in 0..3 {
+        match crate::rcon::execute(&m, &id, "save-on").await {
+            Ok(_) => {
+                resume_error = None;
+                break;
+            }
+            Err(e) => {
+                resume_error = Some(e);
+                if attempt < 2 {
+                    tokio::time::sleep(Duration::from_millis(300)).await;
+                }
+            }
+        }
+    }
+    if let Some(e) = resume_error {
+        return Err(AppError::new(
+            "The backup attempt finished, but autosave could not be re-enabled. Restart the server or run save-on before continuing.",
+            e,
+        )
+        .with_code("backup.saveOnFailed"));
+    }
+    let backup = result?;
+    if reason != BackupReason::Safety {
+        m.notice("backupComplete", &id, backup.label.clone());
+    }
+    Ok(backup)
 }
 pub async fn create_backup(m: Arc<Manager>, id: String, reason: BackupReason) -> Result<Backup> {
     m.ready()?;
