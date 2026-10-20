@@ -123,6 +123,25 @@ export const zh = {
   "errors.update.invalidRecord": "已下载安装包的记录无效，请重新下载。",
   "errors.update.notDownloaded": "安装包已不在磁盘上，请重新下载。",
   "errors.update.openFailed": "无法打开安装程序，请从应用数据目录手动打开。",
+  "errors.migration.notStopped": "请先停止服务器，再导出归档。",
+  "errors.migration.badPath": "请选择已存在文件夹中的完整归档路径。",
+  "errors.migration.badExtension": "归档文件名必须以 .zip 结尾。",
+  "errors.migration.exists": "同名归档已经存在，请换一个文件名。",
+  "errors.migration.insideApp": "请把归档保存到 EasyLauncher 数据目录之外。",
+  "errors.migration.specialFile": "服务器目录包含无法导出的特殊文件。",
+  "errors.migration.invalidName": "服务器目录包含不能写入归档的文件名。",
+  "errors.migration.unsafeEntry": "归档包含不安全的路径或链接，已拒绝导入。",
+  "errors.migration.invalidArchive": "无法安全读取这个服务器归档。",
+  "errors.migration.invalidManifest": "归档清单无效或已损坏。",
+  "errors.migration.unsupported": "这个归档由其他版本或更新版本的 EasyLauncher 创建。",
+  "errors.migration.missingArchive": "找不到归档文件，请确认路径。",
+  "errors.migration.limit": "归档超出导入大小或文件数量限制。",
+  "errors.migration.noJar": "归档根目录没有可启动的服务端 JAR。",
+  "errors.migration.eula": "请先显式同意 Minecraft 最终用户许可协议。",
+  "errors.migration.badName": "服务器名称需为 1 到 64 个字符。",
+  "errors.migration.badPort": "请选择 1 到 65535 之间的端口。",
+  "errors.migration.badVersion":
+    "请填写服务器使用的 Minecraft 版本，例如 1.20.4。",
   "errors.backup.noWorld":
     "还没有世界数据。先启动一次服务器，停止后再创建备份。",
   "errors.backup.notRunning":
@@ -222,6 +241,7 @@ export const zh = {
   "nav.settings": "设置",
 
   "common.cancel": "取消",
+  "common.close": "关闭",
   "common.back": "返回",
   "common.continue": "继续",
   "common.manage": "管理",
@@ -1185,6 +1205,74 @@ export const zh = {
   "import.warn.unsafeWorld":
     "server.properties 中的世界名称不安全，导入后将改用 world。",
   "import.warn.recoverySkipped": "已跳过 restore-* 临时目录。",
+  "import.tabFolder": "服务器文件夹",
+  "import.tabArchive": "EasyLauncher 归档",
+  "import.archive.desc":
+    "导入由另一台机器导出的 EasyLauncher 服务器归档。归档包含世界、配置、模组与插件，但不包含日志、计划任务、统计和应用内部状态。",
+  "import.archive.path": "服务器归档",
+  "import.archive.pathPlaceholder": "粘贴或选择 .zip 归档路径",
+  "import.archive.pick": "选择归档",
+  "import.archive.scan": "读取归档",
+  "import.archive.unpacked": "解压后大小",
+  "import.archive.fileSize": "归档大小",
+  "import.archive.appVersion": "由 {version} 导出",
+  "import.archive.created": "导出时间",
+  "import.archive.java": "需要 Java {major}",
+  "import.archive.portHint":
+    "端口被占用时会建议新端口；导入后仍可在服务器设置中修改。",
+  "import.archive.eulaHint":
+    "归档不会被视为已接受 EULA，必须在这里显式确认。",
+  "import.archive.noteScope":
+    "世界、server.properties、模组、插件与受管内容会写入新的服务器目录。",
+  "import.archive.noteState":
+    "日志、备份（除非导出时包含）、计划任务、统计、隧道与回滚记录不会导入。",
+  "import.archive.noteVerify":
+    "归档只有 ZIP 校验，没有签名；请只导入你自己创建或信任的文件。",
+  "import.archive.progress": "导入进度",
+  "import.archive.start": "导入归档",
+  "import.archive.needFile": "先选择一个 EasyLauncher 归档。",
+  "import.archive.ready":
+    "归档会解压到新的服务器目录，端口与安全设置将重新应用。",
+  "import.warn.portInUse": "原端口在本机不可用，建议改用 {port}。",
+  "import.warn.includesBackups": "归档包含备份，导入会占用更多磁盘空间。",
+
+  "migration.title": "导出与跨机器迁移",
+  "migration.desc": "把服务器打包成可移动到另一台机器的 ZIP 归档。",
+  "migration.export": "导出归档",
+  "migration.included": "将导出的内容",
+  "migration.backups": "备份（可选）",
+  "migration.status": "当前状态",
+  "migration.unknown": "尚未读取",
+  "migration.mustStop": "需要先停止服务器",
+  "migration.ready": "可以导出",
+  "migration.noteWorlds":
+    "世界、server.properties、eula、服务端 JAR、模组、插件与受管内容会写入归档。",
+  "migration.noteState":
+    "日志、计划任务、玩家统计、隧道配置、回滚记录与远程备份暂存不会导出。",
+  "migration.noteBackups": "默认不包含世界备份；如有需要可在导出对话框中勾选。",
+  "migration.dialogTitle": "导出服务器归档",
+  "migration.dialogDesc":
+    "归档写入后可在另一台机器上通过“导入服务器 → EasyLauncher 归档”恢复。",
+  "migration.destination": "保存位置",
+  "migration.pathPlaceholder": "选择或输入以 .zip 结尾的完整路径",
+  "migration.browse": "选择位置",
+  "migration.includeBackups": "同时包含世界备份（{size}）",
+  "migration.includeBackupsHint": "备份可能很大，导出的归档也会相应变大。",
+  "migration.noteExcluded":
+    "日志、崩溃报告、计划任务、统计、隧道与远程备份不会写入归档。",
+  "migration.noteSecrets":
+    "导出会移除 server.properties 中的 RCON 密码、关闭远程控制并清空服务器地址；仍不要把归档发给不信任的人。",
+  "migration.noteNoEncryption": "归档没有加密，也没有签名。",
+  "migration.progress": "导出进度",
+  "migration.needZip": "文件名需要以 .zip 结尾。",
+  "migration.exporting": "正在导出…",
+  "migration.start": "开始导出",
+  "migration.done": "归档已保存",
+  "migration.doneHint":
+    "把它复制到另一台机器，在导入窗口中切换到“EasyLauncher 归档”即可恢复。",
+  "migration.backupsIncluded": "包含备份",
+  "migration.warnRunning": "请先停止服务器并等待当前操作结束，然后再导出。",
+  "migration.hint": "导出只读取服务器目录，不会修改世界或配置。",
 
   "console.live": "实时输出",
   "console.lines": "{shown} / 1,500 行",
@@ -1867,6 +1955,39 @@ export const en: Record<MessageKey, string> = {
     "The installer is no longer on disk. Download it again.",
   "errors.update.openFailed":
     "The installer could not be opened. Open it from the app data folder.",
+  "errors.migration.notStopped": "Stop the server before exporting an archive.",
+  "errors.migration.badPath":
+    "Choose a full archive path inside an existing folder.",
+  "errors.migration.badExtension": "The archive file name must end in .zip.",
+  "errors.migration.exists":
+    "An archive with that name already exists. Choose another name.",
+  "errors.migration.insideApp":
+    "Save the archive outside the EasyLauncher data folder.",
+  "errors.migration.specialFile":
+    "The server folder contains a special file that cannot be exported.",
+  "errors.migration.invalidName":
+    "The server folder contains a file name that cannot be stored in an archive.",
+  "errors.migration.unsafeEntry":
+    "The archive contains an unsafe path or link and was rejected.",
+  "errors.migration.invalidArchive":
+    "This server archive could not be read safely.",
+  "errors.migration.invalidManifest":
+    "The archive manifest is invalid or damaged.",
+  "errors.migration.unsupported":
+    "This archive was created by a different or newer EasyLauncher version.",
+  "errors.migration.missingArchive":
+    "The archive could not be found. Check the path.",
+  "errors.migration.limit":
+    "The archive exceeds the import size or entry limit.",
+  "errors.migration.noJar":
+    "The archive has no runnable server JAR in its root.",
+  "errors.migration.eula":
+    "Please explicitly accept the Minecraft EULA before importing.",
+  "errors.migration.badName":
+    "Choose a server name between 1 and 64 characters.",
+  "errors.migration.badPort": "Choose a server port between 1 and 65535.",
+  "errors.migration.badVersion":
+    "Enter the Minecraft version used by this server, for example 1.20.4.",
   "errors.backup.noWorld":
     "No world data exists yet. Start the server once, stop it, then create a backup.",
   "errors.backup.notRunning":
@@ -1970,6 +2091,7 @@ export const en: Record<MessageKey, string> = {
   "nav.settings": "Settings",
 
   "common.cancel": "Cancel",
+  "common.close": "Close",
   "common.back": "Back",
   "common.continue": "Continue",
   "common.manage": "Manage",
@@ -2993,6 +3115,81 @@ export const en: Record<MessageKey, string> = {
   "import.warn.unsafeWorld":
     "The world name in server.properties is unsafe and will be replaced with world.",
   "import.warn.recoverySkipped": "restore-* temporary folders were skipped.",
+  "import.tabFolder": "Server folder",
+  "import.tabArchive": "EasyLauncher archive",
+  "import.archive.desc":
+    "Import a server archive exported from another machine. It contains worlds, configuration, mods and plugins, but not logs, schedules, statistics or app-only state.",
+  "import.archive.path": "Server archive",
+  "import.archive.pathPlaceholder": "Paste or choose a .zip archive",
+  "import.archive.pick": "Choose archive",
+  "import.archive.scan": "Read archive",
+  "import.archive.unpacked": "Unpacked size",
+  "import.archive.fileSize": "Archive size",
+  "import.archive.appVersion": "Exported by {version}",
+  "import.archive.created": "Exported",
+  "import.archive.java": "Requires Java {major}",
+  "import.archive.portHint":
+    "A free nearby port is suggested when this one is busy. You can still change it later in server settings.",
+  "import.archive.eulaHint":
+    "The archive is never treated as accepting the EULA; confirm it here explicitly.",
+  "import.archive.noteScope":
+    "Worlds, server.properties, mods, plugins and managed content are written to a new server folder.",
+  "import.archive.noteState":
+    "Logs, backups (unless included during export), schedules, statistics, tunnels and rollback records are not imported.",
+  "import.archive.noteVerify":
+    "The archive only carries a ZIP checksum, not a signature. Import only files you created or trust.",
+  "import.archive.progress": "Import progress",
+  "import.archive.start": "Import archive",
+  "import.archive.needFile": "Choose an EasyLauncher archive first.",
+  "import.archive.ready":
+    "The archive will be unpacked into a new server folder, and port and safety settings will be applied.",
+  "import.warn.portInUse":
+    "The original port is unavailable on this machine; {port} is suggested.",
+  "import.warn.includesBackups":
+    "This archive includes backups and will use more disk space.",
+
+  "migration.title": "Export and cross-machine migration",
+  "migration.desc":
+    "Package this server as a ZIP archive that can move to another machine.",
+  "migration.export": "Export archive",
+  "migration.included": "To export",
+  "migration.backups": "Backups (optional)",
+  "migration.status": "Current state",
+  "migration.unknown": "Not scanned",
+  "migration.mustStop": "Stop the server first",
+  "migration.ready": "Ready to export",
+  "migration.noteWorlds":
+    "Worlds, server.properties, the EULA, the server JAR, mods, plugins and managed content are written to the archive.",
+  "migration.noteState":
+    "Logs, schedules, player statistics, tunnel settings, rollback records and remote backup staging are not exported.",
+  "migration.noteBackups":
+    "World backups are excluded by default; enable them in the export dialog if needed.",
+  "migration.dialogTitle": "Export a server archive",
+  "migration.dialogDesc":
+    "Restore the archive on another machine through Import server → EasyLauncher archive.",
+  "migration.destination": "Save location",
+  "migration.pathPlaceholder": "Choose or type a full path ending in .zip",
+  "migration.browse": "Choose location",
+  "migration.includeBackups": "Include world backups ({size})",
+  "migration.includeBackupsHint":
+    "Backups can be large, so the archive grows accordingly.",
+  "migration.noteExcluded":
+    "Logs, crash reports, schedules, statistics, tunnels and remote backup staging are left out.",
+  "migration.noteSecrets":
+    "Export removes the RCON password, disables remote control and clears the bind address in server.properties; still do not share the archive with anyone you do not trust.",
+  "migration.noteNoEncryption": "The archive is neither encrypted nor signed.",
+  "migration.progress": "Export progress",
+  "migration.needZip": "The file name must end in .zip.",
+  "migration.exporting": "Exporting…",
+  "migration.start": "Start export",
+  "migration.done": "Archive saved",
+  "migration.doneHint":
+    "Copy it to another machine and choose EasyLauncher archive in the import window to restore it.",
+  "migration.backupsIncluded": "backups included",
+  "migration.warnRunning":
+    "Stop the server and wait for the current operation to finish before exporting.",
+  "migration.hint":
+    "Export only reads the server folder and never changes worlds or configuration.",
 
   "console.live": "Live output",
   "console.lines": "{shown} / 1,500 lines",

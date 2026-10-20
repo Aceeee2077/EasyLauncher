@@ -1478,6 +1478,86 @@ pub async fn update_open(m: Managed<'_>, version: String) -> Result<()> {
     crate::audit::record(&m, "update.open", None, None, &version);
     Ok(())
 }
+#[tauri::command]
+pub async fn migration_export_preview(
+    m: Managed<'_>,
+    id: String,
+) -> Result<crate::migration::ExportPreview> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::migration::export_preview(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not inspect the server for export.", e))?
+}
+#[tauri::command]
+pub async fn migration_export(
+    m: Managed<'_>,
+    id: String,
+    path: String,
+    include_backups: bool,
+) -> Result<crate::migration::ExportResult> {
+    let manager = m.inner().clone();
+    let server_id = id.clone();
+    let destination = path.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        crate::migration::export(&manager, &id, &path, include_backups)
+    })
+    .await
+    .map_err(|e| AppError::new("The export stopped unexpectedly.", e))??;
+    audit(&m, "server.export", &server_id, &destination);
+    Ok(result)
+}
+#[tauri::command]
+pub async fn migration_pick_export(name: String) -> Result<Option<String>> {
+    tokio::task::spawn_blocking(move || crate::migration::pick_export_path(&name))
+        .await
+        .map_err(|e| AppError::new("Could not open the save dialog.", e))?
+}
+#[tauri::command]
+pub async fn migration_preview_archive(
+    m: Managed<'_>,
+    path: String,
+) -> Result<crate::migration::ArchivePreview> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::migration::preview_archive(&manager, &path))
+        .await
+        .map_err(|e| AppError::new("Could not inspect the server archive.", e))?
+}
+#[tauri::command]
+pub async fn migration_import_archive(
+    m: Managed<'_>,
+    path: String,
+    name: String,
+    minecraft_version: String,
+    port: u16,
+    eula_accepted: bool,
+) -> Result<Server> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    let label = name.clone();
+    let server = crate::migration::import_archive(
+        &manager,
+        path,
+        name,
+        minecraft_version,
+        port,
+        eula_accepted,
+    )
+    .await?;
+    crate::audit::record(
+        &m,
+        "server.importArchive",
+        Some(&server.id),
+        Some(&label),
+        &server.minecraft_version,
+    );
+    Ok(server)
+}
+#[tauri::command]
+pub async fn migration_pick_archive() -> Result<Option<String>> {
+    tokio::task::spawn_blocking(crate::migration::pick_archive)
+        .await
+        .map_err(|e| AppError::new("Could not open the archive dialog.", e))?
+}
 type Remote<'a> = State<'a, Arc<crate::remote::WebConsole>>;
 #[tauri::command]
 pub fn web_console_info(r: Remote<'_>) -> Option<crate::remote::WebConsoleInfo> {

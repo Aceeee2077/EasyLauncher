@@ -12,6 +12,7 @@ pub mod import;
 pub mod java;
 pub mod log_assistant;
 mod logger;
+pub mod migration;
 pub mod minecraft;
 pub mod models;
 pub mod modrinth;
@@ -197,6 +198,12 @@ pub fn run() {
             commands::update_check,
             commands::update_download,
             commands::update_open,
+            commands::migration_export_preview,
+            commands::migration_export,
+            commands::migration_pick_export,
+            commands::migration_preview_archive,
+            commands::migration_import_archive,
+            commands::migration_pick_archive,
             commands::web_console_info,
             commands::start_web_console,
             commands::stop_web_console,

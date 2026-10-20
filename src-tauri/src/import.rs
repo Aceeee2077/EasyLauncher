@@ -114,7 +114,7 @@ fn is_forge(name: &str) -> bool {
     contains(name, "forge")
 }
 
-fn select_jar(jars: &[(String, u64)]) -> Option<String> {
+pub(crate) fn select_jar(jars: &[(String, u64)]) -> Option<String> {
     let candidates: Vec<&(String, u64)> = jars
         .iter()
         .filter(|(name, _)| !contains(name, "installer"))
@@ -489,9 +489,20 @@ fn choice(properties: &mut Properties, key: &str, map: &[(&str, &str)], default:
     properties.set(key, chosen);
 }
 
+/// Returns whether a dot-separated numeric Minecraft version is usable.
+pub(crate) fn valid_version(value: &str) -> bool {
+    let value = value.trim();
+    !value.is_empty()
+        && value.contains('.')
+        && !value.starts_with('.')
+        && !value.ends_with('.')
+        && !value.contains("..")
+        && value.bytes().all(|c| c.is_ascii_digit() || c == b'.')
+}
+
 /// Repairs values that would block EasyLauncher's own start-up validation while
 /// keeping every unrelated property the pack author wrote.
-fn sanitize_properties(raw: Option<&str>, port: u16) -> Result<Properties> {
+pub(crate) fn sanitize_properties(raw: Option<&str>, port: u16) -> Result<Properties> {
     let mut p = Properties::parse(
         raw.unwrap_or("# Imported by EasyLauncher. Unknown properties are preserved.\n"),
     );
@@ -618,7 +629,7 @@ fn copy_dir(
     Ok(())
 }
 
-fn rename_jar(dir: &Path, jar: &str) -> Result<()> {
+pub(crate) fn rename_jar(dir: &Path, jar: &str) -> Result<()> {
     if jar == "server.jar" {
         return Ok(());
     }
@@ -676,13 +687,7 @@ pub async fn import_folder(
         } else {
             requested.to_string()
         };
-        let valid = !value.is_empty()
-            && value.contains('.')
-            && !value.starts_with('.')
-            && !value.ends_with('.')
-            && !value.contains("..")
-            && value.bytes().all(|c| c.is_ascii_digit() || c == b'.');
-        if !valid {
+        if !valid_version(&value) {
             return Err(AppError::user(
                 "Enter the Minecraft version used by this server, for example 1.20.4.",
             ));

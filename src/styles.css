@@ -585,6 +585,86 @@ main {
   gap: 7px;
   margin-top: 14px;
 }
+.import-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background-color: var(--fill);
+}
+.import-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 6px 15px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.import-tabs button.active {
+  background-color: var(--surface2);
+  color: var(--text);
+}
+.import-tabs button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.migration-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 4px 0 2px;
+}
+.migration-stats > div {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background-color: var(--fill);
+}
+.migration-stats small,
+.migration-stats span {
+  color: var(--muted);
+  font-size: 11px;
+}
+.migration-stats strong {
+  font-size: 14px;
+}
+.migration-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background-color: var(--fill);
+}
+.migration-success > div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.migration-success code {
+  overflow-wrap: anywhere;
+}
+.migration-success small {
+  color: var(--muted);
+}
+@media (max-width: 720px) {
+  .migration-stats {
+    grid-template-columns: 1fr;
+  }
+}
 .btn {
   min-height: 38px;
   padding: 9px 17px;

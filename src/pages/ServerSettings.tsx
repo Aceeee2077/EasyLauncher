@@ -14,6 +14,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { Button, Field, Modal, date } from "../components/ui";
+import { ServerMigration } from "../components/ServerMigration";
 import { call } from "../services/api";
 import {
   idle,
@@ -832,6 +833,7 @@ export function ServerSettings({
           </div>
         </div>
       </section>
+      <ServerMigration server={server} run={run} busy={busy} />
       {server.serverType !== "vanilla" && (
         <section className="panel">
           <div className="section-title">

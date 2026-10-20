@@ -59,6 +59,9 @@ import type {
   NetworkReport,
   NetworkCheck,
   ImportPreview,
+  ExportPreview,
+  ExportResult,
+  ArchivePreview,
   JvmPreset,
   DependencyReport,
   PlayerStats,
@@ -368,6 +371,24 @@ type Contract = {
     },
     Server,
   ];
+  migration_export_preview: [{ id: string }, ExportPreview];
+  migration_export: [
+    { id: string; path: string; includeBackups: boolean },
+    ExportResult,
+  ];
+  migration_pick_export: [{ name: string }, string | null];
+  migration_preview_archive: [{ path: string }, ArchivePreview];
+  migration_import_archive: [
+    {
+      path: string;
+      name: string;
+      minecraftVersion: string;
+      port: number;
+      eulaAccepted: boolean;
+    },
+    Server,
+  ];
+  migration_pick_archive: [undefined, string | null];
 };
 export const desktop = isTauri();
 export async function call<K extends keyof Contract>(

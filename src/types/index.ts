@@ -1045,6 +1045,43 @@ export interface ImportProgress {
   copiedFiles: number;
   totalFiles: number;
 }
+export interface ExportPreview {
+  id: string;
+  name: string;
+  sizeBytes: number;
+  fileCount: number;
+  backupsBytes: number;
+  backupsFiles: number;
+  running: boolean;
+}
+export interface ExportResult {
+  path: string;
+  bytes: number;
+  files: number;
+  includeBackups: boolean;
+}
+export interface ArchivePreview {
+  path: string;
+  name: string;
+  minecraftVersion: string;
+  serverType: ServerType;
+  port: number;
+  suggestedPort: number;
+  files: number;
+  sizeBytes: number;
+  archiveBytes: number;
+  includeBackups: boolean;
+  createdAt: string;
+  appVersion: string;
+  requiredJava: number;
+  warnings: string[];
+}
+export interface MigrationProgress {
+  bytes: number;
+  totalBytes: number;
+  files: number;
+  totalFiles: number;
+}
 export const active = (s: Status) =>
   ["starting", "running", "stopping", "restarting"].includes(s);
 export const idle = (s: Status) => !active(s) && s !== "installing";
