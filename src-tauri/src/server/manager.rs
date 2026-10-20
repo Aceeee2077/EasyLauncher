@@ -90,6 +90,14 @@ impl Manager {
     pub fn new(root: PathBuf, app: AppHandle) -> Result<Arc<Self>> {
         Self::initialize(root, Some(app))
     }
+    /// Open a manager without a Tauri application handle.
+    ///
+    /// Window notifications and downloads progress events are skipped. Used by
+    /// the headless acceptance harness and by embedders that do not run Tauri.
+    #[doc(hidden)]
+    pub fn open(root: PathBuf) -> Result<Arc<Self>> {
+        Self::initialize(root, None)
+    }
     fn initialize(root: PathBuf, app: Option<AppHandle>) -> Result<Arc<Self>> {
         fs::create_dir_all(&root)?;
         storage::no_links(&root)?;

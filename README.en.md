@@ -38,7 +38,7 @@ Screenshot slot: `docs/screenshots/overview.png` — the native Shan Shui Glass 
 
 Screenshot slot: `docs/screenshots/console.png` — live console after a user-created server is started.
 
-Screenshots containing real Minecraft activity are intentionally not generated during development. No Minecraft game client or dedicated server was launched for validation.
+Screenshots containing real Minecraft activity are intentionally not generated during development. Real servers are started only by the explicitly invoked E2E harness, inside a temporary directory, never for screenshots and never in the background during normal use.
 
 ## Prerequisites
 
@@ -97,6 +97,17 @@ Read-only verification of all three official metadata adapters, without download
 ```powershell
 cargo test --manifest-path src-tauri/Cargo.toml --lib upstream_adapter_resolution -- --ignored --nocapture
 ```
+
+The real Minecraft acceptance harness is ignored by default and runs **only when this command is invoked explicitly**. Normal tests, pushes, pull requests and scheduled jobs never start a game server. It needs network access and disk space and works entirely inside a temporary directory that is deleted afterwards:
+
+```powershell
+cd src-tauri
+$env:E2E_SOFTWARE = "vanilla"   # or paper / fabric
+$env:E2E_MC_VERSION = "1.21.4"
+cargo test --test minecraft_e2e -- --ignored --nocapture
+```
+
+It downloads a real server, accepts the EULA only inside the temporary directory, waits for the authoritative readiness line, checks the port and a console command, stops cleanly, verifies backup and restore, then forces a crash and waits for automatic recovery. A matching Java major is installed as a managed Temurin runtime when none exists. `.github/workflows/minecraft-e2e.yml` exposes the same matrix for manual runs only.
 
 Tests cover Properties parsing/modification/serialization/unknown keys/Unicode, Java outputs and version boundaries, UUID traversal prevention, metadata defaults and round trips, state transitions, port conflicts, checksum rejection/partial-file cleanup, backup restoration/safety copies, and reopening persisted servers. The subprocess test exercises duplicate starts, stdout/stderr, stdin, restart, crash codes and graceful application shutdown.
 
@@ -177,7 +188,7 @@ Backups contain world data only, not server configuration, mods or plugins. They
 
 ## Known limitations
 
-- **No Minecraft client or dedicated server was launched during validation**, as requested. Compilation, desktop startup, actual upstream metadata, file operations and a test-only subprocess were verified. The complete real-server startup/library bootstrap path still needs a user-run acceptance check after explicit EULA acceptance.
+- **Real-server acceptance is opt-in.** Normal tests and daily use never download or start a server in the background. Running `cargo test --test minecraft_e2e -- --ignored` downloads and starts real Vanilla, Paper or Fabric inside a temporary directory, accepts the EULA only there, and deletes it afterwards. Vanilla 1.21.4 passes locally; Paper and Fabric can be exercised with `E2E_SOFTWARE` or the CI matrix. Real player connections, public tunnels and paid external models still need an environment-specific acceptance check.
 - Stable Minecraft releases **1.16 and newer** are listed; snapshots and older launch formats remain outside the supported list. Folder imports support recognized Vanilla, Paper and Fabric servers. Paper needs an upstream `STABLE` build for the selected release; an unsupported selection produces a clear error.
 - Java selection requires a compatible major version. Managed Adoptium installations are pinned per server and can be removed from Settings. Minecraft 26.x requirements follow upstream metadata, with a Java 25 fallback; version rules live in one module.
 - Fabric supplies a launcher without an upstream artifact hash. EasyLauncher validates HTTPS transport, JAR signature and reported length; Vanilla uses SHA-1 and Paper uses SHA-256. Fabric and Paper may download libraries on first server start; those upstream Java bootstrap downloads do not report per-byte progress to EasyLauncher.
@@ -209,4 +220,4 @@ EasyLauncher is independent software and **is not affiliated with, endorsed by, 
 
 The scheduler, monitoring, rollback, crash recovery, mobile console, network checks and folder import are followed by configuration/JVM presets, Fabric and Modrinth dependency inspection, an optional bring-your-own-key log assistant, persistent player insights, PNG share cards, SHA-256 backup comparisons, managed frpc processes, a read-only mode, and a local audit log.
 
-The log assistant sends only the editable excerpt displayed to the user, and only after an explicit click. API keys are never written to settings or application logs; checking “Remember configuration” stores the key encrypted with Windows DPAPI for the current account and it can be deleted again from app settings. Read-only mode is enforced by the backend and still allows stopping servers and tunnels. The audit log records action, time, server name and a short detail, never secret values, and rotates at about 1 MB. The frpc integration requires a trusted installed client and the user's own provider configuration; process status does not establish public connectivity. No real Minecraft process, public tunnel or paid AI service was used during this implementation.
+The log assistant sends only the editable excerpt displayed to the user, and only after an explicit click. API keys are never written to settings or application logs; checking “Remember configuration” stores the key encrypted with Windows DPAPI for the current account and it can be deleted again from app settings. Read-only mode is enforced by the backend and still allows stopping servers and tunnels. The audit log records action, time, server name and a short detail, never secret values, and rotates at about 1 MB. The frpc integration requires a trusted installed client and the user's own provider configuration; process status does not establish public connectivity. The opt-in E2E harness is the only path that starts a real Minecraft server; no public tunnel or paid AI service was used during this implementation.

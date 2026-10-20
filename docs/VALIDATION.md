@@ -31,3 +31,10 @@ TypeScript and Vite production compilation pass. Browser component checks use an
 The sandbox's system temporary directory caused a first full-suite attempt to fail on filesystem and loopback fixture operations; the final full suite uses `TMP` and `TEMP` under `.verification/tmp` and passes. Cargo formatting normalizes existing Rust formatting as well as the edited modules. See [development notes](DEVELOPMENT.md) for feature entry points and limits.
 
 The final Windows optimized executable and NSIS installer build both passed. The refreshed installer is also copied to the project root as `EasyLauncher_0.1.0_x64-setup.exe`; it was not installed or launched during this continuation.
+
+
+## Real Minecraft acceptance harness (2026-10-20)
+
+An opt-in harness (`src-tauri/tests/minecraft_e2e.rs`) and a Windows workflow were added. Before the user requested that no further game launches be used for verification, two local Vanilla 1.21.4 runs completed in isolated temporary directories that were deleted afterwards: the harness installed a managed Temurin 21 JRE, downloaded the official server, confirmed the readiness line, an accepting port and the console `list` reply, stopped with exit code 0, created and restored a backup with a safety snapshot, and detected a forced crash and its automatic recovery.
+
+After that request, the workflow was reduced to `workflow_dispatch` only (no schedule or push trigger), local default tests keep the harness ignored, no further server was launched, and both the temporary directory and all Java processes were confirmed gone. The Paper and Fabric branches are implemented but were not executed locally; they require an explicit manual invocation of the harness.

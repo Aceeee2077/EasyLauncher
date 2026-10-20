@@ -52,7 +52,7 @@
 
 截图占位：`docs/screenshots/console.png` —— 用户创建的服务器启动后的实时控制台。
 
-开发过程中刻意不生成包含真实 Minecraft 活动的截图。验证期间未启动任何 Minecraft 客户端或专用服务器。
+开发过程中刻意不生成包含真实 Minecraft 活动的截图。真实服务器只会在显式运行的 E2E 验收中于临时目录启动，不用于截图，也不会在默认测试或日常使用中后台启动。
 
 ## 环境要求
 
@@ -111,6 +111,17 @@ cargo test --manifest-path src-tauri/Cargo.toml --lib subprocess_lifecycle_witho
 ```powershell
 cargo test --manifest-path src-tauri/Cargo.toml --lib upstream_adapter_resolution -- --ignored --nocapture
 ```
+
+真实 Minecraft 端到端验收默认忽略，**只会由这条显式命令手动触发**，不会在普通测试、push、PR 或定时任务中启动游戏；它需要网络与磁盘空间，全部操作在临时目录内完成并在结束后删除：
+
+```powershell
+cd src-tauri
+$env:E2E_SOFTWARE = "vanilla"   # 或 paper / fabric
+$env:E2E_MC_VERSION = "1.21.4"
+cargo test --test minecraft_e2e -- --ignored --nocapture
+```
+
+它会下载真实服务端、仅接受临时目录内的 EULA、等待日志就绪行、验证端口与控制台命令、干净停止、备份恢复，以及强制崩溃后的自动重启。缺少匹配 Java 主版本时会先安装受管 Temurin。`.github/workflows/minecraft-e2e.yml` 仅提供手动触发入口。
 
 测试覆盖 Properties 的解析/修改/序列化/未知键/Unicode、Java 输出与版本边界、UUID 路径穿越防护、元数据默认值与往返、状态迁移、端口冲突、校验和拒绝与残留文件清理、备份恢复与安全副本，以及重新打开已持久化的服务器。子进程测试覆盖重复启动、stdout/stderr、stdin、重启、崩溃退出码与优雅关闭。
 
@@ -196,7 +207,7 @@ React 调用 Rust 命令，并订阅 `server-status`、`server-console-batch`、
 
 ## 已知限制
 
-- **按用户要求，验证期间未启动任何 Minecraft 客户端或专用服务器。** 已验证编译、桌面启动、真实上游元数据、文件操作与仅用于测试的子进程。在用户显式接受 EULA 后，完整的真实服务器启动与库引导路径仍需用户自行验收。
+- 真实服务器验收是可选的：默认测试与日常使用不会在后台下载或启动服务器；显式运行 `cargo test --test minecraft_e2e -- --ignored` 时，会在临时目录下载并启动真实的 Vanilla、Paper 或 Fabric，接受该临时目录内的 EULA，结束后删除。Vanilla 1.21.4 已在本机通过；Paper 与 Fabric 可通过 `E2E_SOFTWARE` 或 CI 矩阵验收。真实玩家连接、公网隧道与外部付费模型仍需实际环境验收。
 - 仅列出稳定的 Minecraft **1.16 及更高版本**；快照与旧版启动格式不在当前范围内。目录导入支持可识别的 Vanilla、Paper 与 Fabric 服务器。Paper 需要所选版本存在上游 `STABLE` 构建；不支持的选择会给出明确错误。
 - Java 选择要求主版本兼容。托管的 Adoptium 安装按服务器固定，可在设置中移除。Minecraft 26.x 的要求遵循上游元数据，并以 Java 25 作为回退；版本规则集中在一个模块中。
 - Fabric 提供的启动器没有上游产物哈希。EasyLauncher 会校验 HTTPS 传输、JAR 签名与上报长度；Vanilla 使用 SHA-1，Paper 使用 SHA-256。Fabric 与 Paper 可能在服务器首次启动时下载库文件；这些上游 Java 引导下载不会向 EasyLauncher 报告逐字节进度。
@@ -211,7 +222,7 @@ React 调用 Rust 命令，并订阅 `server-status`、`server-console-batch`、
 
 ## 路线图
 
-当前计划中的 A—D 组已具备可使用的基础实现，具体范围见开发进度。后续仍可扩展历史日志回填、加载器特有的边界版本谓词、playit.gg 账号与客户端集成，以及真实 Minecraft 与公网环境的验收。
+当前计划中的 A—D 组已具备可使用的基础实现，具体范围见开发进度。后续仍可扩展历史日志回填、加载器特有的边界版本谓词、playit.gg 账号与客户端集成，以及真实玩家连接与公网环境的验收（真实服务器生命周期已由可选 E2E 覆盖）。
 
 ## 上游参考
 

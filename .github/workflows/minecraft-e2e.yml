@@ -1,0 +1,52 @@
+name: Minecraft E2E (manual only)
+
+# Manual trigger only: this workflow starts real Minecraft servers. It never
+# runs on push, pull request or a schedule.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: minecraft-e2e-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  lifecycle:
+    name: ${{ matrix.software }} ${{ matrix.version }}
+    runs-on: windows-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        software: [vanilla, paper, fabric]
+        version: ["1.21.4"]
+    env:
+      E2E_SOFTWARE: ${{ matrix.software }}
+      E2E_MC_VERSION: ${{ matrix.version }}
+      RUST_BACKTRACE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build the frontend assets required by tauri-build
+        run: |
+          npm ci
+          npm run build
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Run the real server lifecycle
+        working-directory: src-tauri
+        run: cargo test --test minecraft_e2e -- --ignored --nocapture
