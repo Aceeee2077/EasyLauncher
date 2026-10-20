@@ -152,7 +152,8 @@ pub async fn console_history(m: Managed<'_>, id: String) -> Result<Vec<ConsoleLi
 }
 #[tauri::command]
 pub async fn clear_console(m: Managed<'_>, id: String) -> Result<()> {
-    m.runtime(&id)?.console.lock().unwrap().clear();
+    let runtime = m.runtime(&id)?;
+    m.clear_console(&runtime);
     Ok(())
 }
 #[tauri::command]

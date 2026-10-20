@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { ArrowDown, Send, Trash2, Terminal } from "lucide-react";
 import { Button } from "../components/ui";
 import { call } from "../services/api";
-import type { ConsoleLine, ServerView } from "../types";
+import type { ConsoleBatch, ConsoleLine, ServerView } from "../types";
 import type { TaskProps } from "../utils/task";
 import { useI18n } from "../i18n";
 export function Console({
@@ -20,22 +20,39 @@ export function Console({
   const cursor = useRef(0);
   useEffect(() => {
     let alive = true;
+    let ready = false;
+    let pending: ConsoleLine[] = [];
+    let floor = 0;
     setLines([]);
-    const merge = (incoming: ConsoleLine[]) =>
-      setLines((old) =>
-        Array.from(
-          new Map([...old, ...incoming].map((l) => [l.sequence, l])).values(),
-        )
-          .sort((a, b) => a.sequence - b.sequence)
-          .slice(-1500),
+    const commit = (incoming: ConsoleLine[]) => {
+      const unique = new Map<number, ConsoleLine>();
+      for (const line of incoming)
+        if (line.sequence > floor) unique.set(line.sequence, line);
+      if (!unique.size) return;
+      const fresh = Array.from(unique.values()).sort(
+        (a, b) => a.sequence - b.sequence,
       );
-    const subscription = listen<ConsoleLine>("server-console", (e) => {
-      if (alive && e.payload.id === server.id) merge([e.payload]);
-    });
+      floor = fresh[fresh.length - 1].sequence;
+      setLines((old) => {
+        const next = old.concat(fresh);
+        return next.length > 1500 ? next.slice(next.length - 1500) : next;
+      });
+    };
+    const subscription = listen<ConsoleBatch>(
+      "server-console-batch",
+      (e) => {
+        if (!alive || e.payload.id !== server.id) return;
+        if (!ready) pending.push(...e.payload.lines);
+        else commit(e.payload.lines);
+      },
+    );
     void run(`history-${server.id}-${crypto.randomUUID()}`, async () => {
       await subscription;
       const logs = await call("console_history", { id: server.id });
-      if (alive) merge(logs);
+      if (!alive) return;
+      commit(logs.concat(pending));
+      pending = [];
+      ready = true;
     });
     return () => {
       alive = false;

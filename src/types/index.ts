@@ -89,6 +89,10 @@ export interface ConsoleLine {
   stream: string;
   text: string;
 }
+export interface ConsoleBatch {
+  id: string;
+  lines: ConsoleLine[];
+}
 export interface Progress {
   id: string;
   stage: string;

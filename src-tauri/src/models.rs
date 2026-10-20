@@ -141,6 +141,12 @@ pub struct ConsoleLine {
     pub stream: String,
     pub text: String,
 }
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConsoleBatch {
+    pub id: String,
+    pub lines: Vec<ConsoleLine>,
+}
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {

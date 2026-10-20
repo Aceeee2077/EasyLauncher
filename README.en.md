@@ -122,7 +122,7 @@ src-tauri/src/
   extensions.rs        Contracts for future content providers and crash analysis
 ```
 
-React invokes Rust commands and subscribes to `server-status`, `server-console`, `download-progress`, `backup-progress`, `app-closing` and `app-error`. Rust is authoritative. No lifecycle booleans or frontend timers fabricate server status. Backups, lifecycle changes and installation share a per-server operation mutex. Process monitoring holds no child lock while awaiting exit or reading streams.
+React invokes Rust commands and subscribes to `server-status`, `server-console-batch`, `download-progress`, `backup-progress`, `app-closing` and `app-error`. Rust is authoritative. No lifecycle booleans or frontend timers fabricate server status. Backups, lifecycle changes and installation share a per-server operation mutex. Process monitoring holds no child lock while awaiting exit or reading streams.
 
 ## Storage
 

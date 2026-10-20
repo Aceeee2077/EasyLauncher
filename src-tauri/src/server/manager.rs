@@ -83,6 +83,8 @@ pub struct Manager {
     pub shutting_down: AtomicBool,
     pub settings_gate: AsyncMutex<()>,
     pub java_gate: AsyncMutex<()>,
+    console_pending: Mutex<HashMap<String, Vec<ConsoleLine>>>,
+    console_notify: tokio::sync::Notify,
 }
 impl Manager {
     pub fn new(root: PathBuf, app: AppHandle) -> Result<Arc<Self>> {
@@ -122,6 +124,8 @@ impl Manager {
             shutting_down: AtomicBool::new(false),
             settings_gate: AsyncMutex::new(()),
             java_gate: AsyncMutex::new(()),
+            console_pending: Mutex::new(HashMap::new()),
+            console_notify: tokio::sync::Notify::new(),
         });
         m.logger.log(
             "INFO",
@@ -147,7 +151,34 @@ impl Manager {
                 }
             }
         }
+        if m.app.is_some() {
+            Self::spawn_console_flusher(&m);
+        }
         Ok(m)
+    }
+    fn spawn_console_flusher(m: &Arc<Self>) {
+        let weak = Arc::downgrade(m);
+        tauri::async_runtime::spawn(async move {
+            loop {
+                let Some(current) = weak.upgrade() else { break };
+                current.console_notify.notified().await;
+                drop(current);
+                tokio::time::sleep(std::time::Duration::from_millis(40)).await;
+                let Some(current) = weak.upgrade() else { break };
+                let batches = {
+                    let mut pending = current
+                        .console_pending
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
+                    std::mem::take(&mut *pending)
+                };
+                for (id, lines) in batches {
+                    if !lines.is_empty() {
+                        current.emit("server-console-batch", ConsoleBatch { id, lines });
+                    }
+                }
+            }
+        });
     }
     pub fn ready(&self) -> Result<()> {
         if self.shutting_down.load(Ordering::SeqCst) {
@@ -212,13 +243,34 @@ impl Manager {
             stream: stream.into(),
             text: text.chars().take(16384).collect(),
         };
-        let mut history = r.console.lock().unwrap();
-        history.push_back(line.clone());
-        while history.len() > 1500 {
-            history.pop_front();
+        {
+            let mut history = r.console.lock().unwrap_or_else(|e| e.into_inner());
+            history.push_back(line.clone());
+            while history.len() > 1500 {
+                history.pop_front();
+            }
         }
-        drop(history);
-        self.emit("server-console", line);
+        if self.app.is_some() {
+            {
+                let mut pending = self
+                    .console_pending
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                let queue = pending.entry(line.id.clone()).or_default();
+                if queue.len() >= 1500 {
+                    queue.drain(..queue.len() - 1499);
+                }
+                queue.push(line);
+            }
+            self.console_notify.notify_one();
+        }
+    }
+    pub fn clear_console(&self, r: &Runtime) {
+        r.console.lock().unwrap_or_else(|e| e.into_inner()).clear();
+        self.console_pending
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&r.snapshot().id);
     }
     pub fn list(&self) -> Result<Vec<ServerView>> {
         let ids: Vec<_> = self.runtimes.lock().unwrap().keys().cloned().collect();

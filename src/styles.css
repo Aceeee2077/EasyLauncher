@@ -1536,6 +1536,8 @@ code {
 .console-line {
   display: flex;
   gap: 14px;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 21px;
 }
 .console-line time {
   color: #6c7e6a;

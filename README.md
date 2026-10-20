@@ -140,7 +140,7 @@ src-tauri/src/
   extensions.rs        未来内容提供方与崩溃分析的契约
 ```
 
-React 调用 Rust 命令，并订阅 `server-status`、`server-console`、`download-progress`、`backup-progress`、`app-closing` 与 `app-error` 事件。以 Rust 为权威来源，不使用生命周期布尔值或前端计时器伪造服务器状态。备份、生命周期变更与安装共享同一把按服务器的操作互斥锁。进程监控在等待退出或读取流时不持有子进程锁。
+React 调用 Rust 命令，并订阅 `server-status`、`server-console-batch`、`download-progress`、`backup-progress`、`app-closing` 与 `app-error` 事件。以 Rust 为权威来源，不使用生命周期布尔值或前端计时器伪造服务器状态。备份、生命周期变更与安装共享同一把按服务器的操作互斥锁。进程监控在等待退出或读取流时不持有子进程锁。
 
 ## 存储
 
