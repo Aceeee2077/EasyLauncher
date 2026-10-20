@@ -2,6 +2,7 @@ pub mod backup;
 pub mod backup_diff;
 mod commands;
 pub mod dependencies;
+pub mod disk;
 pub mod error;
 pub mod extensions;
 pub mod import;
@@ -96,6 +97,8 @@ pub fn run() {
             commands::open_folder,
             commands::server_health,
             commands::server_diagnosis,
+            commands::disk_report,
+            commands::clean_disk,
             commands::log_assistant_preview,
             commands::analyze_log,
             commands::open_guide,
