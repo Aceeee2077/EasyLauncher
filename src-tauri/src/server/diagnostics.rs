@@ -168,10 +168,7 @@ pub async fn health(m: &Manager, id: &str) -> Result<HealthReport> {
         item(
             "eula",
             "ok",
-            vec![(
-                "acceptedAt",
-                s.eula_accepted_at.clone().unwrap_or_default(),
-            )],
+            vec![("acceptedAt", s.eula_accepted_at.clone().unwrap_or_default())],
         )
     } else {
         item("eula", "critical", vec![])
@@ -196,10 +193,7 @@ pub async fn health(m: &Manager, id: &str) -> Result<HealthReport> {
             Err(e) => item(
                 "java",
                 "critical",
-                vec![
-                    ("required", required.to_string()),
-                    ("message", e.message),
-                ],
+                vec![("required", required.to_string()), ("message", e.message)],
             ),
         },
     );
@@ -252,10 +246,18 @@ pub async fn health(m: &Manager, id: &str) -> Result<HealthReport> {
             if p.validate().is_err() {
                 checks.push(item("properties", "critical", vec![]));
             } else {
-                if p.values.get("online-mode").map(|v| v == "false").unwrap_or(false) {
+                if p.values
+                    .get("online-mode")
+                    .map(|v| v == "false")
+                    .unwrap_or(false)
+                {
                     risk.push("online-mode");
                 }
-                if p.values.get("allow-flight").map(|v| v == "true").unwrap_or(false) {
+                if p.values
+                    .get("allow-flight")
+                    .map(|v| v == "true")
+                    .unwrap_or(false)
+                {
                     risk.push("allow-flight");
                 }
                 for key in ["view-distance", "simulation-distance"] {
@@ -351,9 +353,7 @@ pub async fn health(m: &Manager, id: &str) -> Result<HealthReport> {
 
     // Recent log noise.
     checks.push(match log_summary(&dir) {
-        Some((0, warnings, file)) if warnings == 0 => {
-            item("logs", "ok", vec![("file", file)])
-        }
+        Some((0, warnings, file)) if warnings == 0 => item("logs", "ok", vec![("file", file)]),
         Some((errors, warnings, file)) => item(
             "logs",
             if errors > 0 { "warning" } else { "info" },
@@ -389,6 +389,16 @@ struct Pattern {
 }
 
 const PATTERNS: &[Pattern] = &[
+    Pattern {
+        id: "jvmOptions",
+        severity: "critical",
+        needles: &[
+            "unrecognized vm option",
+            "improperly specified vm option",
+            "could not create the java virtual machine",
+            "multiple garbage collectors selected",
+        ],
+    },
     Pattern {
         id: "outOfMemory",
         severity: "critical",
@@ -429,10 +439,7 @@ const PATTERNS: &[Pattern] = &[
     Pattern {
         id: "diskSpace",
         severity: "critical",
-        needles: &[
-            "no space left on device",
-            "not enough space on the disk",
-        ],
+        needles: &["no space left on device", "not enough space on the disk"],
     },
     Pattern {
         id: "worldCorruption",
@@ -483,10 +490,7 @@ const PATTERNS: &[Pattern] = &[
     },
 ];
 
-const GENERIC: &[&str] = &[
-    "encountered an unexpected exception",
-    "exception in thread",
-];
+const GENERIC: &[&str] = &["encountered an unexpected exception", "exception in thread"];
 
 fn matched_lines(lines: &[&str], lower: &[String], needles: &[&str]) -> Vec<String> {
     let mut evidence = Vec::new();
@@ -573,30 +577,65 @@ fn newest_crash_report(dir: &Path) -> Option<(PathBuf, String)> {
     newest.map(|(_, path, name)| (path, format!("crash-reports/{name}")))
 }
 
-/// Prefer the newest crash report, otherwise scan the tail of latest.log.
-pub fn diagnose(m: &Manager, id: &str) -> Result<DiagnosisReport> {
+/// Read the newest available file; current process output also catches JVM failures
+/// that occur before Minecraft creates a log file.
+pub fn log_text(m: &Manager, id: &str) -> Result<(Option<String>, String)> {
+    m.metadata(id)?;
     let dir = m.dir(id)?;
-    let mut source = None;
-    let mut text = String::new();
-
+    let mut candidates = Vec::new();
     if let Some((path, name)) = newest_crash_report(&dir) {
-        if let Ok(contents) = read_limited(&path) {
-            text = contents;
-            source = Some(name);
+        if let Ok(time) = fs::metadata(&path).and_then(|v| v.modified()) {
+            candidates.push((time, path, name));
         }
     }
-    if source.is_none() {
-        if let Ok(logs) = storage::child(&dir, "logs") {
-            if let Ok(latest) = storage::child(&logs, "latest.log") {
-                if latest.is_file() {
-                    if let Ok(contents) = read_limited(&latest) {
-                        text = contents;
-                        source = Some("logs/latest.log".into());
-                    }
-                }
+    let logs = storage::child(&dir, "logs")?;
+    let latest = storage::child(&logs, "latest.log")?;
+    if let Ok(time) = fs::metadata(&latest).and_then(|v| v.modified()) {
+        candidates.push((time, latest, "logs/latest.log".into()));
+    }
+    if let Some(started) = m
+        .runtime(id)
+        .ok()
+        .and_then(|r| r.snapshot().started_at)
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
+    {
+        candidates.retain(|(time, _, _)| chrono::DateTime::<chrono::Utc>::from(*time) >= started);
+    }
+    candidates.sort_by(|a, b| b.0.cmp(&a.0));
+    let mut source = None;
+    let mut text = String::new();
+    if let Some((_, path, name)) = candidates.first() {
+        text = read_limited(path)?;
+        source = Some(name.clone());
+    }
+    if let Ok(runtime) = m.runtime(id) {
+        let snap = runtime.snapshot();
+        if let Some(started) = &snap.started_at {
+            let lines = runtime.console.lock().unwrap();
+            let current: Vec<_> = lines
+                .iter()
+                .filter(|l| &l.timestamp >= started && l.stream != "system")
+                .collect();
+            if !current.is_empty() {
+                let output = current
+                    .iter()
+                    .map(|l| l.text.as_str())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                text.push_str("\n");
+                text.push_str(&output);
+                source = Some(
+                    source
+                        .map(|s| format!("{s} + console"))
+                        .unwrap_or_else(|| "console".into()),
+                );
             }
         }
     }
+    Ok((source, text))
+}
+pub fn diagnose(m: &Manager, id: &str) -> Result<DiagnosisReport> {
+    let (source, text) = log_text(m, id)?;
     Ok(analyze(id, source, &text))
 }
 
@@ -615,7 +654,11 @@ mod tests {
     }
     #[test]
     fn generic_only_without_specific_signal() {
-        let generic = analyze("fixture", Some("logs/latest.log".into()), "x Exception in thread \"main\"");
+        let generic = analyze(
+            "fixture",
+            Some("logs/latest.log".into()),
+            "x Exception in thread \"main\"",
+        );
         assert_eq!(generic.findings[0].id, "generic");
         let specific = analyze(
             "fixture",

@@ -10,6 +10,7 @@ import {
   Undo2,
 } from "lucide-react";
 import { Button, Field, Modal, bytes, date } from "../components/ui";
+import { BackupComparison } from "../components/BackupComparison";
 import { call } from "../services/api";
 import { idle, type Backup, type ServerView } from "../types";
 import type { TaskProps } from "../utils/task";
@@ -117,9 +118,7 @@ export function Backups({
         <Button
           variant="primary"
           disabled={!latest || !available || working}
-          onClick={() =>
-            latest && setConfirm({ b: latest, action: "restore" })
-          }
+          onClick={() => latest && setConfirm({ b: latest, action: "restore" })}
         >
           <RotateCcw size={16} />
           {t("backups.rollbackAction")}
@@ -136,9 +135,7 @@ export function Backups({
           <Button
             disabled={!available || working}
             busy={busy.has("backupAction")}
-            onClick={() =>
-              apply(undo.safetyId, undo.snapshotDate, false)
-            }
+            onClick={() => apply(undo.safetyId, undo.snapshotDate, false)}
           >
             <Undo2 size={15} />
             {t("backups.undo")}
@@ -207,6 +204,13 @@ export function Backups({
           <p>{t("backups.emptyDesc")}</p>
         </div>
       )}
+      <BackupComparison
+        key={backups.map((b) => b.id).join(",")}
+        id={server.id}
+        backups={backups}
+        run={run}
+        busy={busy}
+      />
       {confirm && (
         <Modal
           title={

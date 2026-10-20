@@ -1,4 +1,8 @@
-use crate::{error::{AppError, Result}, models::ConsoleLine, server::manager::Manager};
+use crate::{
+    error::{AppError, Result},
+    models::ConsoleLine,
+    server::manager::Manager,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -100,7 +104,8 @@ impl WebConsole {
         Ok(self.info().expect("session was just created"))
     }
     pub fn stop(&self) {
-        if let Some(session) = self.session
+        if let Some(session) = self
+            .session
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .take()
@@ -182,10 +187,21 @@ async fn serve(stream: &mut TcpStream, manager: &Arc<Manager>, token: &str) -> s
         };
     }
     if !request.path.starts_with("/api/") {
-        return respond(stream, "404 Not Found", "text/plain; charset=utf-8", b"Not found").await;
+        return respond(
+            stream,
+            "404 Not Found",
+            "text/plain; charset=utf-8",
+            b"Not found",
+        )
+        .await;
     }
     if !authorized {
-        return json_error(stream, "401 Unauthorized", "Invalid or expired access token.").await;
+        return json_error(
+            stream,
+            "401 Unauthorized",
+            "Invalid or expired access token.",
+        )
+        .await;
     }
     match (request.method.as_str(), request.path.as_str()) {
         ("GET", "/api/state") => {
@@ -247,7 +263,15 @@ async fn serve(stream: &mut TcpStream, manager: &Arc<Manager>, token: &str) -> s
                 Err(e) => json_error(stream, "409 Conflict", &e.message).await,
             }
         }
-        _ => respond(stream, "404 Not Found", "text/plain; charset=utf-8", b"Not found").await,
+        _ => {
+            respond(
+                stream,
+                "404 Not Found",
+                "text/plain; charset=utf-8",
+                b"Not found",
+            )
+            .await
+        }
     }
 }
 
@@ -385,11 +409,7 @@ async fn json_ok<T: Serialize>(stream: &mut TcpStream, value: &T) -> std::io::Re
     respond(stream, "200 OK", "application/json; charset=utf-8", &body).await
 }
 
-async fn json_error(
-    stream: &mut TcpStream,
-    status: &str,
-    message: &str,
-) -> std::io::Result<()> {
+async fn json_error(stream: &mut TcpStream, status: &str, message: &str) -> std::io::Result<()> {
     let body = serde_json::to_vec(&serde_json::json!({ "error": message }))
         .unwrap_or_else(|_| b"{}".to_vec());
     respond(stream, status, "application/json; charset=utf-8", &body).await

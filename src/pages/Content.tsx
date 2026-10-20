@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button, Modal, bytes } from "../components/ui";
+import { DependencyCheck } from "../components/DependencyCheck";
 import { call } from "../services/api";
 import { useI18n } from "../i18n";
 import type {
@@ -34,7 +35,11 @@ const compact = (n: number) =>
       ? `${(n / 1_000).toFixed(1)}k`
       : String(n);
 
-export function Content({ server, run, busy }: TaskProps & { server: ServerView }) {
+export function Content({
+  server,
+  run,
+  busy,
+}: TaskProps & { server: ServerView }) {
   const { t } = useI18n();
   const kind = server.serverType === "paper" ? "plugin" : "mod";
   const loader = server.serverType === "paper" ? "paper" : "fabric";
@@ -315,9 +320,7 @@ export function Content({ server, run, busy }: TaskProps & { server: ServerView 
             </div>
             <progress
               max={progress.totalBytes || undefined}
-              value={
-                progress.totalBytes ? progress.downloadedBytes : undefined
-              }
+              value={progress.totalBytes ? progress.downloadedBytes : undefined}
             />
             {progress.totalBytes && (
               <small>
@@ -466,6 +469,12 @@ export function Content({ server, run, busy }: TaskProps & { server: ServerView 
           <p className="mini-empty">{t("content.emptyInstalled")}</p>
         )}
       </section>
+      <DependencyCheck
+        key={`${listing?.entries.map((e) => e.versionId).join(",")}-${listing?.unmanaged.join(",")}`}
+        id={server.id}
+        run={run}
+        busy={busy}
+      />
       {installModal}
       {pending && (
         <Modal title={pending.title} onClose={() => setPending(null)}>

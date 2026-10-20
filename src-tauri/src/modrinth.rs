@@ -73,6 +73,14 @@ pub struct ProjectVersion {
     pub downloads: u64,
     pub date_published: String,
     pub files: Vec<VersionFile>,
+    pub dependencies: Vec<ProjectDependency>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all(serialize = "camelCase"))]
+pub struct ProjectDependency {
+    pub project_id: Option<String>,
+    pub version_id: Option<String>,
+    pub dependency_type: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -180,6 +188,8 @@ struct RawFile {
 }
 #[derive(Debug, Deserialize)]
 struct RawVersion {
+    #[serde(default)]
+    dependencies: Vec<ProjectDependency>,
     #[serde(default)]
     id: String,
     #[serde(default)]
@@ -311,6 +321,7 @@ fn map_versions(raw: Vec<RawVersion>) -> Vec<ProjectVersion> {
     raw.into_iter()
         .filter(|v| !v.id.is_empty())
         .map(|v| ProjectVersion {
+            dependencies: v.dependencies,
             id: v.id,
             name: v.name,
             version_number: v.version_number,
@@ -336,6 +347,21 @@ fn map_versions(raw: Vec<RawVersion>) -> Vec<ProjectVersion> {
         .collect()
 }
 
+pub async fn version_dependencies(
+    client: &reqwest::Client,
+    id: &str,
+) -> Result<Vec<ProjectDependency>> {
+    validate_project_id(id)?;
+    let raw: RawVersion = client
+        .get(format!("{API_BASE}/version/{id}"))
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    Ok(raw.dependencies)
+}
+
 pub async fn install(
     m: Arc<Manager>,
     id: String,
@@ -359,13 +385,7 @@ pub async fn install(
     let content_dir = storage::child(&root, folder)?;
     fs::create_dir_all(&content_dir)?;
     let client = m.client();
-    let available = versions(
-        &client,
-        &project_id,
-        Some(&server.minecraft_version),
-        None,
-    )
-    .await?;
+    let available = versions(&client, &project_id, Some(&server.minecraft_version), None).await?;
     let version = available
         .into_iter()
         .find(|v| v.id == version_id)
@@ -663,9 +683,7 @@ async fn apply_pack(
         let index = archive
             .by_name("modrinth.index.json")
             .map_err(|_| AppError::user("This .mrpack is missing modrinth.index.json."))?;
-        index
-            .take(MAX_INDEX_BYTES + 1)
-            .read_to_end(&mut raw)?;
+        index.take(MAX_INDEX_BYTES + 1).read_to_end(&mut raw)?;
     }
     if raw.len() as u64 > MAX_INDEX_BYTES {
         return Err(AppError::user(
@@ -741,7 +759,9 @@ async fn apply_pack(
             .downloads
             .iter()
             .find(|u| u.starts_with("https://"))
-            .ok_or_else(|| AppError::user("The modpack contains a file without a secure download."))?;
+            .ok_or_else(|| {
+                AppError::user("The modpack contains a file without a secure download.")
+            })?;
         let dest = safe_join(root, &file.path)?;
         if let Some(parent) = dest.parent() {
             fs::create_dir_all(parent)?;
@@ -779,9 +799,9 @@ async fn apply_pack(
         let mut done = 0u32;
         for i in 0..archive.len() {
             let (name, is_dir) = {
-                let entry = archive.by_index(i).map_err(|e| {
-                    AppError::new("The modpack archive could not be read.", e)
-                })?;
+                let entry = archive
+                    .by_index(i)
+                    .map_err(|e| AppError::new("The modpack archive could not be read.", e))?;
                 (entry.name().to_string(), entry.is_dir())
             };
             let Some(relative) = name.strip_prefix(prefix) else {
@@ -817,11 +837,29 @@ async fn apply_pack(
             budget -= copied;
             overrides += 1;
             done += 1;
-            progress(m, id, "overrides", relative, done, count, copied, Some(copied));
+            progress(
+                m,
+                id,
+                "overrides",
+                relative,
+                done,
+                count,
+                copied,
+                Some(copied),
+            );
         }
     }
     report.overrides = overrides;
-    progress(m, id, "done", &report.name, report.files, report.files, 0, Some(0));
+    progress(
+        m,
+        id,
+        "done",
+        &report.name,
+        report.files,
+        report.files,
+        0,
+        Some(0),
+    );
     m.logger.log(
         "INFO",
         &format!(
@@ -908,7 +946,10 @@ fn compatible(version: &ProjectVersion, loader: &str) -> bool {
                 || l.eq_ignore_ascii_case("bukkit")
                 || l.eq_ignore_ascii_case("purpur")
         }),
-        _ => version.loaders.iter().any(|l| l.eq_ignore_ascii_case(loader)),
+        _ => version
+            .loaders
+            .iter()
+            .any(|l| l.eq_ignore_ascii_case(loader)),
     }
 }
 
@@ -958,6 +999,8 @@ fn protected(relative: &str) -> bool {
             | "eula.txt"
             | "server.properties"
             | "content.json"
+            | "player-stats.json"
+            | "tunnel.json"
             | "minehost.json"
             | "usercache.json"
     )
@@ -967,10 +1010,9 @@ fn safe_component(name: &str) -> bool {
     if name.is_empty() || name == "." || name == ".." || name.len() > 255 {
         return false;
     }
-    if name
-        .chars()
-        .any(|c| c.is_control() || matches!(c, '<' | '>' | ':' | '"' | '|' | '?' | '*' | '\\' | '/'))
-    {
+    if name.chars().any(|c| {
+        c.is_control() || matches!(c, '<' | '>' | ':' | '"' | '|' | '?' | '*' | '\\' | '/')
+    }) {
         return false;
     }
     if name.ends_with('.') || name.ends_with(' ') {
@@ -1065,9 +1107,7 @@ async fn download_file(
     progress: impl Fn(u64, Option<u64>),
 ) -> Result<u64> {
     if !url.starts_with("https://") {
-        return Err(AppError::user(
-            "Only secure HTTPS downloads are allowed.",
-        ));
+        return Err(AppError::user("Only secure HTTPS downloads are allowed."));
     }
     storage::no_links(dest)?;
     if let Some(parent) = dest.parent() {
@@ -1118,7 +1158,9 @@ async fn download_file(
             file.sync_all().await?;
             drop(file);
             if bytes == 0 {
-                return Err(AppError::user("The downloaded file was empty. Please retry."));
+                return Err(AppError::user(
+                    "The downloaded file was empty. Please retry.",
+                ));
             }
             if let Some(expected) = sha512 {
                 if !format!("{:x}", h512.finalize()).eq_ignore_ascii_case(expected) {
@@ -1205,8 +1247,8 @@ mod tests {
 
     #[test]
     fn facets_form_groups() {
-        let value: Value = serde_json::from_str(&facets("mod", Some("1.20.1"), Some("fabric")))
-            .unwrap();
+        let value: Value =
+            serde_json::from_str(&facets("mod", Some("1.20.1"), Some("fabric"))).unwrap();
         assert_eq!(value[0][0], "project_type:mod");
         assert_eq!(value[1][0], "versions:1.20.1");
         assert_eq!(value[2][0], "categories:fabric");
@@ -1248,6 +1290,7 @@ mod tests {
     fn version_response_is_mapped() {
         let raw: Vec<RawVersion> = serde_json::from_value(json!([{
             "id": "ver1",
+            "dependencies": [{"project_id":"library","version_id":"library-v1","dependency_type":"required"}],
             "name": "Fabric API 0.92",
             "version_number": "0.92.2+1.20.1",
             "version_type": "release",
@@ -1262,23 +1305,37 @@ mod tests {
                 "hashes": {"sha1": "aa", "sha512": "bb"},
                 "primary": true
             }, {"filename": "sources.jar", "url": "", "size": 1, "primary": false}]
-        }])).unwrap();
+        }]))
+        .unwrap();
         let version = &map_versions(raw)[0];
         assert_eq!(version.channel, "release");
         assert_eq!(version.loaders, vec!["fabric"]);
         assert_eq!(version.files[0].sha512.as_deref(), Some("bb"));
         assert_eq!(version.files.len(), 1);
+        assert_eq!(
+            version.dependencies[0].project_id.as_deref(),
+            Some("library")
+        );
+        let serialized = serde_json::to_value(&version.dependencies[0]).unwrap();
+        assert_eq!(serialized["dependencyType"], "required");
+        assert_eq!(serialized["versionId"], "library-v1");
     }
 
     #[test]
     fn pack_loader_detection() {
-        let fabric = BTreeMap::from([("minecraft".into(), "1.20.1".into()), ("fabric-loader".into(), "0.15.0".into())]);
+        let fabric = BTreeMap::from([
+            ("minecraft".into(), "1.20.1".into()),
+            ("fabric-loader".into(), "0.15.0".into()),
+        ]);
         assert_eq!(detect_loader(&fabric).unwrap(), "fabric");
         let vanilla = BTreeMap::from([("minecraft".into(), "1.20.1".into())]);
         assert_eq!(detect_loader(&vanilla).unwrap(), "vanilla");
         for unsupported in ["forge", "neoforge", "quilt-loader"] {
             let deps = BTreeMap::from([(unsupported.into(), "1".into())]);
-            assert!(detect_loader(&deps).is_err(), "{unsupported} should be rejected");
+            assert!(
+                detect_loader(&deps).is_err(),
+                "{unsupported} should be rejected"
+            );
         }
     }
 
@@ -1302,6 +1359,8 @@ mod tests {
 
     #[test]
     fn protected_paths() {
+        assert!(protected("player-stats.json"));
+        assert!(protected("tunnel.json"));
         assert!(protected("server.jar"));
         assert!(protected("server.properties"));
         assert!(protected("world/level.dat"));

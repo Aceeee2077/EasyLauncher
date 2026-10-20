@@ -1,6 +1,12 @@
 //! Test-only subprocess. This contains no Minecraft code and is never shipped.
 use std::io::{self, BufRead, Write};
 fn main() {
+    if std::env::args().any(|a| a == "-c") {
+        // A fake frpc process for explicit tunnel lifecycle tests. No networking.
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+    }
     if std::env::args().any(|a| a == "-version") {
         eprintln!("openjdk version \"21.0.5\" TEST FIXTURE");
         return;

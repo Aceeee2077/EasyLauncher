@@ -7,10 +7,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, VecDeque},
-    sync::{
-        atomic::Ordering,
-        Arc, Mutex,
-    },
+    sync::{atomic::Ordering, Arc, Mutex},
     time::{Duration, Instant},
 };
 use sysinfo::{Pid, ProcessesToUpdate, System};
@@ -353,7 +350,11 @@ fn uptime(started_at: &Option<String>, now: chrono::DateTime<chrono::Utc>) -> u6
     started_at
         .as_deref()
         .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
-        .map(|start| (now - start.with_timezone(&chrono::Utc)).num_seconds().max(0) as u64)
+        .map(|start| {
+            (now - start.with_timezone(&chrono::Utc))
+                .num_seconds()
+                .max(0) as u64
+        })
         .unwrap_or(0)
 }
 
@@ -364,11 +365,7 @@ fn evaluate(state: &mut MonitorState, metrics: &ServerMetrics) -> Vec<ServerAler
         return out;
     }
     let checks = [
-        (
-            AlertKind::Cpu,
-            metrics.cpu_percent,
-            state.rules.cpu_percent,
-        ),
+        (AlertKind::Cpu, metrics.cpu_percent, state.rules.cpu_percent),
         (
             AlertKind::Memory,
             metrics.memory_percent,

@@ -167,20 +167,20 @@ Backups contain world data only, not server configuration, mods or plugins. They
 ## Known limitations
 
 - **No Minecraft client or dedicated server was launched during validation**, as requested. Compilation, desktop startup, actual upstream metadata, file operations and a test-only subprocess were verified. The complete real-server startup/library bootstrap path still needs a user-run acceptance check after explicit EULA acceptance.
-- Stable Minecraft releases **1.16 and newer** are listed; snapshots, older launch formats and imports are outside V0.1. Paper needs an upstream `STABLE` build for the selected release; an unsupported selection produces a clear error.
+- Stable Minecraft releases **1.16 and newer** are listed; snapshots and older launch formats remain outside the supported list. Folder imports support recognized Vanilla, Paper and Fabric servers. Paper needs an upstream `STABLE` build for the selected release; an unsupported selection produces a clear error.
 - Java selection requires a compatible major version. Managed Adoptium installations are pinned per server and can be removed from Settings. Minecraft 26.x requirements follow upstream metadata, with a Java 25 fallback; version rules live in one module.
 - Fabric supplies a launcher without an upstream artifact hash. EasyLauncher validates HTTPS transport, JAR signature and reported length; Vanilla uses SHA-1 and Paper uses SHA-256. Fabric and Paper may download libraries on first server start; those upstream Java bootstrap downloads do not report per-byte progress to EasyLauncher.
-- Backups require stopped servers. Live save synchronization, scheduling, compression and remote copies are deferred. Restore rejects a different `level-name` until the original name is configured.
-- Connected-player observation relies on English upstream join/leave log messages; plugins can change these. There is no player-count polling, persistent player directory or RCON integration.
+- Backups require stopped servers. Scheduled backups are available; live save synchronization, compression and remote copies are deferred. Restore rejects a different `level-name` until the original name is configured.
+- Connected-player observation relies on English upstream join/leave log messages; plugins can change these. Player insights persist observed events without backfilling older logs; this is not an authoritative RCON player directory.
 - Normal close gracefully stops children on all supported platforms. Windows additionally uses Job Objects for abrupt exit cleanup. Abrupt parent termination cleanup on Linux/macOS is not yet guaranteed; inspect remaining Java processes before relaunching there.
-- LAN address detection is a routing hint; VPNs/multiple adapters can affect it. Local or LAN availability does not imply public access. No firewall/router settings are changed.
-- Mod/plugin management is folder access and JAR listing only. Minecraft's own logs remain under the server's upstream logging policy; EasyLauncher application logs and console buffers have independent limits.
+- LAN address detection is a routing hint; VPNs/multiple adapters can affect it. Local or LAN availability does not imply public access. Users can explicitly request UPnP mappings or Windows firewall rules. frp requires their own provider and configuration.
+- Mod/plugin management includes Modrinth content and dependency declarations; local JAR metadata inspection currently supports Fabric. Minecraft's own logs remain under the server's upstream logging policy; EasyLauncher application logs and console buffers have independent limits.
 - API availability and throughput depend on upstream providers. Paper requests use an identifying User-Agent; configure a real project contact URL before distributing a renamed/public fork.
 - Windows is the tested build target. Code signing, macOS notarization, automatic updates and platform installers beyond NSIS are not included.
 
 ## Roadmap
 
-The next improvements include scheduled backups, import, crash analysis, templates, remote administration and networking integrations. Extension points for Forge/NeoForge/Purpur and Modrinth content are already in place.
+The A–D roadmap has usable baseline implementations. Remaining extensions include historical player-log backfill, local Paper plugin metadata, complete Fabric version semantics, playit.gg account/client integration, and acceptance testing with real Minecraft and public networks. See the development notes for scope.
 
 ## Upstream references
 
@@ -191,3 +191,10 @@ The next improvements include scheduled backups, import, crash analysis, templat
 - [Minecraft EULA](https://www.minecraft.net/eula)
 
 EasyLauncher is independent software and **is not affiliated with, endorsed by, or associated with Mojang Studios or Microsoft**. Minecraft is a trademark of its respective owner.
+
+
+## Advanced feature update (2026-10-19)
+
+The scheduler, monitoring, rollback, crash recovery, mobile console, network checks and folder import are followed by configuration/JVM presets, Fabric and Modrinth dependency inspection, an optional bring-your-own-key log assistant, persistent player insights, PNG share cards, SHA-256 backup comparisons, and managed frpc processes. See [development notes](docs/DEVELOPMENT.md) for entry points and exact limitations.
+
+The log assistant sends only the editable excerpt displayed to the user, and only after an explicit click. API keys are not persisted. The frpc integration requires a trusted installed client and the user's own provider configuration; process status does not establish public connectivity. No real Minecraft process, public tunnel or paid AI service was used during this implementation.

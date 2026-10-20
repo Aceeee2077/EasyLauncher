@@ -3,6 +3,7 @@
 
 :root {
   --gold: #d9c68c;
+  --backdrop-artwork: url("./assets/default-landscape.png");
 }
 :root[data-theme="light"] {
   --gold: #937840;
@@ -20,7 +21,7 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: url("./assets/qianli-jiangshan.jpg") center 40% / cover no-repeat;
+  background: var(--backdrop-artwork) center 40% / cover no-repeat;
   opacity: 0.92;
   z-index: -2;
   pointer-events: none;
@@ -60,7 +61,7 @@ body::after {
   content: "";
   position: absolute;
   inset: 0 0 0 46%;
-  background: url("./assets/qianli-jiangshan.jpg") 74% 62% / cover;
+  background: var(--backdrop-artwork) 74% 62% / cover;
   opacity: 0.35;
   z-index: 0;
   mask-image: linear-gradient(90deg, transparent, #000 38%);
@@ -71,13 +72,13 @@ body::after {
   z-index: 1;
 }
 .server-art {
-  background: url("./assets/qianli-jiangshan.jpg") 70% 58% / cover;
+  background: var(--backdrop-artwork) 70% 58% / cover;
 }
 .server-art.art-1 {
-  background: url("./assets/qianli-jiangshan.jpg") 30% 66% / cover;
+  background: var(--backdrop-artwork) 30% 66% / cover;
 }
 .server-art.art-2 {
-  background: url("./assets/qianli-jiangshan.jpg") 90% 70% / cover;
+  background: var(--backdrop-artwork) 90% 70% / cover;
 }
 .server-art .terrain,
 .server-art .art-sun {
@@ -94,7 +95,7 @@ body::after {
   place-items: center;
   overflow: hidden;
   cursor: pointer;
-  background: url("./assets/qianli-jiangshan.jpg") center 42% / cover no-repeat,
+  background: var(--backdrop-artwork) center 42% / cover no-repeat,
     var(--bg);
   animation: splash-in 0.5s ease both;
 }

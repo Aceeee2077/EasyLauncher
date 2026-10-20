@@ -6,10 +6,16 @@ import {
   Terminal,
   Copy,
   Check,
+  Cpu,
 } from "lucide-react";
 import { Button, Field } from "../components/ui";
 import { call } from "../services/api";
-import { idle, type LaunchInfo, type ServerView } from "../types";
+import {
+  idle,
+  type JvmPreset,
+  type LaunchInfo,
+  type ServerView,
+} from "../types";
 import type { TaskProps } from "../utils/task";
 import { useI18n, type MessageKey } from "../i18n";
 const numeric = [
@@ -34,6 +40,9 @@ export function ServerSettings({
   const [min, setMin] = useState(server.memoryMinMb);
   const [max, setMax] = useState(server.memoryMaxMb);
   const [java, setJava] = useState(server.javaPath || "");
+  const [preset, setPreset] = useState<JvmPreset>(server.jvmPreset);
+  const [flags, setFlags] = useState(server.jvmFlags.join("\n"));
+  const [jvmSaved, setJvmSaved] = useState(false);
   const [launch, setLaunch] = useState<LaunchInfo | null>(null);
   const [copied, setCopied] = useState(false);
   useEffect(() => {
@@ -71,6 +80,8 @@ export function ServerSettings({
     server.installed,
     server.memoryMinMb,
     server.memoryMaxMb,
+    server.jvmPreset,
+    server.jvmFlags,
     server.javaPath,
   ]);
   const copyCommand = () => {
@@ -143,6 +154,33 @@ export function ServerSettings({
             {t("serverSettings.advanced")}
           </button>
         </div>
+        {!advanced && values && (
+          <div className="configuration-presets">
+            <strong>{t("serverSettings.profile.title")}</strong>
+            <div className="row">
+              {(["small", "balanced", "performance"] as const).map(
+                (profile, i) => (
+                  <Button
+                    key={profile}
+                    disabled={!editable}
+                    onClick={() => {
+                      setValues((v) => ({
+                        ...v,
+                        "view-distance": ["8", "10", "6"][i],
+                        "simulation-distance": ["4", "6", "4"][i],
+                        "max-players": ["10", "20", "10"][i],
+                      }));
+                      setSaved(false);
+                    }}
+                  >
+                    {t(`serverSettings.profile.${profile}`)}
+                  </Button>
+                ),
+              )}
+            </div>
+            <p className="small muted">{t("serverSettings.profile.hint")}</p>
+          </div>
+        )}
         {!values ? (
           <p className="muted">{t("serverSettings.loading")}</p>
         ) : advanced ? (
@@ -278,6 +316,109 @@ export function ServerSettings({
             <input value={java} onChange={(e) => setJava(e.target.value)} />
           </Field>
         </fieldset>
+        <Button
+          disabled={!editable}
+          busy={busy.has("memory-suggestion")}
+          onClick={() =>
+            void run("memory-suggestion", async () => {
+              const info = await call("system_info");
+              const ceiling =
+                Math.floor(
+                  Math.min(
+                    info.availableMb - 512,
+                    info.totalMb * 0.8,
+                    info.totalMb - 1024,
+                  ) / 256,
+                ) * 256;
+              const suggested = Math.max(
+                256,
+                Math.min(info.recommendedMb, ceiling),
+              );
+              setMax(suggested);
+              setMin(Math.min(1024, suggested));
+            })
+          }
+        >
+          {t("serverSettings.memory.recommend")}
+        </Button>
+        <p className="small muted">{t("serverSettings.memory.note")}</p>
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <Cpu size={18} />
+              {t("serverSettings.jvm.title")}
+            </h2>
+            <p>{t("serverSettings.jvm.desc")}</p>
+          </div>
+          <Button
+            disabled={!editable}
+            busy={busy.has("jvm")}
+            onClick={() =>
+              void run("jvm", async () => {
+                await call("update_jvm", {
+                  id: server.id,
+                  preset,
+                  flags:
+                    preset === "custom"
+                      ? flags
+                          .split("\n")
+                          .map((f) => f.trim())
+                          .filter(Boolean)
+                      : [],
+                });
+                setJvmSaved(true);
+                await onSaved();
+              })
+            }
+          >
+            <Save size={16} />
+            {t("serverSettings.jvm.save")}
+          </Button>
+        </div>
+        {jvmSaved && (
+          <div className="info-strip success-text">
+            {t("serverSettings.saved")}
+          </div>
+        )}
+        <div className="segmented jvm-presets">
+          {(["balanced", "aikar", "paper", "custom"] as const).map((p) => (
+            <button
+              key={p}
+              disabled={!editable || busy.has("jvm")}
+              className={preset === p ? "selected" : ""}
+              onClick={() => {
+                setPreset(p);
+                setJvmSaved(false);
+              }}
+            >
+              {t(`serverSettings.jvm.${p}` as MessageKey)}
+            </button>
+          ))}
+        </div>
+        <p className="small muted">
+          {t(`serverSettings.jvm.${preset}Desc` as MessageKey)}
+        </p>
+        {preset === "custom" && (
+          <Field label={t("serverSettings.jvm.customLabel")}>
+            <textarea
+              className="raw-editor jvm-flags"
+              spellCheck={false}
+              disabled={!editable}
+              placeholder="-XX:+UseG1GC"
+              value={flags}
+              onChange={(e) => {
+                setFlags(e.target.value);
+                setJvmSaved(false);
+              }}
+            />
+          </Field>
+        )}
+        <p className="small muted jvm-note">
+          {t("serverSettings.jvm.customHint")}{" "}
+          {t("serverSettings.jvm.memoryManaged")}
+        </p>
       </section>
       <section className="panel">
         <div className="section-title">
@@ -302,7 +443,9 @@ export function ServerSettings({
           </Button>
         </div>
         {!launch ? (
-          <p className="muted small">{t("serverSettings.launch.unavailable")}</p>
+          <p className="muted small">
+            {t("serverSettings.launch.unavailable")}
+          </p>
         ) : (
           <>
             {!launch.jarPresent && (

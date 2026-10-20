@@ -1,19 +1,24 @@
 pub mod backup;
+pub mod backup_diff;
 mod commands;
+pub mod dependencies;
 pub mod error;
 pub mod extensions;
 pub mod import;
 pub mod java;
+pub mod log_assistant;
 mod logger;
 pub mod minecraft;
 pub mod models;
 pub mod modrinth;
 pub mod monitor;
 pub mod network;
+pub mod player_stats;
 pub mod remote;
 pub mod schedule;
 pub mod server;
 pub mod storage;
+pub mod tunnel;
 pub mod upnp;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -37,12 +42,15 @@ pub fn run() {
             let manager = server::manager::Manager::new(root, app.handle().clone())?;
             schedule::spawn(manager.clone());
             monitor::spawn(manager.clone());
+            player_stats::spawn(manager.clone());
             app.manage(remote::WebConsole::new(manager.clone()));
             app.manage(manager);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_servers,
+            commands::save_share_card,
+            commands::open_share_cards,
             commands::create_server,
             commands::delete_server,
             commands::install_server,
@@ -60,6 +68,7 @@ pub fn run() {
             commands::update_server_properties,
             commands::update_resources,
             commands::update_auto_restart,
+            commands::update_jvm,
             commands::detect_java,
             commands::list_managed_java,
             commands::install_java,
@@ -72,6 +81,9 @@ pub fn run() {
             commands::save_settings,
             commands::create_backup,
             commands::list_backups,
+            commands::compare_backups,
+            commands::check_dependencies,
+            commands::player_stats,
             commands::restore_backup,
             commands::set_backup_label,
             commands::delete_backup,
@@ -81,6 +93,8 @@ pub fn run() {
             commands::open_folder,
             commands::server_health,
             commands::server_diagnosis,
+            commands::log_assistant_preview,
+            commands::analyze_log,
             commands::open_guide,
             commands::modrinth_search,
             commands::modrinth_versions,
@@ -104,6 +118,9 @@ pub fn run() {
             commands::start_web_console,
             commands::stop_web_console,
             commands::network_report,
+            commands::tunnel_info,
+            commands::tunnel_start,
+            commands::tunnel_stop,
             commands::network_map,
             commands::network_unmap,
             commands::network_check,

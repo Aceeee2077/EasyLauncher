@@ -88,11 +88,7 @@ impl ServerInstaller {
             }
             ServerType::Fabric => {
                 let meta = fabric_meta(source);
-                let loaders = json(
-                    client,
-                    &format!("{meta}/v2/versions/loader/{version}"),
-                )
-                .await?;
+                let loaders = json(client, &format!("{meta}/v2/versions/loader/{version}")).await?;
                 let loader = loaders
                     .as_array()
                     .and_then(|a| a.iter().find(|v| v["loader"]["stable"] == true))
@@ -100,14 +96,22 @@ impl ServerInstaller {
                     .ok_or_else(|| {
                         AppError::user("No stable Fabric loader is available for this version.")
                     })?;
-                let installers =
-                    json(client, &format!("{meta}/v2/versions/installer")).await?;
+                let installers = json(client, &format!("{meta}/v2/versions/installer")).await?;
                 let installer = installers
                     .as_array()
                     .and_then(|a| a.iter().find(|v| v["stable"] == true))
                     .and_then(|v| v["version"].as_str())
                     .ok_or_else(|| AppError::user("No stable Fabric launcher is available."))?;
-                Ok(Artifact{url:format!("{meta}/v2/versions/loader/{version}/{loader}/{installer}/server/jar"),sha1:None,sha256:None,size:None,label:format!("Fabric {version}, loader {loader}, launcher {installer}"),java})
+                Ok(Artifact {
+                    url: format!(
+                        "{meta}/v2/versions/loader/{version}/{loader}/{installer}/server/jar"
+                    ),
+                    sha1: None,
+                    sha256: None,
+                    size: None,
+                    label: format!("Fabric {version}, loader {loader}, launcher {installer}"),
+                    java,
+                })
             }
         }
     }
@@ -302,13 +306,15 @@ mod tests {
             .build()
             .unwrap();
         for software in [ServerType::Vanilla, ServerType::Paper, ServerType::Fabric] {
-            let versions = crate::minecraft::versions::list(&client, software, DownloadSource::Official)
-                .await
-                .unwrap();
+            let versions =
+                crate::minecraft::versions::list(&client, software, DownloadSource::Official)
+                    .await
+                    .unwrap();
             assert!(versions.iter().any(|v| v.id == "1.21.4"));
-            let artifact = ServerInstaller::resolve(&client, "1.21.4", software, DownloadSource::Official)
-                .await
-                .unwrap();
+            let artifact =
+                ServerInstaller::resolve(&client, "1.21.4", software, DownloadSource::Official)
+                    .await
+                    .unwrap();
             assert!(artifact.url.starts_with("https://"));
             assert_eq!(artifact.java, 21);
             println!("{software:?}: {}", artifact.label);

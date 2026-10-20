@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @theme {
-  --font-sans: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI",
-    system-ui, sans-serif;
+  --font-sans:
+    "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui,
+    sans-serif;
 }
 :root {
   font-family:
@@ -99,11 +100,7 @@ body {
   min-height: 100vh;
   color: var(--text);
   background:
-    radial-gradient(
-      1100px 720px at 6% -8%,
-      var(--ambient-1),
-      transparent 62%
-    ),
+    radial-gradient(1100px 720px at 6% -8%, var(--ambient-1), transparent 62%),
     radial-gradient(900px 620px at 98% 2%, var(--ambient-2), transparent 64%),
     radial-gradient(
       1100px 820px at 52% 118%,
@@ -1066,7 +1063,10 @@ main {
     inset 0 1px 0 var(--glass-sheen);
 }
 .modal.wide {
-  width: 710px;
+  --modal-scale: 1;
+  zoom: var(--modal-scale);
+  width: min(710px, calc((100vw - 56px) / var(--modal-scale)));
+  max-height: calc((100dvh - 56px) / var(--modal-scale));
 }
 .modal-title {
   display: flex;
@@ -1708,6 +1708,16 @@ fieldset:disabled {
   line-height: 1.8;
   resize: vertical;
 }
+.jvm-presets {
+  margin-bottom: 14px;
+}
+.jvm-flags {
+  min-height: 120px;
+  margin-top: 8px;
+}
+.jvm-note {
+  margin-top: 12px;
+}
 .launch-command {
   margin: 0;
   padding: 16px 20px;
@@ -2171,7 +2181,9 @@ progress::-webkit-progress-value {
   border-radius: 10px;
   background: var(--surface2);
   color: var(--muted);
-  font: 9px/1.7 Consolas, monospace;
+  font:
+    9px/1.7 Consolas,
+    monospace;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   max-height: 220px;
@@ -3106,5 +3118,225 @@ progress::-webkit-progress-value {
   }
   .net-share .btn {
     justify-content: center;
+  }
+}
+
+/* Dependency inspection, player history, share cards and snapshot comparison. */
+.insights-stack {
+  display: grid;
+  gap: 22px;
+}
+.break-anywhere {
+  overflow-wrap: anywhere;
+}
+.dependency-graph {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.dependency-edge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.dependency-edge code {
+  color: var(--accent);
+}
+.dependency-edge span,
+.dependency-edge small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.insight-totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 20px 0;
+}
+.insight-totals > div {
+  display: grid;
+  gap: 7px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.insight-totals small {
+  color: var(--muted);
+}
+.insight-totals strong {
+  font-size: 25px;
+}
+.visits-chart {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  height: 170px;
+  padding: 16px 0;
+  overflow-x: auto;
+}
+.visits-column {
+  flex: 1;
+  min-width: 35px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+.visits-column span {
+  font-size: 12px;
+}
+.visits-column small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.visits-bar {
+  width: 70%;
+  max-width: 40px;
+  border-radius: 5px 5px 0 0;
+  background: var(--accent);
+  opacity: 0.75;
+}
+.table-scroll {
+  overflow-x: auto;
+  margin: 16px 0;
+}
+.insights-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+.insights-table th,
+.insights-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.insights-table th {
+  font-weight: 500;
+  color: var(--muted);
+}
+.backup-comparison {
+  margin-top: 28px;
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+}
+.backup-comparison h3 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.compare-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: end;
+  margin: 16px 0;
+}
+.compare-controls .field {
+  margin: 0;
+  min-width: 0;
+}
+.diff-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin: 18px 0;
+  font-size: 13px;
+}
+.diff-tree {
+  max-height: 460px;
+  overflow: auto;
+}
+.diff-file {
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.diff-file code {
+  overflow-wrap: anywhere;
+}
+.diff-file small {
+  color: var(--muted);
+}
+.diff-file.added > span {
+  color: var(--accent);
+}
+.diff-file.removed > span {
+  color: #cf605d;
+}
+.diff-file.modified > span {
+  color: var(--gold);
+}
+.share-canvas {
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  border-radius: 14px;
+  margin: 18px 0;
+  border: 1px solid var(--border);
+}
+.share-actions {
+  flex-wrap: wrap;
+}
+.log-excerpt {
+  min-height: 230px;
+  margin-bottom: 16px;
+}
+.assistant-answer {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 12px;
+}
+.assistant-answer pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.configuration-presets {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
+.configuration-presets .row {
+  flex-wrap: wrap;
+}
+.panel details {
+  margin-top: 16px;
+}
+.panel summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 8px 0;
+}
+@media (max-width: 900px) {
+  .compare-controls {
+    grid-template-columns: 1fr;
+  }
+  .insight-totals {
+    grid-template-columns: 1fr;
+  }
+  .diff-file {
+    grid-template-columns: 55px minmax(0, 1fr);
+  }
+  .diff-file small {
+    grid-column: 2;
   }
 }

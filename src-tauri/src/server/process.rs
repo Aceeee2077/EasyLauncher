@@ -35,6 +35,9 @@ impl Manager {
             return Err(AppError::user("This server already has a managed process."));
         }
         let mut s = self.metadata(id)?;
+        if s.jvm_preset == crate::models::JvmPreset::Custom {
+            validate_jvm_flags(&s.jvm_flags)?;
+        }
         if !s.installed {
             return Err(AppError::user("Install the server files before starting."));
         }
@@ -195,6 +198,10 @@ impl Manager {
                                 )
                             });
                         }
+                        if let Err(e) = crate::player_stats::finish(&m, &runtime.snapshot().id) {
+                            m.logger
+                                .log("WARN", &format!("Could not finish player sessions: {e}"));
+                        }
                         // Publish final state only after the handle is reaped and streams drained.
                         *runtime.child.lock().await = None;
                         m.emit_status(&runtime);
@@ -244,9 +251,9 @@ impl Manager {
                                 Ok(Err(e)) => {
                                     m.logger.log("WARN", &format!("Diagnosis failed: {e}"))
                                 }
-                                Err(e) => m
-                                    .logger
-                                    .log("WARN", &format!("Diagnosis task failed: {e}")),
+                                Err(e) => {
+                                    m.logger.log("WARN", &format!("Diagnosis task failed: {e}"))
+                                }
                             }
                         }
                         break;
@@ -382,6 +389,7 @@ impl Manager {
     }
     pub async fn shutdown(self: &Arc<Self>) -> Result<()> {
         self.shutting_down.store(true, Ordering::SeqCst);
+        let tunnel_error = crate::tunnel::stop_all(self).await.err();
         let ids: Vec<String> = self.runtimes.lock().unwrap().keys().cloned().collect();
         let mut jobs = Vec::new();
         for id in ids {
@@ -397,19 +405,147 @@ impl Manager {
             job.await
                 .map_err(|e| AppError::new("A server shutdown task failed.", e))??;
         }
+        if let Some(error) = tunnel_error {
+            return Err(error);
+        }
         Ok(())
     }
 }
 /// The single source of truth for the server JVM arguments.
 pub fn launch_args(s: &Server) -> Vec<String> {
-    vec![
+    let mut args = vec![
         format!("-Xms{}M", s.memory_min_mb),
         format!("-Xmx{}M", s.memory_max_mb),
+    ];
+    args.extend(preset_flags(s.jvm_preset, &s.jvm_flags, s.memory_max_mb));
+    args.extend([
         "-Dfile.encoding=UTF-8".into(),
         "-jar".into(),
         "server.jar".into(),
         "nogui".into(),
+    ]);
+    args
+}
+/// Flags injected by the selected preset. Memory limits stay user-controlled.
+pub fn preset_flags(
+    preset: crate::models::JvmPreset,
+    custom: &[String],
+    max_mb: u32,
+) -> Vec<String> {
+    use crate::models::JvmPreset::*;
+    match preset {
+        Balanced => Vec::new(),
+        Aikar => aikar_flags(max_mb),
+        Paper => paper_flags(max_mb),
+        Custom => custom
+            .iter()
+            .filter(|flag| valid_jvm_flag(flag))
+            .cloned()
+            .collect(),
+    }
+}
+/// Aikar's community-standard G1 tuning, with the large-heap variant above 12 GB.
+fn aikar_flags(max_mb: u32) -> Vec<String> {
+    let large = max_mb >= 12 * 1024;
+    vec![
+        "-XX:+UseG1GC".into(),
+        "-XX:+ParallelRefProcEnabled".into(),
+        "-XX:MaxGCPauseMillis=200".into(),
+        "-XX:+UnlockExperimentalVMOptions".into(),
+        "-XX:+DisableExplicitGC".into(),
+        "-XX:+AlwaysPreTouch".into(),
+        format!("-XX:G1NewSizePercent={}", if large { 40 } else { 30 }),
+        format!("-XX:G1MaxNewSizePercent={}", if large { 50 } else { 40 }),
+        format!("-XX:G1HeapRegionSize={}", if large { "16M" } else { "8M" }),
+        format!("-XX:G1ReservePercent={}", if large { 15 } else { 20 }),
+        format!(
+            "-XX:InitiatingHeapOccupancyPercent={}",
+            if large { 20 } else { 15 }
+        ),
+        "-XX:G1HeapWastePercent=5".into(),
+        "-XX:G1MixedGCCountTarget=4".into(),
+        "-XX:G1MixedGCLiveThresholdPercent=90".into(),
+        "-XX:G1RSetUpdatingPauseTimePercent=5".into(),
+        "-XX:SurvivorRatio=32".into(),
+        "-XX:+PerfDisableSharedMem".into(),
+        "-XX:MaxTenuringThreshold=1".into(),
+        "-Dusing.aikars.flags=https://mcflags.emc.gs".into(),
+        "-Daikars.new.flags=true".into(),
     ]
+}
+/// Aikar's flags with a tighter pause target for Paper's lower-latency tick loop.
+fn paper_flags(max_mb: u32) -> Vec<String> {
+    aikar_flags(max_mb)
+        .into_iter()
+        .map(|flag| match flag.as_str() {
+            "-XX:MaxGCPauseMillis=200" => "-XX:MaxGCPauseMillis=130".into(),
+            "-XX:G1NewSizePercent=30" => "-XX:G1NewSizePercent=20".into(),
+            "-XX:G1MaxNewSizePercent=40" => "-XX:G1MaxNewSizePercent=35".into(),
+            "-XX:G1NewSizePercent=40" => "-XX:G1NewSizePercent=30".into(),
+            "-XX:G1MaxNewSizePercent=50" => "-XX:G1MaxNewSizePercent=45".into(),
+            _ => flag,
+        })
+        .collect()
+}
+pub fn valid_jvm_flag(flag: &str) -> bool {
+    (2..=128).contains(&flag.len())
+        && flag.starts_with('-')
+        && flag.bytes().all(|b| b.is_ascii_graphic())
+}
+/// Reject malformed or dangerous custom flags before they are persisted.
+pub fn validate_jvm_flags(flags: &[String]) -> Result<()> {
+    if flags.is_empty() {
+        return Err(AppError::user(
+            "Add at least one JVM flag for the custom preset.",
+        ));
+    }
+    if flags.len() > 64 {
+        return Err(AppError::user("Use at most 64 custom JVM flags."));
+    }
+    for flag in flags {
+        if !valid_jvm_flag(flag) {
+            return Err(AppError::user(format!(
+                "“{flag}” is not a valid JVM flag. Each flag must start with '-' and contain no spaces."
+            )));
+        }
+        let name = flag.split('=').next().unwrap_or(flag);
+        let reserved = matches!(
+            name,
+            "-jar" | "-cp" | "-classpath" | "-m" | "-version" | "--version" | "-help" | "--help"
+        ) || [
+            "-Xms",
+            "-Xmx",
+            "-Xss",
+            "-Xbootclasspath",
+            "-javaagent",
+            "-agentlib",
+            "-agentpath",
+            "-XX:OnError",
+            "-XX:OnOutOfMemoryError",
+            "-XX:Flags",
+            "-XX:VMOptionsFile",
+            "-XX:CompileCommand",
+            "-Djava.",
+            "-Djavax.",
+            "-Dsun.",
+            "--class-path",
+            "--module",
+            "--source",
+            "-splash",
+            "--patch-module",
+        ]
+        .iter()
+        .any(|prefix| name.starts_with(prefix));
+        if reserved {
+            return Err(AppError::user(format!(
+                "{name} is managed by EasyLauncher and cannot be set here."
+            )));
+        }
+        if !flag.starts_with("-XX:") {
+            return Err(AppError::user("Custom tuning currently supports only -XX: JVM options. Memory and launch options are managed separately."));
+        }
+    }
+    Ok(())
 }
 fn quote(arg: &str) -> String {
     if arg.contains([' ', '\t']) {
@@ -461,6 +597,10 @@ fn observe(m: &Manager, r: &Runtime, text: &str, stream: &str) {
         );
     }
     if let Some((name, joined)) = player_event(text) {
+        if let Err(e) = crate::player_stats::observe(m, &r.snapshot().id, &name, joined) {
+            m.logger
+                .log("WARN", &format!("Could not save player history: {e}"));
+        }
         let mut snap = r.snapshot.lock().unwrap();
         if joined {
             if !snap.players.contains(&name) {
@@ -486,7 +626,10 @@ pub fn valid_player(name: &str) -> bool {
     (1..=16).contains(&name.len()) && name.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'_')
 }
 fn player_event(text: &str) -> Option<(String, bool)> {
-    let (_, body) = text.split_once("]: ")?;
+    let (prefix, body) = text.split_once("]: ")?;
+    if !prefix.ends_with("/INFO") {
+        return None;
+    }
     for (suffix, joined) in [(" joined the game", true), (" left the game", false)] {
         if let Some(name) = body.strip_suffix(suffix) {
             if valid_player(name) {
@@ -647,8 +790,11 @@ mod tests {
         assert_eq!(restart_delay(9), 60);
         assert!(restart_message(2, 10).contains("10s"));
         assert!(restart_message(2, 10).contains("2/5"));
-        assert!(attribute_exit(Some(7), &["java.lang.OutOfMemoryError: Java heap space".into()])
-            .contains("out of memory"));
+        assert!(attribute_exit(
+            Some(7),
+            &["java.lang.OutOfMemoryError: Java heap space".into()]
+        )
+        .contains("out of memory"));
         assert!(attribute_exit(Some(-1073741819), &[]).contains("0xC0000005"));
         assert!(attribute_exit(None, &[]).contains("without an exit code"));
         assert!(attribute_exit(Some(143), &[]).contains("terminated"));
@@ -663,6 +809,8 @@ mod tests {
             server_type: crate::models::ServerType::Vanilla,
             memory_min_mb: 1024,
             memory_max_mb: 4096,
+            jvm_preset: crate::models::JvmPreset::Balanced,
+            jvm_flags: Vec::new(),
             port: 25565,
             created_at: "2026-01-01".into(),
             last_started_at: None,
@@ -689,5 +837,66 @@ mod tests {
             "\"C:/Program Files/Java/bin/java.exe\""
         );
         assert_eq!(quote("-jar"), "-jar");
+    }
+    #[test]
+    fn jvm_presets_tune_the_args() {
+        use crate::models::JvmPreset;
+        let mut s = Server {
+            schema_version: 1,
+            id: "fixture".into(),
+            name: "Fixture".into(),
+            minecraft_version: "1.21.4".into(),
+            server_type: crate::models::ServerType::Vanilla,
+            memory_min_mb: 2048,
+            memory_max_mb: 8192,
+            jvm_preset: JvmPreset::Aikar,
+            jvm_flags: Vec::new(),
+            port: 25565,
+            created_at: "2026-01-01".into(),
+            last_started_at: None,
+            java_path: None,
+            eula_accepted_at: None,
+            installed: true,
+            auto_restart: false,
+            required_java: Some(21),
+            artifact: None,
+        };
+        let aikar = launch_args(&s);
+        assert!(aikar.contains(&"-XX:+UseG1GC".into()));
+        assert!(aikar.contains(&"-XX:G1HeapRegionSize=8M".into()));
+        assert_eq!(aikar.last().unwrap(), "nogui");
+        assert!(aikar.contains(&"-jar".into()));
+
+        s.memory_max_mb = 16384;
+        let large = launch_args(&s);
+        assert!(large.contains(&"-XX:G1HeapRegionSize=16M".into()));
+        assert!(large.contains(&"-XX:InitiatingHeapOccupancyPercent=20".into()));
+
+        s.jvm_preset = JvmPreset::Paper;
+        let paper = launch_args(&s);
+        assert!(paper.contains(&"-XX:MaxGCPauseMillis=130".into()));
+        assert!(paper.contains(&"-XX:G1MaxNewSizePercent=45".into()));
+
+        s.jvm_preset = JvmPreset::Custom;
+        s.jvm_flags = vec!["-XX:+UseZGC".into(), "-XX:ZCollectionInterval=5".into()];
+        let custom = launch_args(&s);
+        assert!(custom.contains(&"-XX:+UseZGC".into()));
+        assert!(custom.contains(&"-Xms2048M".into()));
+    }
+    #[test]
+    fn custom_flags_are_validated() {
+        assert!(validate_jvm_flags(&["-XX:+UseG1GC".into()]).is_ok());
+        assert!(validate_jvm_flags(&[]).is_err());
+        assert!(validate_jvm_flags(&["XX:+UseG1GC".into()]).is_err());
+        assert!(validate_jvm_flags(&["-XX:+Use G1GC".into()]).is_err());
+        assert!(validate_jvm_flags(&["-Xmx4G".into()]).is_err());
+        assert!(validate_jvm_flags(&["-jar".into()]).is_err());
+        assert!(validate_jvm_flags(&["-javaagent:evil.jar".into()]).is_err());
+        assert!(validate_jvm_flags(&["-XX:OnError=calc".into()]).is_err());
+        assert!(validate_jvm_flags(&["-XX:VMOptionsFile=evil".into()]).is_err());
+        assert!(validate_jvm_flags(&["--class-path=evil".into()]).is_err());
+        assert!(validate_jvm_flags(&["-Djava.system.class.loader=evil".into()]).is_err());
+        assert!(!valid_jvm_flag("UseG1GC"));
+        assert!(!valid_jvm_flag("-XX:Use G1GC"));
     }
 }

@@ -10,6 +10,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Button } from "../components/ui";
+import { LogAssistant } from "../components/LogAssistant";
 import { call } from "../services/api";
 import { useI18n, type MessageKey } from "../i18n";
 import type {
@@ -38,9 +39,12 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
   };
   useEffect(() => {
     void run(`ops-load-${server.id}-${crypto.randomUUID()}`, load);
-    const subscription = listen<DiagnosisReport>("server-diagnosis", (event) => {
-      if (event.payload.serverId === server.id) setReport(event.payload);
-    });
+    const subscription = listen<DiagnosisReport>(
+      "server-diagnosis",
+      (event) => {
+        if (event.payload.serverId === server.id) setReport(event.payload);
+      },
+    );
     return () => {
       void subscription.then((stop) => stop());
     };
@@ -49,9 +53,7 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
     <div className={`health-row ${check.level}`} key={check.id}>
       <span className={`health-dot ${check.level}`} />
       <div>
-        <strong>
-          {t(`health.${check.id}.title` as MessageKey)}
-        </strong>
+        <strong>{t(`health.${check.id}.title` as MessageKey)}</strong>
         <p>
           {t(`health.${check.id}.${check.level}` as MessageKey, check.values)}
         </p>
@@ -71,6 +73,7 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
     );
   return (
     <div className="ops-stack">
+      <LogAssistant id={server.id} run={run} busy={busy} />
       <section className="panel">
         <div className="section-title">
           <div>

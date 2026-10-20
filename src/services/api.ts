@@ -31,8 +31,40 @@ import type {
   NetworkReport,
   NetworkCheck,
   ImportPreview,
+  JvmPreset,
+  DependencyReport,
+  PlayerStats,
+  BackupDiff,
+  TunnelConfig,
+  TunnelInfo,
 } from "../types";
 type Contract = {
+  tunnel_info: [{ id: string }, TunnelInfo];
+  tunnel_start: [{ id: string; config: TunnelConfig }, TunnelInfo];
+  tunnel_stop: [{ id: string }, TunnelInfo];
+  log_assistant_preview: [
+    { id: string },
+    { source: string | null; excerpt: string },
+  ];
+  analyze_log: [
+    {
+      id: string;
+      endpoint: string;
+      model: string;
+      key: string;
+      excerpt: string;
+      language: string;
+    },
+    string,
+  ];
+  save_share_card: [{ bytes: number[] }, string];
+  open_share_cards: [undefined, void];
+  check_dependencies: [{ id: string; remote: boolean }, DependencyReport];
+  player_stats: [{ id: string }, PlayerStats];
+  compare_backups: [
+    { id: string; beforeId: string; afterId: string },
+    BackupDiff,
+  ];
   list_servers: [undefined, ServerView[]];
   create_server: [{ input: CreateServer }, Server];
   delete_server: [{ id: string; confirmed: boolean }, void];
@@ -57,6 +89,7 @@ type Contract = {
     void,
   ];
   update_auto_restart: [{ id: string; enabled: boolean }, Server];
+  update_jvm: [{ id: string; preset: JvmPreset; flags: string[] }, Server];
   detect_java: [{ custom?: string }, JavaRuntime[]];
   list_managed_java: [undefined, ManagedJava[]];
   install_java: [{ major: number }, ManagedJava];

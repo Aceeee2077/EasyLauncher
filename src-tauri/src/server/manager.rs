@@ -78,6 +78,8 @@ pub struct Manager {
     pub logger: Logger,
     pub runtimes: Mutex<HashMap<String, Arc<Runtime>>>,
     pub monitors: Mutex<HashMap<String, Arc<Mutex<crate::monitor::MonitorState>>>>,
+    pub player_stats: Mutex<HashMap<String, crate::player_stats::Store>>,
+    pub tunnels: AsyncMutex<HashMap<String, crate::tunnel::Runtime>>,
     pub shutting_down: AtomicBool,
     pub settings_gate: AsyncMutex<()>,
     pub java_gate: AsyncMutex<()>,
@@ -115,6 +117,8 @@ impl Manager {
             logger,
             runtimes: Mutex::new(HashMap::new()),
             monitors: Mutex::new(HashMap::new()),
+            player_stats: Mutex::new(HashMap::new()),
+            tunnels: AsyncMutex::new(HashMap::new()),
             shutting_down: AtomicBool::new(false),
             settings_gate: AsyncMutex::new(()),
             java_gate: AsyncMutex::new(()),
@@ -310,6 +314,8 @@ impl Manager {
             server_type: input.server_type,
             memory_min_mb: input.memory_min_mb,
             memory_max_mb: input.memory_max_mb,
+            jvm_preset: JvmPreset::Balanced,
+            jvm_flags: Vec::new(),
             port: input.port,
             created_at: now.clone(),
             last_started_at: None,
@@ -320,7 +326,8 @@ impl Manager {
             required_java: Some(required),
             artifact: None,
         };
-        let mut p = Properties::parse("# Managed by EasyLauncher. Unknown properties are preserved.\n");
+        let mut p =
+            Properties::parse("# Managed by EasyLauncher. Unknown properties are preserved.\n");
         for (k, v) in [
             ("server-port", input.port.to_string()),
             ("max-players", input.max_players.to_string()),
@@ -443,12 +450,19 @@ impl Manager {
         let _gate = r.gate.lock().await;
         r.idle()?;
         let dir = self.dir(id)?;
+        if crate::tunnel::info(self, id).await?.running {
+            return Err(AppError::user(
+                "Stop this server's frpc tunnel before deleting the server.",
+            ));
+        }
         storage::validate_tree(&dir)?;
         // Tombstone rename removes the server from the catalogue before recursive removal.
         let trash = storage::child(&self.servers, &format!("deleted-{id}"))?;
         fs::rename(&dir, &trash)?;
         self.runtimes.lock().unwrap().remove(id);
         self.monitors.lock().unwrap().remove(id);
+        self.player_stats.lock().unwrap().remove(id);
+        self.tunnels.lock().await.remove(id);
         fs::remove_dir_all(trash)?;
         self.logger.log("INFO", &format!("Deleted server {id}"));
         Ok(())
@@ -489,7 +503,10 @@ impl Manager {
         storage::save_server(&self.servers, &s)?;
         self.logger.log(
             "INFO",
-            &format!("Crash recovery {} for {id}", if enabled { "enabled" } else { "disabled" }),
+            &format!(
+                "Crash recovery {} for {id}",
+                if enabled { "enabled" } else { "disabled" }
+            ),
         );
         Ok(s)
     }
@@ -520,6 +537,30 @@ impl Manager {
         s.java_path = Some(java.path);
         s.required_java = Some(required);
         storage::save_server(&self.servers, &s)
+    }
+    pub async fn update_jvm(
+        &self,
+        id: &str,
+        preset: JvmPreset,
+        flags: Vec<String>,
+    ) -> Result<Server> {
+        self.ready()?;
+        let r = self.runtime(id)?;
+        let _g = r.gate.lock().await;
+        r.idle()?;
+        let mut s = self.metadata(id)?;
+        let custom = if preset == JvmPreset::Custom {
+            crate::server::process::validate_jvm_flags(&flags)?;
+            flags
+        } else {
+            Vec::new()
+        };
+        s.jvm_preset = preset;
+        s.jvm_flags = custom;
+        storage::save_server(&self.servers, &s)?;
+        self.logger
+            .log("INFO", &format!("JVM preset for {id}: {preset:?}"));
+        Ok(s)
     }
 }
 fn load_settings(root: &Path) -> Result<Settings> {
@@ -595,6 +636,8 @@ mod integration_tests {
             server_type: ServerType::Vanilla,
             memory_min_mb: 256,
             memory_max_mb: 512,
+            jvm_preset: JvmPreset::Balanced,
+            jvm_flags: Vec::new(),
             port,
             created_at: chrono::Utc::now().to_rfc3339(),
             last_started_at: None,
@@ -687,6 +730,177 @@ mod integration_tests {
             .await
             .unwrap();
         assert_eq!(crate::backup::list(&m, &id).unwrap().len(), 1);
+    }
+    #[tokio::test]
+    async fn insights_dependencies_diff_and_jvm_persist() {
+        use std::io::Write;
+        let (_temp, m, id) = setup("unused-in-this-test".into());
+        let dir = m.dir(&id).unwrap();
+        m.update_jvm(&id, JvmPreset::Aikar, vec![]).await.unwrap();
+        assert!(m
+            .launch_info(&id)
+            .unwrap()
+            .args
+            .contains(&"-XX:+UseG1GC".into()));
+        let a = crate::backup::create_backup(m.clone(), id.clone(), BackupReason::Manual)
+            .await
+            .unwrap();
+        fs::write(dir.join("world/region/data"), b"modified world").unwrap();
+        fs::write(dir.join("world/new"), b"new file").unwrap();
+        let b = crate::backup::create_backup(m.clone(), id.clone(), BackupReason::Manual)
+            .await
+            .unwrap();
+        fs::remove_file(dir.join("backups").join(&a.id).join("files.json")).unwrap();
+        let diff = crate::backup::compare(m.clone(), id.clone(), a.id.clone(), b.id)
+            .await
+            .unwrap();
+        assert_eq!((diff.added, diff.modified), (1, 1));
+        crate::player_stats::observe(&m, &id, "Alex", true).unwrap();
+        crate::player_stats::observe(&m, &id, "Alex", true).unwrap();
+        crate::player_stats::finish(&m, &id).unwrap();
+        assert_eq!(
+            crate::player_stats::report(&m, &id).unwrap().players["Alex"].visits,
+            1
+        );
+        let reopened = Manager::initialize(m.root.clone(), None).unwrap();
+        assert_eq!(reopened.metadata(&id).unwrap().jvm_preset, JvmPreset::Aikar);
+        assert_eq!(
+            crate::player_stats::report(&reopened, &id)
+                .unwrap()
+                .sessions
+                .len(),
+            1
+        );
+        let mut server = m.metadata(&id).unwrap();
+        server.server_type = ServerType::Fabric;
+        storage::save_server(&m.servers, &server).unwrap();
+        fs::create_dir_all(dir.join("mods")).unwrap();
+        let mut zip = zip::ZipWriter::new(fs::File::create(dir.join("mods/test.jar")).unwrap());
+        zip.start_file("fabric.mod.json", zip::write::SimpleFileOptions::default())
+            .unwrap();
+        zip.write_all(br#"{"id":"example","version":"1","depends":{"missing":"*"}}"#)
+            .unwrap();
+        zip.finish().unwrap();
+        let report = crate::dependencies::check(m.clone(), id.clone(), false)
+            .await
+            .unwrap();
+        assert!(report
+            .issues
+            .iter()
+            .any(|i| i.code == "missing" && i.target == "missing"));
+        assert!(!report.remote_checked);
+        m.delete(&id, true).await.unwrap();
+        assert!(m.player_stats.lock().unwrap().is_empty());
+        assert!(!dir.exists());
+    }
+    #[test]
+    fn diagnosis_ignores_prior_run_and_reads_early_stderr() {
+        let (_temp, m, id) = setup("unused-in-this-test".into());
+        let reports = m.dir(&id).unwrap().join("crash-reports");
+        fs::create_dir(&reports).unwrap();
+        let report = reports.join("old.txt");
+        fs::write(&report, b"java.lang.OutOfMemoryError").unwrap();
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&report)
+            .unwrap()
+            .set_times(fs::FileTimes::new().set_modified(std::time::UNIX_EPOCH))
+            .unwrap();
+        let runtime = m.runtime(&id).unwrap();
+        runtime.snapshot.lock().unwrap().started_at = Some(chrono::Utc::now().to_rfc3339());
+        m.line(&runtime, "stderr", "Unrecognized VM option 'UnknownFlag'");
+        let diagnosis = crate::server::diagnostics::diagnose(&m, &id).unwrap();
+        assert_eq!(diagnosis.source.as_deref(), Some("console"));
+        assert!(diagnosis.findings.iter().any(|f| f.id == "jvmOptions"));
+        assert!(!diagnosis.findings.iter().any(|f| f.id == "outOfMemory"));
+    }
+    #[tokio::test]
+    async fn log_assistant_uses_reviewed_excerpt_without_persisting_key() {
+        use std::io::{Read, Write};
+        let (_temp, m, id) = setup("unused-in-this-test".into());
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let endpoint = format!(
+            "http://{}/v1/chat/completions",
+            listener.local_addr().unwrap()
+        );
+        let worker = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket
+                .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+                .unwrap();
+            let mut bytes = Vec::new();
+            let mut buf = [0u8; 4096];
+            loop {
+                let n = socket.read(&mut buf).unwrap();
+                assert!(n > 0);
+                bytes.extend_from_slice(&buf[..n]);
+                if let Some(end) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+                    let head = String::from_utf8_lossy(&bytes[..end]).to_ascii_lowercase();
+                    let length = head
+                        .lines()
+                        .find_map(|line| {
+                            line.strip_prefix("content-length: ")
+                                .and_then(|v| v.parse::<usize>().ok())
+                        })
+                        .unwrap();
+                    if bytes.len() >= end + 4 + length {
+                        break;
+                    }
+                }
+            }
+            let request = String::from_utf8(bytes).unwrap();
+            assert!(request.contains("Bearer fixture-secret"));
+            assert!(request.contains("reviewed excerpt only"));
+            let response = br#"{"choices":[{"message":{"content":"Fixture diagnosis"}}]}"#;
+            write!(socket,"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",response.len()).unwrap();
+            socket.write_all(response).unwrap();
+        });
+        let text = crate::log_assistant::analyze(
+            &m,
+            &id,
+            &endpoint,
+            "fixture-model",
+            "fixture-secret",
+            "reviewed excerpt only",
+            "en",
+        )
+        .await
+        .unwrap();
+        assert_eq!(text, "Fixture diagnosis");
+        worker.join().unwrap();
+        let settings = serde_json::to_string(&m.settings().unwrap()).unwrap();
+        assert!(!settings.contains("fixture-secret"));
+    }
+    #[tokio::test]
+    #[ignore = "Requires explicitly built test-only subprocess; never runs Minecraft"]
+    async fn managed_frpc_fixture_lifecycle() {
+        let fixture = std::env::var("EASYLAUNCHER_TEST_PROCESS")
+            .expect("Build the test-only process fixture first");
+        let (_temp, m, id) = setup("unused-in-this-test".into());
+        let dir = m.root.join("tunnel-fixture");
+        fs::create_dir(&dir).unwrap();
+        let exe = dir.join(if cfg!(windows) { "frpc.exe" } else { "frpc" });
+        fs::copy(fixture, &exe).unwrap();
+        let config_path = dir.join("frpc.toml");
+        fs::write(&config_path, b"# No real frp service; fixture only").unwrap();
+        let config = crate::tunnel::Config {
+            executable: exe.to_string_lossy().into(),
+            config_path: config_path.to_string_lossy().into(),
+            address: "fixture.invalid:25565".into(),
+        };
+        let started = crate::tunnel::start(&m, &id, config.clone()).await.unwrap();
+        assert!(started.running);
+        assert!(started.pid.is_some());
+        assert!(crate::tunnel::start(&m, &id, config.clone()).await.is_err());
+        assert!(m.delete(&id, true).await.is_err());
+        assert!(!crate::tunnel::stop(&m, &id).await.unwrap().running);
+        assert_eq!(
+            crate::tunnel::info(&m, &id).await.unwrap().config.address,
+            config.address
+        );
+        crate::tunnel::start(&m, &id, config).await.unwrap();
+        m.shutdown().await.unwrap();
+        assert!(!crate::tunnel::info(&m, &id).await.unwrap().running);
     }
     #[tokio::test]
     #[ignore = "Requires explicitly built test-only subprocess; never runs Minecraft"]

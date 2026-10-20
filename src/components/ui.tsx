@@ -73,6 +73,20 @@ export function Modal({
   const ref = useRef<HTMLElement>(null);
   const { t } = useI18n();
   useEffect(() => {
+    if (!wide) return;
+    // Scale text, controls and spacing together when the desktop window grows.
+    const resize = () => {
+      const scale = Math.max(
+        1,
+        Math.min(window.innerWidth / 1100, window.innerHeight / 800, 1.8),
+      );
+      ref.current?.style.setProperty("--modal-scale", String(scale));
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, [wide]);
+  useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -219,5 +233,9 @@ export function Step({
 export const bytes = (n: number) =>
   n >= 1024 ** 3
     ? `${(n / 1024 ** 3).toFixed(2)} GB`
-    : `${(n / 1024 ** 2).toFixed(1)} MB`;
+    : n >= 1024 ** 2
+      ? `${(n / 1024 ** 2).toFixed(1)} MB`
+      : n >= 1024
+        ? `${(n / 1024).toFixed(1)} KB`
+        : `${n} B`;
 export const date = (s: string) => new Date(s).toLocaleString();

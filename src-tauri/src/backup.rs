@@ -63,6 +63,7 @@ fn create(m: &Manager, id: &str, reason: BackupReason) -> Result<Backup> {
             minecraft_version: Some(meta.minecraft_version),
             server_type: Some(meta.server_type),
         };
+        crate::backup_diff::create_index(&temp, &backup.worlds)?;
         storage::write_json(&storage::child(&temp, "backup.json")?, &backup)?;
         fs::rename(&temp, storage::managed(&root, &bid)?)?;
         Ok(backup)
@@ -87,6 +88,25 @@ pub fn list(m: &Manager, id: &str) -> Result<Vec<Backup>> {
     list.sort_by(|a, b| b.created_at.cmp(&a.created_at));
     Ok(list)
 }
+pub async fn compare(
+    m: Arc<Manager>,
+    id: String,
+    before_id: String,
+    after_id: String,
+) -> Result<crate::backup_diff::Diff> {
+    let r = m.runtime(&id)?;
+    let _gate = r.gate.lock().await;
+    tokio::task::spawn_blocking(move || {
+        let root = backup_root(&m, &id)?;
+        let before = storage::managed(&root, &before_id)?;
+        let after = storage::managed(&root, &after_id)?;
+        let a = read(&before)?;
+        let b = read(&after)?;
+        crate::backup_diff::diff(&before, &a.worlds, &after, &b.worlds)
+    })
+    .await
+    .map_err(|e| AppError::new("Could not compare backups.", e))?
+}
 fn read(dir: &Path) -> Result<Backup> {
     storage::no_links(dir)?;
     let mut b: Backup = serde_json::from_slice(&fs::read(storage::child(dir, "backup.json")?)?)?;
@@ -103,11 +123,7 @@ fn read(dir: &Path) -> Result<Backup> {
     }
     Ok(b)
 }
-pub async fn create_backup(
-    m: Arc<Manager>,
-    id: String,
-    reason: BackupReason,
-) -> Result<Backup> {
+pub async fn create_backup(m: Arc<Manager>, id: String, reason: BackupReason) -> Result<Backup> {
     m.ready()?;
     let r = m.runtime(&id)?;
     let _g = r.gate.lock().await;
@@ -225,12 +241,7 @@ fn restore(m: &Manager, id: &str, backup_id: &str) -> Result<RestoreOutcome> {
         safety_backup_id: safety.map(|b| b.id),
     })
 }
-pub fn set_label(
-    m: &Manager,
-    id: &str,
-    backup_id: &str,
-    label: Option<String>,
-) -> Result<Backup> {
+pub fn set_label(m: &Manager, id: &str, backup_id: &str, label: Option<String>) -> Result<Backup> {
     let dir = storage::managed(&backup_root(m, id)?, backup_id)?;
     let mut backup = read(&dir)?;
     let label = label

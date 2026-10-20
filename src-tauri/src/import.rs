@@ -214,7 +214,11 @@ fn version_from_jar(path: &Path) -> Option<String> {
             continue;
         }
         let mut bytes = Vec::new();
-        if (&mut entry).take(64 * 1024).read_to_end(&mut bytes).is_err() {
+        if (&mut entry)
+            .take(64 * 1024)
+            .read_to_end(&mut bytes)
+            .is_err()
+        {
             continue;
         }
         let Ok(value) = serde_json::from_slice::<serde_json::Value>(&bytes) else {
@@ -302,13 +306,15 @@ fn has_jar(dir: &Path) -> bool {
 
 fn detect_type(root: &Path, jar: Option<&str>) -> ServerType {
     let libraries = root.join("libraries");
-    if libraries.join("net").join("fabricmc").is_dir()
-        || jar.map(is_fabric).unwrap_or(false)
-    {
+    if libraries.join("net").join("fabricmc").is_dir() || jar.map(is_fabric).unwrap_or(false) {
         return ServerType::Fabric;
     }
     if libraries.join("io").join("papermc").is_dir()
-        || libraries.join("com").join("mojang").join("paperclip").is_dir()
+        || libraries
+            .join("com")
+            .join("mojang")
+            .join("paperclip")
+            .is_dir()
         || root.join("version_history.json").is_file()
         || jar.map(is_paper).unwrap_or(false)
         || has_jar(&root.join("plugins"))
@@ -678,8 +684,7 @@ pub async fn import_folder(
     };
     let required = crate::java::version::required_java(&version, inspected.server_type, None);
     let settings = manager.settings()?;
-    let runtimes =
-        crate::java::detector::detect(settings.java_path, Some(&manager.java)).await;
+    let runtimes = crate::java::detector::detect(settings.java_path, Some(&manager.java)).await;
     let java_path = runtimes
         .iter()
         .find(|j| j.major == required)
@@ -713,6 +718,8 @@ pub async fn import_folder(
         server_type: inspected.server_type,
         memory_min_mb: min,
         memory_max_mb: max,
+        jvm_preset: crate::models::JvmPreset::Balanced,
+        jvm_flags: Vec::new(),
         port: inspected.port,
         created_at: now.clone(),
         last_started_at: None,

@@ -10,6 +10,92 @@ use std::{
 use tauri::State;
 type Managed<'a> = State<'a, Arc<Manager>>;
 #[tauri::command]
+pub async fn tunnel_info(m: Managed<'_>, id: String) -> Result<crate::tunnel::Info> {
+    crate::tunnel::info(&m, &id).await
+}
+#[tauri::command]
+pub async fn tunnel_start(
+    m: Managed<'_>,
+    id: String,
+    config: crate::tunnel::Config,
+) -> Result<crate::tunnel::Info> {
+    crate::tunnel::start(&m, &id, config).await
+}
+#[tauri::command]
+pub async fn tunnel_stop(m: Managed<'_>, id: String) -> Result<crate::tunnel::Info> {
+    crate::tunnel::stop(&m, &id).await
+}
+#[tauri::command]
+pub async fn log_assistant_preview(
+    m: Managed<'_>,
+    id: String,
+) -> Result<crate::log_assistant::Preview> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::log_assistant::preview(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not prepare the log excerpt.", e))?
+}
+#[tauri::command]
+pub async fn analyze_log(
+    m: Managed<'_>,
+    id: String,
+    endpoint: String,
+    model: String,
+    key: String,
+    excerpt: String,
+    language: String,
+) -> Result<String> {
+    crate::log_assistant::analyze(&m, &id, &endpoint, &model, &key, &excerpt, &language).await
+}
+#[tauri::command]
+pub async fn save_share_card(m: Managed<'_>, bytes: Vec<u8>) -> Result<String> {
+    if bytes.len() > 4 * 1024 * 1024 || !bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+        return Err(AppError::user(
+            "The share card must be a PNG smaller than 4 MB.",
+        ));
+    }
+    let root = m.root.clone();
+    tokio::task::spawn_blocking(move || {
+        let dir = crate::storage::child(&root, "share-cards")?;
+        std::fs::create_dir_all(&dir)?;
+        let path = crate::storage::child(&dir, &format!("{}.png", uuid::Uuid::new_v4()))?;
+        crate::storage::atomic_write(&path, &bytes)?;
+        Ok(path.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(|e| AppError::new("Could not save the share card.", e))?
+}
+#[tauri::command]
+pub fn open_share_cards(m: Managed<'_>) -> Result<()> {
+    let dir = crate::storage::child(&m.root, "share-cards")?;
+    std::fs::create_dir_all(&dir)?;
+    open::that(dir).map_err(|e| AppError::new("Could not open the share card folder.", e))
+}
+#[tauri::command]
+pub async fn compare_backups(
+    m: Managed<'_>,
+    id: String,
+    before_id: String,
+    after_id: String,
+) -> Result<crate::backup_diff::Diff> {
+    crate::backup::compare(m.inner().clone(), id, before_id, after_id).await
+}
+#[tauri::command]
+pub async fn check_dependencies(
+    m: Managed<'_>,
+    id: String,
+    remote: bool,
+) -> Result<crate::dependencies::Report> {
+    crate::dependencies::check(m.inner().clone(), id, remote).await
+}
+#[tauri::command]
+pub async fn player_stats(m: Managed<'_>, id: String) -> Result<crate::player_stats::Store> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::player_stats::report(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not read player history.", e))?
+}
+#[tauri::command]
 pub async fn list_servers(m: Managed<'_>) -> Result<Vec<ServerView>> {
     m.list()
 }
@@ -104,6 +190,15 @@ pub async fn update_auto_restart(m: Managed<'_>, id: String, enabled: bool) -> R
     m.update_auto_restart(&id, enabled).await
 }
 #[tauri::command]
+pub async fn update_jvm(
+    m: Managed<'_>,
+    id: String,
+    preset: JvmPreset,
+    flags: Vec<String>,
+) -> Result<Server> {
+    m.update_jvm(&id, preset, flags).await
+}
+#[tauri::command]
 pub async fn detect_java(
     m: Managed<'_>,
     custom: Option<String>,
@@ -111,16 +206,11 @@ pub async fn detect_java(
     Ok(crate::java::detector::detect(custom.or(m.settings()?.java_path), Some(&m.java)).await)
 }
 #[tauri::command]
-pub async fn list_managed_java(
-    m: Managed<'_>,
-) -> Result<Vec<crate::java::managed::ManagedJava>> {
+pub async fn list_managed_java(m: Managed<'_>) -> Result<Vec<crate::java::managed::ManagedJava>> {
     Ok(crate::java::managed::list(&m.java))
 }
 #[tauri::command]
-pub async fn install_java(
-    m: Managed<'_>,
-    major: u32,
-) -> Result<crate::java::managed::ManagedJava> {
+pub async fn install_java(m: Managed<'_>, major: u32) -> Result<crate::java::managed::ManagedJava> {
     m.ready()?;
     crate::java::managed::install(m.inner().as_ref(), major).await
 }
@@ -366,11 +456,7 @@ pub async fn content_list(m: Managed<'_>, id: String) -> Result<crate::modrinth:
     crate::modrinth::listing(m.inner().as_ref(), &id)
 }
 #[tauri::command]
-pub async fn content_remove(
-    m: Managed<'_>,
-    id: String,
-    project_id: String,
-) -> Result<()> {
+pub async fn content_remove(m: Managed<'_>, id: String, project_id: String) -> Result<()> {
     crate::modrinth::remove(m.inner().clone(), id, project_id).await
 }
 #[tauri::command]

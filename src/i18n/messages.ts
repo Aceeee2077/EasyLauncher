@@ -1,4 +1,117 @@
 export const zh = {
+  "diagnosis.jvmOptions.title": "JVM 参数无效或互相冲突",
+  "diagnosis.jvmOptions.advice":
+    "先切换到均衡 JVM 预设，确认 Java 版本兼容，再逐项恢复自定义调优参数。",
+
+  "tunnel.title": "frp 内网穿透",
+  "tunnel.desc": "托管本机 frpc 进程，使用已有的 frp 服务连接朋友。",
+  "tunnel.setup":
+    "请安装官方 frpc，准备仅转发当前 Minecraft 端口的独立配置，并填写服务商提供的公网地址。配置文件中的凭据由 frpc 自行读取；应用只保存文件路径和地址。关闭应用会终止托管进程，重新打开后不会自动启动。",
+  "tunnel.executable": "frpc 可执行文件完整路径",
+  "tunnel.configPath": "frpc 配置文件完整路径",
+  "tunnel.address": "服务商提供的公网游戏地址",
+  "tunnel.start": "启动穿透进程",
+  "tunnel.stop": "停止穿透进程",
+  "tunnel.running": "进程运行中 · PID {pid}",
+  "tunnel.stopped": "进程未运行",
+  "tunnel.unverified": "地址由配置者提供，进程运行不代表公网连接已验证。",
+  "tunnel.exited": "frpc 已退出（代码 {code}），请检查服务商配置后重试。",
+
+  "deps.relation.required": "必需",
+  "deps.relation.optional": "可选",
+  "deps.relation.incompatible": "冲突",
+  "deps.relation.embedded": "内嵌",
+
+  "assistant.title": "可选 AI 日志助手",
+  "assistant.desc": "本地规则始终可用。需要额外解释时，可连接自己的兼容接口。",
+  "assistant.setup": "配置接口并预览日志",
+  "assistant.privacy":
+    "使用兼容 Chat Completions 的完整接口地址。Key 仅用于本次请求，不写入设置或日志，请求后会清空。仅点击“发送所示片段分析”才会联网；服务可能产生费用。",
+  "assistant.endpoint": "完整接口地址（HTTPS 或本机 HTTP）",
+  "assistant.model": "模型名称",
+  "assistant.key": "API Key（本地免认证接口可留空）",
+  "assistant.preview": "准备日志预览",
+  "assistant.excerpt": "将发送的日志片段（可编辑）",
+  "assistant.review":
+    "已尝试遮蔽常见凭据、路径和地址，但无法保证全部识别。请检查并删除不想发送的内容；仅发送这里显示的文本。",
+  "assistant.send": "发送所示片段分析",
+  "assistant.caution": "AI 分析仅供参考，不会自动执行命令或修改文件。",
+  "serverSettings.profile.title": "配置建议",
+  "serverSettings.profile.small": "小型朋友服",
+  "serverSettings.profile.balanced": "均衡配置",
+  "serverSettings.profile.performance": "优先流畅",
+  "serverSettings.profile.hint":
+    "预设仅填入视距、模拟距离和玩家上限；检查后点击“保存设置”。",
+  "serverSettings.memory.recommend": "填入内存建议",
+  "serverSettings.memory.note":
+    "建议为当前可用内存的一部分；大型整合包可能需要调整，保存与启动时会再次校验。",
+
+  "common.refresh": "刷新",
+  "deps.title": "依赖与冲突检查",
+  "deps.desc": "读取本地 Fabric 元数据，并按需查询 Modrinth 依赖图。",
+  "deps.limit":
+    "支持 Fabric 顶层及内嵌 JAR。Paper 本地插件元数据暂不解析；未知版本表达式会标记待核对。远程检查仅能确认托管项目，手动安装的前置需自行核对。",
+  "deps.check": "检查本地与 Modrinth",
+  "deps.summary": "{modules} 个本地模组 · {edges} 条依赖 · {issues} 项待处理",
+  "deps.local": "本地检查",
+  "deps.online": "已查询远程声明",
+  "deps.clean": "已检查的声明中未发现问题；这不保证所有组合都兼容。",
+  "deps.missing": "缺少必需前置",
+  "deps.remoteMissing": "未找到托管前置，请核对手动安装文件",
+  "deps.duplicate": "重复的模组 ID",
+  "deps.conflict": "声明的模组冲突",
+  "deps.version": "前置版本不匹配",
+  "deps.clientOnly": "仅客户端模组",
+  "deps.unknown": "无法确认版本约束，请核对",
+  "deps.unreadable": "无法读取 JAR 元数据",
+  "deps.remoteError": "远程元数据查询失败",
+  "deps.graph": "查看依赖关系",
+  "deps.modules": "本地模组与文件",
+  "deps.truncated": "仅显示前 300 条依赖关系。",
+  "insights.title": "玩家洞察",
+  "insights.desc": "根据本应用观察到的加入和离开日志统计，不回填旧日志。",
+  "insights.duration": "{hours} 时 {minutes} 分",
+  "insights.unique": "累计玩家",
+  "insights.visits": "登录次数",
+  "insights.playtime": "在线时长",
+  "insights.lastSeen": "最近在线",
+  "insights.chart": "近 14 天登录次数（UTC）",
+  "insights.since":
+    "自 {date} 开始记录；保留 30 天日统计、200 条已结束会话。崩溃时最多丢失约 10 秒观察数据。",
+  "insights.search": "搜索玩家",
+  "insights.searchHint": "最多显示 100 位玩家，请搜索完整记录。",
+  "insights.empty": "尚未观察到玩家登录。",
+  "insights.sessions": "最近 30 条已结束会话",
+  "insights.joined": "加入时间",
+  "insights.left": "离开时间",
+  "diff.title": "备份时间线与文件差异",
+  "diff.desc":
+    "选择两个时间点，按 SHA-256 比较世界文件。旧备份首次比较会生成索引，大存档可能需要一些时间。",
+  "diff.before": "较早的时间点",
+  "diff.after": "较新的时间点",
+  "diff.compare": "比较文件",
+  "diff.added": "新增",
+  "diff.removed": "删除",
+  "diff.modified": "修改",
+  "diff.unchanged": "未变",
+  "diff.identical": "两个时间点的世界文件内容相同。",
+  "diff.truncated": "差异较多，仅展示前 500 个文件；汇总统计包含全部文件。",
+  "share.title": "服务器分享卡片",
+  "share.desc": "填写连接地址，生成可保存或复制的 PNG 邀请卡。",
+  "share.address": "连接地址",
+  "share.description": "邀请语",
+  "share.defaultDescription": "山水之间，一起建造新的世界。",
+  "share.javaEdition": "请使用匹配版本的 Minecraft Java 版加入",
+  "share.reachability": "连接仍需网络可达；局域网地址仅供同网络玩家使用",
+  "share.save": "保存 PNG",
+  "share.copy": "复制图片",
+  "share.folder": "打开卡片文件夹",
+  "share.saved": "已保存：{path}",
+  "share.downloaded": "已开始下载图片。",
+  "share.copied": "图片已复制。",
+  "share.failed": "无法生成图片，请重试。",
+  "share.copyUnavailable": "当前环境不支持复制图片，请使用保存 PNG。",
+
   "app.serverManager": "服务器管理器",
   "app.workspace": "工作区",
   "app.localWorkspace": "本地工作区",
@@ -103,7 +216,8 @@ export const zh = {
   "detail.lanAddress": "局域网地址",
   "detail.ramLimit": "内存上限",
   "detail.started": "启动时间",
-  "detail.addressNote": "局域网连接取决于防火墙权限。公网访问需要额外的网络配置。",
+  "detail.addressNote":
+    "局域网连接取决于防火墙权限。公网访问需要额外的网络配置。",
   "detail.viewLog": "查看最新日志",
   "detail.diagnose": "查看诊断",
   "detail.deleteServer": "删除此服务器",
@@ -122,7 +236,8 @@ export const zh = {
   "install.verified": "下载已验证",
 
   "delete.title": "删除 {name}？",
-  "delete.body": "这将永久删除该服务器、所有世界数据及全部本地备份。请先将需要保留的备份复制到其他位置。",
+  "delete.body":
+    "这将永久删除该服务器、所有世界数据及全部本地备份。请先将需要保留的备份复制到其他位置。",
   "delete.keep": "保留服务器",
   "delete.confirm": "永久删除",
   "log.title": "最新 Minecraft 日志（最近 256 KB）",
@@ -150,12 +265,14 @@ export const zh = {
   "settings.java.usePath": "使用此路径",
   "settings.java.guide": "安装 Java 运行时",
   "settings.java.managedTitle": "托管 Java 运行时",
-  "settings.java.managedDesc": "由 EasyLauncher 下载并校验的 Eclipse Temurin 运行时，可按服务器固定版本。",
+  "settings.java.managedDesc":
+    "由 EasyLauncher 下载并校验的 Eclipse Temurin 运行时，可按服务器固定版本。",
   "settings.java.install": "安装 Java {major}",
   "settings.java.managedEmpty": "尚未安装托管运行时。",
   "settings.java.remove": "移除",
   "settings.java.removeTitle": "移除 Java {major}？",
-  "settings.java.removeBody": "将删除 {version} 运行时及其文件。使用它的服务器需要先切换到其他 Java。",
+  "settings.java.removeBody":
+    "将删除 {version} 运行时及其文件。使用它的服务器需要先切换到其他 Java。",
   "settings.java.removed": "托管 Java {major} 已移除。",
   "settings.java.installed": "托管 Java {major} 已安装。",
   "settings.java.installFailed": "Java 安装失败，请重试。",
@@ -168,7 +285,8 @@ export const zh = {
   "settings.storage.unavailable": "在桌面应用中可用",
   "settings.downloads.title": "下载",
   "settings.downloads.desc": "文件会直接流式写入托管的服务器目录。",
-  "settings.downloads.incomplete": "未完成的下载会被丢弃。安装失败的服务器可从服务器卡片重试。",
+  "settings.downloads.incomplete":
+    "未完成的下载会被丢弃。安装失败的服务器可从服务器卡片重试。",
   "settings.downloads.source": "下载源",
   "settings.downloads.official": "官方源",
   "settings.downloads.china": "国内镜像（BMCLAPI）",
@@ -217,7 +335,8 @@ export const zh = {
   "software.fabricDesc": "轻量且支持模组",
   "wizard.step2.eyebrow": "为世界留足空间",
   "wizard.step2.title": "给世界一个舒适的容量。",
-  "wizard.memorySummary": "{total} GB 系统内存 · {available} GB 可用 · 建议 {recommended} MB",
+  "wizard.memorySummary":
+    "{total} GB 系统内存 · {available} GB 可用 · 建议 {recommended} MB",
   "wizard.readingMemory": "正在读取系统内存…",
   "wizard.memoryMin": "最小内存（MB）",
   "wizard.memoryMax": "最大内存（MB）",
@@ -227,35 +346,42 @@ export const zh = {
   "wizard.difficulty": "难度",
   "wizard.onlineMode": "验证 Minecraft 账号",
   "wizard.onlineModeHint": "建议开启在线模式，以保障玩家身份安全。",
-  "wizard.memoryWarning": "请降低内存分配。至少保留 1 GB 和 20% 的系统内存空闲，并额外保留 512 MB 当前可用内存。",
+  "wizard.memoryWarning":
+    "请降低内存分配。至少保留 1 GB 和 20% 的系统内存空闲，并额外保留 512 MB 当前可用内存。",
   "wizard.step3.eyebrow": "背后的引擎",
   "wizard.step3.title": "检查一下 Java。",
   "wizard.javaRequirement": "{software} {version} 需要 Java {major}。",
   "wizard.javaResolving": "正在解析运行时要求…",
-  "wizard.javaCompatibility": "EasyLauncher 使用完全相同的主版本，以确保兼容性。",
+  "wizard.javaCompatibility":
+    "EasyLauncher 使用完全相同的主版本，以确保兼容性。",
   "wizard.detect": "检测 Java 运行时",
   "wizard.compatible": "兼容",
   "wizard.needsJava": "需要 Java {major}",
   "wizard.customJava": "自定义 Java 可执行文件",
-  "wizard.customJavaHint": "Windows 请选择 java.exe，macOS / Linux 请选择 java 可执行文件。",
+  "wizard.customJavaHint":
+    "Windows 请选择 java.exe，macOS / Linux 请选择 java 可执行文件。",
   "wizard.javaPathPlaceholder": "Java 可执行文件的完整路径",
   "wizard.validate": "验证运行时",
   "wizard.compatibleRuntime": "运行时兼容",
   "wizard.javaMissing": "缺少 Java？",
-  "wizard.javaMissingDesc": "安装适用于 Java {major} 的 Eclipse Temurin，然后重新检测或粘贴其可执行文件路径。",
+  "wizard.javaMissingDesc":
+    "安装适用于 Java {major} 的 Eclipse Temurin，然后重新检测或粘贴其可执行文件路径。",
   "wizard.openGuide": "打开 Java 下载指南",
   "wizard.javaInstall": "自动安装 Java {major}",
-  "wizard.javaInstallHint": "由 EasyLauncher 下载并校验 Eclipse Temurin，安装后会自动重新检测。",
+  "wizard.javaInstallHint":
+    "由 EasyLauncher 下载并校验 Eclipse Temurin，安装后会自动重新检测。",
   "wizard.javaInstalling": "正在安装 Java {major}…",
   "wizard.javaInstalled": "Java {major} 已安装，已自动选中。",
   "wizard.step4.title": "一个小小的约定，一个全新的世界。",
-  "wizard.step4.desc": "运行 Minecraft 服务器需要同意 Mojang 的 Minecraft 最终用户许可协议。请先阅读条款。",
+  "wizard.step4.desc":
+    "运行 Minecraft 服务器需要同意 Mojang 的 Minecraft 最终用户许可协议。请先阅读条款。",
   "wizard.readEula": "阅读 Minecraft EULA",
   "wizard.review": "{type} · Minecraft {version}",
   "wizard.reviewResources": "{memory} MB 内存 · {players} 名玩家 · 端口 {port}",
   "wizard.eulaAgree": "我已阅读并同意 Minecraft EULA。",
   "wizard.eulaHint": "EasyLauncher 会为此服务器记录本次确认。",
-  "wizard.installNote": "接下来将下载官方服务器文件。Fabric 首次启动时还会下载依赖库。安装过程不会启动服务器。",
+  "wizard.installNote":
+    "接下来将下载官方服务器文件。Fabric 首次启动时还会下载依赖库。安装过程不会启动服务器。",
   "wizard.createInstall": "创建并安装",
 
   "value.survival": "生存",
@@ -273,7 +399,8 @@ export const zh = {
   "players.none": "暂未观察到已连接的玩家。",
   "players.noneHint": "加入与离开消息会显示在实时控制台中。",
   "players.controls": "玩家管理",
-  "players.controlsDesc": "向服务器发送真实命令，可在控制台查看 Minecraft 的响应。",
+  "players.controlsDesc":
+    "向服务器发送真实命令，可在控制台查看 Minecraft 的响应。",
   "players.name": "Minecraft 玩家名称",
   "players.namePlaceholder": "例如：Steve",
   "players.action": "操作",
@@ -292,10 +419,13 @@ export const zh = {
   "backups.title": "世界备份",
   "backups.desc": "世界及其维度的本地快照。",
   "backups.create": "创建备份",
-  "backups.tip": "备份或恢复前请先停止服务器。恢复前会自动为当前世界创建一份安全备份。",
+  "backups.tip":
+    "备份或恢复前请先停止服务器。恢复前会自动为当前世界创建一份安全备份。",
   "backups.rollbackTitle": "一键回滚",
-  "backups.rollbackDesc": "用最近一个还原点覆盖当前世界。回滚前的世界会自动保存为安全备份，可随时撤销。",
-  "backups.rollbackEmpty": "还没有可用的还原点。先创建一份备份，之后就能一键回滚。",
+  "backups.rollbackDesc":
+    "用最近一个还原点覆盖当前世界。回滚前的世界会自动保存为安全备份，可随时撤销。",
+  "backups.rollbackEmpty":
+    "还没有可用的还原点。先创建一份备份，之后就能一键回滚。",
   "backups.rollbackAction": "回滚到最近备份",
   "backups.latestPoint": "最近还原点",
   "backups.scheduled": "定时",
@@ -323,7 +453,8 @@ export const zh = {
   "backups.emptyDesc": "在启动并安全停止服务器后，创建第一份快照。",
   "backups.restoreTitle": "恢复此世界？",
   "backups.deleteTitle": "删除此备份？",
-  "backups.restoreBody": "用 {date} 的快照替换当前世界数据？操作前会先创建一份安全备份。",
+  "backups.restoreBody":
+    "用 {date} 的快照替换当前世界数据？操作前会先创建一份安全备份。",
   "backups.deleteBody": "这将从此电脑上永久删除所选快照。",
   "backups.confirmRestore": "确认恢复",
   "backups.confirmDelete": "确认删除",
@@ -334,7 +465,8 @@ export const zh = {
   "schedule.title": "定时任务",
   "schedule.desc": "让备份、重启与日志清理在你不需要盯着的时段自动完成。",
   "schedule.new": "新建任务",
-  "schedule.tip": "应用运行时每 20 秒检查一次到期任务；关闭 EasyLauncher 后任务不会执行。",
+  "schedule.tip":
+    "应用运行时每 20 秒检查一次到期任务；关闭 EasyLauncher 后任务不会执行。",
   "schedule.emptyTitle": "让世界自己照顾自己。",
   "schedule.emptyDesc": "创建第一个定时任务，例如每天凌晨自动备份。",
   "schedule.action": "执行动作",
@@ -424,14 +556,16 @@ export const zh = {
   "recovery.exitCode": "退出码 {code}",
   "recovery.noExit": "尚未发生崩溃。",
   "remote.title": "手机远程控制",
-  "remote.desc": "用手机浏览器查看状态、启停服务器并发送命令。手机需与电脑连接同一个 Wi-Fi。",
+  "remote.desc":
+    "用手机浏览器查看状态、启停服务器并发送命令。手机需与电脑连接同一个 Wi-Fi。",
   "remote.enabled": "启用手机控制台",
   "remote.started": "手机控制台已开启，请用手机扫描二维码。",
   "remote.stopped": "手机控制台已关闭，原链接已失效。",
   "remote.scan": "用手机相机扫码打开",
   "remote.copy": "复制链接",
   "remote.copied": "链接已复制，请妥善保管。",
-  "remote.hint": "链接包含一次性访问令牌，关闭控制台或退出 EasyLauncher 后立即失效。若手机无法打开，请在 Windows 防火墙中允许 EasyLauncher 访问专用网络。",
+  "remote.hint":
+    "链接包含一次性访问令牌，关闭控制台或退出 EasyLauncher 后立即失效。若手机无法打开，请在 Windows 防火墙中允许 EasyLauncher 访问专用网络。",
 
   "network.title": "一键联机",
   "network.desc": "自动在路由器上开启端口映射，让朋友通过互联网加入你的世界。",
@@ -441,7 +575,8 @@ export const zh = {
   "network.router": "路由器",
   "network.port": "服务器端口",
   "network.externalPort": "外网端口",
-  "network.externalHint": "留空则与服务器端口一致；若提示被占用，可换成 25566 等。",
+  "network.externalHint":
+    "留空则与服务器端口一致；若提示被占用，可换成 25566 等。",
   "network.igdOk": "路由器支持 UPnP",
   "network.igdNo": "未发现支持 UPnP 的路由器",
   "network.enable": "开启端口映射",
@@ -452,8 +587,10 @@ export const zh = {
   "network.noAddress": "开启端口映射后生成分享地址。",
   "network.mappedAt": "映射时间",
   "network.fallbackTitle": "路由器不支持 UPnP？",
-  "network.fallbackDesc": "可在路由器管理页面手动将 TCP 端口 {port} 转发到这台电脑，或使用 playit.gg 等隧道服务。",
-  "network.hint": "端口映射会在路由器重启后失效，可随时重新开启。仅对 Java 版 TCP 端口生效。",
+  "network.fallbackDesc":
+    "可在路由器管理页面手动将 TCP 端口 {port} 转发到这台电脑，或使用 playit.gg 等隧道服务。",
+  "network.hint":
+    "端口映射会在路由器重启后失效，可随时重新开启。仅对 Java 版 TCP 端口生效。",
   "network.checkTitle": "网络体检",
   "network.checkDesc": "检查服务器端口占用情况与 Windows 防火墙放行状态。",
   "network.checkPortFree": "端口可用",
@@ -467,7 +604,8 @@ export const zh = {
   "network.allowSent": "已请求管理员权限，请在弹窗中确认，然后刷新体检结果。",
 
   "import.title": "导入服务器",
-  "import.desc": "把已有的服务器文件夹搬进 EasyLauncher，保留世界、插件与配置。原目录不会被改动。",
+  "import.desc":
+    "把已有的服务器文件夹搬进 EasyLauncher，保留世界、插件与配置。原目录不会被改动。",
   "import.sourcePath": "服务器文件夹",
   "import.pick": "选择文件夹",
   "import.pathPlaceholder": "粘贴或选择服务器文件夹路径",
@@ -491,7 +629,8 @@ export const zh = {
   "import.eulaFound": "源文件夹已接受 EULA",
   "import.noteCopy": "文件夹内容会复制到 EasyLauncher 的服务器目录。",
   "import.noteMeta": "EasyLauncher 自己的配置文件不会被复制。",
-  "import.noteJava": "导入后会自动匹配已安装的 Java，缺失时可在服务器设置中安装。",
+  "import.noteJava":
+    "导入后会自动匹配已安装的 Java，缺失时可在服务器设置中安装。",
   "import.importing": "正在导入…",
   "import.start": "导入服务器",
   "import.progress": "复制进度",
@@ -509,10 +648,12 @@ export const zh = {
   "import.versionSource.unknown": "未识别",
   "import.warn.noJar": "没有找到服务端 JAR，导入后需要手动放置。",
   "import.warn.unknownVersion": "无法识别版本，请手动填写。",
-  "import.warn.moddedLauncher": "检测到模组或 Forge/NeoForge，请确认启动文件正确。",
+  "import.warn.moddedLauncher":
+    "检测到模组或 Forge/NeoForge，请确认启动文件正确。",
   "import.warn.largeFolder": "文件夹超过 4 GB，复制可能需要一些时间。",
   "import.warn.eulaMissing": "源文件夹尚未接受 EULA。",
-  "import.warn.unsafeWorld": "server.properties 中的世界名称不安全，导入后将改用 world。",
+  "import.warn.unsafeWorld":
+    "server.properties 中的世界名称不安全，导入后将改用 world。",
   "import.warn.recoverySkipped": "已跳过 restore-* 临时目录。",
 
   "console.live": "实时输出",
@@ -521,7 +662,8 @@ export const zh = {
   "console.clear": "清空最近的控制台输出",
   "console.aria": "实时服务器控制台",
   "console.emptyTitle": "这里很安静。下一个世界正在等你。",
-  "console.emptyDesc": "启动服务器后，Java 的真实 stdout 与 stderr 会显示在这里。",
+  "console.emptyDesc":
+    "启动服务器后，Java 的真实 stdout 与 stderr 会显示在这里。",
   "console.followLatest": "跳转到最新输出",
   "console.commandAria": "Minecraft 控制台命令",
   "console.commandPlaceholder": "输入 Minecraft 命令，例如 say Hello",
@@ -535,7 +677,8 @@ export const zh = {
   "serverSettings.common": "常用设置",
   "serverSettings.advanced": "高级 / 原始",
   "serverSettings.loading": "正在加载 server.properties…",
-  "serverSettings.rawHint": "原始编辑器会保留未知键，并覆盖表单中未保存的修改。不安全的世界路径和远程控制端点会被拒绝。",
+  "serverSettings.rawHint":
+    "原始编辑器会保留未知键，并覆盖表单中未保存的修改。不安全的世界路径和远程控制端点会被拒绝。",
   "serverSettings.rawAria": "原始 server.properties",
   "serverSettings.motd": "服务器描述（MOTD）",
   "serverSettings.port": "服务器端口",
@@ -554,8 +697,29 @@ export const zh = {
   "serverSettings.runtime.min": "最小内存（MB）",
   "serverSettings.runtime.max": "最大内存（MB）",
   "serverSettings.runtime.java": "Java 可执行文件",
+  "serverSettings.jvm.title": "JVM 预设",
+  "serverSettings.jvm.desc":
+    "为服务器选择垃圾回收策略。预设参数会在 -Xms/-Xmx 之后追加，下次启动生效。",
+  "serverSettings.jvm.balanced": "均衡",
+  "serverSettings.jvm.aikar": "Aikar",
+  "serverSettings.jvm.paper": "Paper",
+  "serverSettings.jvm.custom": "自定义",
+  "serverSettings.jvm.balancedDesc":
+    "不追加额外参数，保持 Java 默认行为，适合排查问题或与其它工具对比。",
+  "serverSettings.jvm.aikarDesc":
+    "社区常用的 Aikar G1GC 调优；内存达到 12 GB 时切换大型堆参数，实际效果取决于负载与 Java 版本。",
+  "serverSettings.jvm.paperDesc":
+    "在 Aikar 基础上收紧停顿目标并缩小新生代，适合 Paper/Purpur 的红石与高频实体场景。",
+  "serverSettings.jvm.customDesc": "完全手动控制 JVM 参数。",
+  "serverSettings.jvm.customLabel": "自定义参数（每行一个）",
+  "serverSettings.jvm.customHint":
+    "自定义参数仅支持 -XX: 调优选项，每行一个，不能包含空格。内存和启动入口由 EasyLauncher 管理。",
+  "serverSettings.jvm.save": "保存 JVM 预设",
+  "serverSettings.jvm.memoryManaged":
+    "堆内存上下限由上方“运行时与内存”控制，不会写入自定义参数。",
   "serverSettings.launch.title": "启动命令",
-  "serverSettings.launch.desc": "这是 EasyLauncher 实际执行的 Java 命令，可复制到终端手动运行。",
+  "serverSettings.launch.desc":
+    "这是 EasyLauncher 实际执行的 Java 命令，可复制到终端手动运行。",
   "serverSettings.launch.java": "Java 可执行文件",
   "serverSettings.launch.dir": "工作目录",
   "serverSettings.launch.args": "启动参数",
@@ -570,18 +734,21 @@ export const zh = {
   "serverSettings.files.backups": "备份",
   "serverSettings.plugins": "插件",
   "serverSettings.mods": "模组",
-  "serverSettings.contentDesc": "服务器停止时可安装可信的 JAR 文件，重启后生效。",
+  "serverSettings.contentDesc":
+    "服务器停止时可安装可信的 JAR 文件，重启后生效。",
   "serverSettings.noJars": "未检测到已安装的 JAR 文件。",
 
   "content.title": "内容中心",
-  "content.desc": "从 Modrinth 搜索并安装与当前版本匹配的模组、插件或整合包，下载会自动校验哈希。",
+  "content.desc":
+    "从 Modrinth 搜索并安装与当前版本匹配的模组、插件或整合包，下载会自动校验哈希。",
   "content.mods": "模组",
   "content.plugins": "插件",
   "content.modpacks": "整合包",
   "content.searchPlaceholder": "搜索模组名称、作者或关键词…",
   "content.packPlaceholder": "搜索整合包名称或关键词…",
   "content.search": "搜索",
-  "content.searchHint": "输入关键词开始搜索 Modrinth。结果会自动按 Minecraft 版本与加载器筛选。",
+  "content.searchHint":
+    "输入关键词开始搜索 Modrinth。结果会自动按 Minecraft 版本与加载器筛选。",
   "content.noResults": "没有找到匹配的内容，换个关键词试试。",
   "content.results": "共 {total} 个结果",
   "content.loadMore": "加载更多",
@@ -590,7 +757,8 @@ export const zh = {
   "content.noVersions": "没有与当前服务器版本匹配的版本。",
   "content.install": "安装",
   "content.installedTitle": "已安装内容",
-  "content.installedDesc": "服务器停止时可安全增删内容；改动会在下次启动时生效。",
+  "content.installedDesc":
+    "服务器停止时可安全增删内容；改动会在下次启动时生效。",
   "content.refresh": "刷新列表",
   "content.emptyInstalled": "还没有安装任何内容。",
   "content.version": "版本 {version}",
@@ -601,15 +769,18 @@ export const zh = {
   "content.removeBody": "只会删除该内容文件，世界与服务器配置不受影响。",
   "content.removeFileBody": "将直接删除 {name}，此操作无法撤销。",
   "content.clientOnly": "仅客户端",
-  "content.packNote": "整合包会安装模组与配置，但不会覆盖世界、日志、EULA 与 server.properties。",
-  "content.packReport": "版本 {version}：{files} 个文件，跳过 {skipped} 个，应用 {overrides} 个配置。",
+  "content.packNote":
+    "整合包会安装模组与配置，但不会覆盖世界、日志、EULA 与 server.properties。",
+  "content.packReport":
+    "版本 {version}：{files} 个文件，跳过 {skipped} 个，应用 {overrides} 个配置。",
   "content.progress.download": "正在下载 {file}（{done}/{total}）",
   "content.progress.overrides": "正在应用配置 {file}（{done}/{total}）",
   "content.progress.verify": "正在校验整合包…",
   "content.progress.done": "安装完成",
 
   "ops.healthTitle": "开服体检",
-  "ops.healthDesc": "启动前检查安装、EULA、Java、内存、端口、配置、磁盘与备份状态。",
+  "ops.healthDesc":
+    "启动前检查安装、EULA、Java、内存、端口、配置、磁盘与备份状态。",
   "ops.refresh": "重新体检",
   "ops.score": "就绪评分",
   "ops.checkedAt": "检查于 {time}",
@@ -621,14 +792,17 @@ export const zh = {
   "ops.level.critical": "问题",
   "ops.level.info": "提示",
   "ops.diagnosisTitle": "崩溃诊断",
-  "ops.diagnosisDesc": "读取最新崩溃报告或 logs/latest.log 末尾，识别常见启动失败原因。",
+  "ops.diagnosisDesc":
+    "读取最新崩溃报告或 logs/latest.log 末尾，识别常见启动失败原因。",
   "ops.analyze": "重新分析",
   "ops.source": "日志来源：{source}",
   "ops.evidence": "查看证据",
   "ops.noLogsTitle": "还没有可分析的日志",
-  "ops.noLogsDesc": "启动一次服务器后，EasyLauncher 会读取崩溃报告与 logs/latest.log。",
+  "ops.noLogsDesc":
+    "启动一次服务器后，EasyLauncher 会读取崩溃报告与 logs/latest.log。",
   "ops.cleanTitle": "没有发现已知错误",
-  "ops.cleanDesc": "日志中没有匹配到常见崩溃特征。若仍有异常，可在控制台查看完整输出。",
+  "ops.cleanDesc":
+    "日志中没有匹配到常见崩溃特征。若仍有异常，可在控制台查看完整输出。",
   "ops.severity.critical": "严重",
   "ops.severity.warning": "警告",
 
@@ -643,7 +817,8 @@ export const zh = {
   "health.java.critical": "找不到可用的 Java {required}：{message}",
   "health.memory.title": "内存分配",
   "health.memory.ok": "已分配 {max} MB，系统共 {total} MB。",
-  "health.memory.warning": "已分配 {max} MB，系统可用 {available} MB，建议降低内存。",
+  "health.memory.warning":
+    "已分配 {max} MB，系统可用 {available} MB，建议降低内存。",
   "health.port.title": "端口",
   "health.port.ok": "端口 {port} 可用。",
   "health.port.critical": "端口 {port} 已被其他程序占用。",
@@ -651,10 +826,12 @@ export const zh = {
   "health.properties.title": "服务器配置",
   "health.properties.ok": "server.properties 校验通过。",
   "health.properties.warning": "以下设置存在风险：{keys}",
-  "health.properties.critical": "server.properties 无法读取或包含不安全的配置。",
+  "health.properties.critical":
+    "server.properties 无法读取或包含不安全的配置。",
   "health.restore.title": "回滚残留",
   "health.restore.ok": "没有未完成的回滚。",
-  "health.restore.critical": "发现 {count} 个未完成的 restore 目录，可能影响世界数据。",
+  "health.restore.critical":
+    "发现 {count} 个未完成的 restore 目录，可能影响世界数据。",
   "health.partial.title": "下载残留",
   "health.partial.ok": "没有未完成的下载文件。",
   "health.partial.warning": "发现 {count} 个 .part 临时文件，可安全删除。",
@@ -672,11 +849,14 @@ export const zh = {
   "health.logs.info": "最近日志有 {warnings} 条警告。",
 
   "diagnosis.outOfMemory.title": "内存不足",
-  "diagnosis.outOfMemory.advice": "增加最大内存，或减少模组、视距与模拟距离后重试。",
+  "diagnosis.outOfMemory.advice":
+    "增加最大内存，或减少模组、视距与模拟距离后重试。",
   "diagnosis.portInUse.title": "端口被占用",
-  "diagnosis.portInUse.advice": "关闭占用该端口的程序，或在服务器设置中更换端口。",
+  "diagnosis.portInUse.advice":
+    "关闭占用该端口的程序，或在服务器设置中更换端口。",
   "diagnosis.javaVersion.title": "Java 版本不匹配",
-  "diagnosis.javaVersion.advice": "安装服务器要求的 Java 主版本，并在运行时设置中选择它。",
+  "diagnosis.javaVersion.advice":
+    "安装服务器要求的 Java 主版本，并在运行时设置中选择它。",
   "diagnosis.missingJar.title": "缺少 server.jar",
   "diagnosis.missingJar.advice": "重新安装服务器核心后再启动。",
   "diagnosis.eula.title": "EULA 未接受",
@@ -684,24 +864,153 @@ export const zh = {
   "diagnosis.diskSpace.title": "磁盘空间不足",
   "diagnosis.diskSpace.advice": "清理磁盘空间，至少保留数百 MB 后再启动。",
   "diagnosis.worldCorruption.title": "世界数据可能损坏",
-  "diagnosis.worldCorruption.advice": "从备份恢复世界；如无备份，先移走损坏的区域文件再尝试启动。",
+  "diagnosis.worldCorruption.advice":
+    "从备份恢复世界；如无备份，先移走损坏的区域文件再尝试启动。",
   "diagnosis.fileAccess.title": "文件访问被拒绝",
-  "diagnosis.fileAccess.advice": "检查杀毒软件或文件权限，确保 EasyLauncher 可以读写服务器目录。",
+  "diagnosis.fileAccess.advice":
+    "检查杀毒软件或文件权限，确保 EasyLauncher 可以读写服务器目录。",
   "diagnosis.modConflict.title": "模组冲突",
-  "diagnosis.modConflict.advice": "移除重复或不兼容的模组，并检查模组之间的依赖关系。",
+  "diagnosis.modConflict.advice":
+    "移除重复或不兼容的模组，并检查模组之间的依赖关系。",
   "diagnosis.missingDependency.title": "缺少模组依赖",
-  "diagnosis.missingDependency.advice": "安装日志中提示的前置模组，或改用包含完整依赖的整合包。",
+  "diagnosis.missingDependency.advice":
+    "安装日志中提示的前置模组，或改用包含完整依赖的整合包。",
   "diagnosis.watchdog.title": "服务器卡顿或看门狗超时",
-  "diagnosis.watchdog.advice": "排查性能压力过大的模组或区块加载器，并适当降低视距与模拟距离。",
+  "diagnosis.watchdog.advice":
+    "排查性能压力过大的模组或区块加载器，并适当降低视距与模拟距离。",
   "diagnosis.pluginError.title": "插件加载失败",
-  "diagnosis.pluginError.advice": "确认插件与服务器版本匹配，并在控制台查看该插件的完整堆栈。",
+  "diagnosis.pluginError.advice":
+    "确认插件与服务器版本匹配，并在控制台查看该插件的完整堆栈。",
   "diagnosis.generic.title": "未分类的启动异常",
-  "diagnosis.generic.advice": "展开证据查看完整堆栈，或到控制台查看启动前后的日志。",
+  "diagnosis.generic.advice":
+    "展开证据查看完整堆栈，或到控制台查看启动前后的日志。",
 } as const;
 
 export type MessageKey = keyof typeof zh;
 
 export const en: Record<MessageKey, string> = {
+  "diagnosis.jvmOptions.title": "Invalid or conflicting JVM options",
+  "diagnosis.jvmOptions.advice":
+    "Switch to the Balanced JVM preset, verify the Java version, then restore custom options one at a time.",
+
+  "tunnel.title": "frp tunnel",
+  "tunnel.desc": "Manage a local frpc process using your existing frp service.",
+  "tunnel.setup":
+    "Install official frpc, prepare a dedicated configuration forwarding only this Minecraft port, and enter your provider’s public address. frpc reads credentials from your config; this app saves only paths and the address. Closing the app stops the process. Reopening does not restart it.",
+  "tunnel.executable": "Absolute path to frpc executable",
+  "tunnel.configPath": "Absolute path to frpc configuration",
+  "tunnel.address": "Public game address from provider",
+  "tunnel.start": "Start tunnel process",
+  "tunnel.stop": "Stop tunnel process",
+  "tunnel.running": "Process running · PID {pid}",
+  "tunnel.stopped": "Process stopped",
+  "tunnel.unverified":
+    "Address supplied by you. A running process does not prove public connectivity.",
+  "tunnel.exited":
+    "frpc exited (code {code}). Check your provider configuration and retry.",
+
+  "deps.relation.required": "Required",
+  "deps.relation.optional": "Optional",
+  "deps.relation.incompatible": "Incompatible",
+  "deps.relation.embedded": "Embedded",
+
+  "assistant.title": "Optional AI log assistant",
+  "assistant.desc":
+    "Local rules always work. Connect your own compatible endpoint for further explanation.",
+  "assistant.setup": "Configure endpoint and preview logs",
+  "assistant.privacy":
+    "Use a complete Chat Completions compatible endpoint. The key is used only for this request, never saved in settings or logs, and cleared afterward. Only Send displayed excerpt makes the AI request; your provider may charge for it.",
+  "assistant.endpoint": "Full endpoint URL (HTTPS or localhost HTTP)",
+  "assistant.model": "Model name",
+  "assistant.key": "API key (optional for unauthenticated local endpoints)",
+  "assistant.preview": "Prepare log preview",
+  "assistant.excerpt": "Log excerpt to send (editable)",
+  "assistant.review":
+    "Common credentials, paths and addresses are masked on a best effort basis. Review and remove anything private. Only the text shown here is sent.",
+  "assistant.send": "Send displayed excerpt",
+  "assistant.caution":
+    "AI analysis may be inaccurate. It does not execute commands or modify files.",
+  "serverSettings.profile.title": "Configuration suggestions",
+  "serverSettings.profile.small": "Small friends server",
+  "serverSettings.profile.balanced": "Balanced configuration",
+  "serverSettings.profile.performance": "Prefer performance",
+  "serverSettings.profile.hint":
+    "Presets fill view distance, simulation distance and player cap. Review, then save settings.",
+  "serverSettings.memory.recommend": "Suggest memory",
+  "serverSettings.memory.note":
+    "Uses a portion of currently available RAM. Large modpacks may need adjustment; limits are validated on save and launch.",
+
+  "common.refresh": "Refresh",
+  "deps.title": "Dependencies and conflicts",
+  "deps.desc":
+    "Inspect local Fabric metadata and query Modrinth dependencies on demand.",
+  "deps.limit":
+    "Supports Fabric and nested JARs. Local Paper metadata is not parsed. Unknown version expressions require review. Remote checks only identify managed projects; verify manual dependencies yourself.",
+  "deps.check": "Check local and Modrinth",
+  "deps.summary": "{modules} local modules · {edges} edges · {issues} findings",
+  "deps.local": "Local inspection",
+  "deps.online": "Remote declarations queried",
+  "deps.clean":
+    "No issues in the inspected declarations. This does not guarantee compatibility.",
+  "deps.missing": "Required dependency missing",
+  "deps.remoteMissing": "Managed dependency absent; check manual files",
+  "deps.duplicate": "Duplicate mod ID",
+  "deps.conflict": "Declared incompatibility",
+  "deps.version": "Dependency version mismatch",
+  "deps.clientOnly": "Client-only mod",
+  "deps.unknown": "Version constraint needs review",
+  "deps.unreadable": "Cannot inspect JAR metadata",
+  "deps.remoteError": "Remote metadata request failed",
+  "deps.graph": "Dependency graph",
+  "deps.modules": "Local modules and files",
+  "deps.truncated": "Showing the first 300 dependency edges.",
+  "insights.title": "Player insights",
+  "insights.desc":
+    "Based on join and leave events observed by this app; older logs are not backfilled.",
+  "insights.duration": "{hours}h {minutes}m",
+  "insights.unique": "Unique players",
+  "insights.visits": "Logins",
+  "insights.playtime": "Play time",
+  "insights.lastSeen": "Last seen",
+  "insights.chart": "Logins over 14 days (UTC)",
+  "insights.since":
+    "Tracking since {date}; keeps 30 daily totals and 200 completed sessions. A crash may lose about 10 seconds of observations.",
+  "insights.search": "Find player",
+  "insights.searchHint": "Showing up to 100 players. Search to find others.",
+  "insights.empty": "No player logins observed yet.",
+  "insights.sessions": "Last 30 completed sessions",
+  "insights.joined": "Joined",
+  "insights.left": "Left",
+  "diff.title": "Backup timeline and file changes",
+  "diff.desc":
+    "Compare world files by SHA-256 between two snapshots. First comparison indexes older backups and may take time for large worlds.",
+  "diff.before": "Earlier snapshot",
+  "diff.after": "Later snapshot",
+  "diff.compare": "Compare files",
+  "diff.added": "Added",
+  "diff.removed": "Removed",
+  "diff.modified": "Modified",
+  "diff.unchanged": "Unchanged",
+  "diff.identical": "World files have identical content.",
+  "diff.truncated":
+    "Showing the first 500 changed files; totals include every file.",
+  "share.title": "Server share card",
+  "share.desc": "Enter a connection address and save or copy a PNG invitation.",
+  "share.address": "Connection address",
+  "share.description": "Invitation",
+  "share.defaultDescription": "Build a new world together.",
+  "share.javaEdition": "Join with a matching Minecraft Java Edition version",
+  "share.reachability":
+    "Connectivity required. LAN addresses work only on the same network.",
+  "share.save": "Save PNG",
+  "share.copy": "Copy image",
+  "share.folder": "Open card folder",
+  "share.saved": "Saved: {path}",
+  "share.downloaded": "Image download started.",
+  "share.copied": "Image copied.",
+  "share.failed": "Cannot generate the image. Please retry.",
+  "share.copyUnavailable": "Image clipboard is unavailable here. Use Save PNG.",
+
   "app.serverManager": "Server manager",
   "app.workspace": "Workspace",
   "app.localWorkspace": "Local workspace",
@@ -749,7 +1058,8 @@ export const en: Record<MessageKey, string> = {
   "status.crashed": "Crashed",
 
   "sidebar.tagline": "Your world. Your rules.",
-  "sidebar.description": "A server for your next adventure, right on your computer.",
+  "sidebar.description":
+    "A server for your next adventure, right on your computer.",
   "topbar.hostedLocally": "Hosted on your computer",
   "topbar.refresh": "Refresh servers",
   "topbar.workspace": "Workspace",
@@ -783,8 +1093,10 @@ export const en: Record<MessageKey, string> = {
 
   "welcome.eyebrow": "WELCOME TO {name}",
   "welcome.tagline": "A home for your next world.",
-  "welcome.description": "Create and manage Minecraft servers without the command line.",
-  "welcome.description2": "Choose your version. Invite your people. Make it yours.",
+  "welcome.description":
+    "Create and manage Minecraft servers without the command line.",
+  "welcome.description2":
+    "Choose your version. Invite your people. Make it yours.",
   "welcome.createFirst": "Create my first server",
   "welcome.localFiles": "Your files stay local",
   "welcome.software": "Vanilla, Paper & Fabric",
@@ -794,10 +1106,12 @@ export const en: Record<MessageKey, string> = {
 
   "settings.eyebrow": "MAKE YOURSELF AT HOME",
   "settings.title": "Application settings",
-  "settings.subtitle": "Preferences for your workspace, separate from your servers.",
+  "settings.subtitle":
+    "Preferences for your workspace, separate from your servers.",
 
   "empty.chooseWorld": "Choose a world to begin",
-  "empty.chooseWorldDesc": "Create your first server, then return here to manage it.",
+  "empty.chooseWorldDesc":
+    "Create your first server, then return here to manage it.",
 
   "detail.allServers": "All servers",
   "detail.selectServer": "Selected server",
@@ -811,7 +1125,8 @@ export const en: Record<MessageKey, string> = {
   "detail.viewLog": "View latest log",
   "detail.diagnose": "View diagnosis",
   "detail.deleteServer": "Delete this server",
-  "detail.deleteServerDesc": "Permanently remove its worlds, configurations and local backups.",
+  "detail.deleteServerDesc":
+    "Permanently remove its worlds, configurations and local backups.",
   "detail.deleteServerButton": "Delete server",
   "detail.startedUp": "Minecraft has completed startup.",
   "detail.installCancel": "Cancel download",
@@ -849,10 +1164,12 @@ export const en: Record<MessageKey, string> = {
   "settings.appearance.light": "Light",
   "settings.appearance.dark": "Dark",
   "settings.java.title": "Java environment",
-  "settings.java.desc": "Global detection preference. Each server keeps its own runtime.",
+  "settings.java.desc":
+    "Global detection preference. Each server keeps its own runtime.",
   "settings.java.detect": "Auto detect",
   "settings.java.preferred": "Preferred Java executable (optional)",
-  "settings.java.preferredPlaceholder": "Auto detect from PATH and installed runtimes",
+  "settings.java.preferredPlaceholder":
+    "Auto detect from PATH and installed runtimes",
   "settings.java.usePath": "Use path",
   "settings.java.guide": "Install a Java runtime",
   "settings.java.managedTitle": "Managed Java runtimes",
@@ -871,11 +1188,13 @@ export const en: Record<MessageKey, string> = {
   "settings.java.managedTag": "Managed",
   "settings.java.installedAt": "Installed {date}",
   "settings.storage.title": "Server storage",
-  "settings.storage.desc": "Managed using the operating system’s application data directory.",
+  "settings.storage.desc":
+    "Managed using the operating system’s application data directory.",
   "settings.storage.open": "Open folder",
   "settings.storage.unavailable": "Available in the desktop application",
   "settings.downloads.title": "Downloads",
-  "settings.downloads.desc": "Files are streamed directly into the managed server directory.",
+  "settings.downloads.desc":
+    "Files are streamed directly into the managed server directory.",
   "settings.downloads.incomplete":
     "Incomplete downloads are discarded. Failed installations can be retried from the server card.",
   "settings.downloads.source": "Download source",
@@ -883,12 +1202,14 @@ export const en: Record<MessageKey, string> = {
   "settings.downloads.china": "China mirror (BMCLAPI)",
   "settings.downloads.chinaHint":
     "Minecraft and Fabric metadata are downloaded through the BMCLAPI mirror. Paper and Java runtimes still use official sources.",
-  "settings.downloads.mirrorCredit": "Mirror service provided by BMCLAPI (bangbang93).",
+  "settings.downloads.mirrorCredit":
+    "Mirror service provided by BMCLAPI (bangbang93).",
   "settings.downloads.proxy": "Proxy (optional)",
   "settings.downloads.proxyPlaceholder": "e.g. http://127.0.0.1:7890",
   "settings.downloads.proxyHint":
     "HTTP or HTTPS proxies only. Leave empty for a direct connection. Takes effect immediately after saving.",
-  "settings.about.desc": "Independent software. Not affiliated with Mojang or Microsoft.",
+  "settings.about.desc":
+    "Independent software. Not affiliated with Mojang or Microsoft.",
   "settings.about.logs": "Open application logs",
   "settings.save": "Save preferences",
   "settings.saved": "Application preferences saved.",
@@ -909,7 +1230,8 @@ export const en: Record<MessageKey, string> = {
   "wizard.stepOf": "Step {step} of {total}",
   "wizard.step1.eyebrow": "MAKE IT YOURS",
   "wizard.step1.title": "Every world starts somewhere.",
-  "wizard.step1.desc": "Give your server a name and choose how you want to play.",
+  "wizard.step1.desc":
+    "Give your server a name and choose how you want to play.",
   "wizard.name": "Server name",
   "wizard.namePlaceholder": "e.g. The Weekend World",
   "wizard.software": "Server software",
@@ -937,7 +1259,8 @@ export const en: Record<MessageKey, string> = {
   "wizard.gameMode": "Game mode",
   "wizard.difficulty": "Difficulty",
   "wizard.onlineMode": "Verify Minecraft accounts",
-  "wizard.onlineModeHint": "Online mode is recommended for secure player identity.",
+  "wizard.onlineModeHint":
+    "Online mode is recommended for secure player identity.",
   "wizard.memoryWarning":
     "Reduce the allocation. Leave at least 1 GB and 20% of system RAM free, plus 512 MB of currently available memory.",
   "wizard.step3.eyebrow": "THE ENGINE UNDERNEATH",
@@ -986,7 +1309,8 @@ export const en: Record<MessageKey, string> = {
   "value.hard": "hard",
 
   "players.connected": "Connected players",
-  "players.connectedDesc": "Observed from this server’s actual join and leave logs.",
+  "players.connectedDesc":
+    "Observed from this server’s actual join and leave logs.",
   "players.connectedState": "Connected",
   "players.none": "No connected players observed.",
   "players.noneHint": "Join and leave messages appear in the live console.",
@@ -1121,7 +1445,7 @@ export const en: Record<MessageKey, string> = {
   "monitor.cpuHint": "Normalized across all CPU cores",
   "monitor.memoryHint": "{used} MB of {limit} MB",
   "monitor.playersHint": "Limit {max}",
-  "monitor.lagHint": "\"Can't keep up\" lines in the last 5 minutes",
+  "monitor.lagHint": '"Can\'t keep up" lines in the last 5 minutes',
   "monitor.waiting": "Waiting for the first sample…",
   "monitor.chartTitle": "Last 3 minutes",
   "monitor.chartCpu": "CPU",
@@ -1154,7 +1478,8 @@ export const en: Record<MessageKey, string> = {
   "recovery.desc":
     "Restart automatically after an unexpected exit, up to 5 times with growing delays.",
   "recovery.enabled": "Enable crash recovery",
-  "recovery.hint": "Stopping manually or closing the app cancels the countdown.",
+  "recovery.hint":
+    "Stopping manually or closing the app cancels the countdown.",
   "recovery.saved": "Crash recovery setting saved.",
   "recovery.lastExit": "Last exit",
   "recovery.exitCode": "Exit code {code}",
@@ -1163,8 +1488,10 @@ export const en: Record<MessageKey, string> = {
   "remote.desc":
     "Check status, start or stop servers and send commands from your phone. Connect the phone to the same Wi-Fi.",
   "remote.enabled": "Enable phone console",
-  "remote.started": "Phone console is running. Scan the QR code with your phone.",
-  "remote.stopped": "Phone console stopped. The previous link is no longer valid.",
+  "remote.started":
+    "Phone console is running. Scan the QR code with your phone.",
+  "remote.stopped":
+    "Phone console stopped. The previous link is no longer valid.",
   "remote.scan": "Scan with your phone camera",
   "remote.copy": "Copy link",
   "remote.copied": "Link copied. Keep it private.",
@@ -1233,7 +1560,8 @@ export const en: Record<MessageKey, string> = {
   "import.files": "Files",
   "import.filesUnit": "{count} files",
   "import.rename": "Will be renamed to server.jar on import",
-  "import.eula": "I have read and accept the Minecraft End User License Agreement",
+  "import.eula":
+    "I have read and accept the Minecraft End User License Agreement",
   "import.eulaHint":
     "As with new servers, eula=true will be written into the imported server folder.",
   "import.eulaFound": "The source folder already accepted the EULA",
@@ -1313,6 +1641,26 @@ export const en: Record<MessageKey, string> = {
   "serverSettings.runtime.min": "Minimum RAM (MB)",
   "serverSettings.runtime.max": "Maximum RAM (MB)",
   "serverSettings.runtime.java": "Java executable",
+  "serverSettings.jvm.title": "JVM preset",
+  "serverSettings.jvm.desc":
+    "Choose a garbage collection strategy. Flags are appended after -Xms/-Xmx and apply at the next start.",
+  "serverSettings.jvm.balanced": "Balanced",
+  "serverSettings.jvm.aikar": "Aikar",
+  "serverSettings.jvm.paper": "Paper",
+  "serverSettings.jvm.custom": "Custom",
+  "serverSettings.jvm.balancedDesc":
+    "Adds no extra flags and keeps Java's defaults. Useful for troubleshooting or comparing with other tools.",
+  "serverSettings.jvm.aikarDesc":
+    "Community Aikar G1GC tuning, with large-heap flags at 12 GB. Results depend on workload and Java version.",
+  "serverSettings.jvm.paperDesc":
+    "Aikar's tuning with a tighter pause target and a smaller young generation for Paper/Purpur redstone and entity-heavy servers.",
+  "serverSettings.jvm.customDesc": "Take full control of the JVM flags.",
+  "serverSettings.jvm.customLabel": "Custom flags (one per line)",
+  "serverSettings.jvm.customHint":
+    "Custom flags support -XX: tuning options only, one per line without spaces. Memory and launch options are managed by EasyLauncher.",
+  "serverSettings.jvm.save": "Save JVM preset",
+  "serverSettings.jvm.memoryManaged":
+    "Heap limits are controlled by Runtime & memory above and never written into custom flags.",
   "serverSettings.launch.title": "Launch command",
   "serverSettings.launch.desc":
     "This is the exact Java command EasyLauncher runs. Copy it to run the server from a terminal.",
@@ -1321,7 +1669,8 @@ export const en: Record<MessageKey, string> = {
   "serverSettings.launch.args": "Arguments",
   "serverSettings.launch.copy": "Copy command",
   "serverSettings.launch.copied": "Copied",
-  "serverSettings.launch.unavailable": "Launch information is unavailable right now.",
+  "serverSettings.launch.unavailable":
+    "Launch information is unavailable right now.",
   "serverSettings.launch.jarMissing":
     "server.jar is not ready yet. Finish the installation first.",
   "serverSettings.files.title": "Server files",
@@ -1440,7 +1789,8 @@ export const en: Record<MessageKey, string> = {
     "{count} temporary .part files found. They can be removed safely.",
   "health.disk.title": "Disk space",
   "health.disk.ok": "{availableMb} MB free.",
-  "health.disk.warning": "Only {availableMb} MB left on disk. Consider cleanup.",
+  "health.disk.warning":
+    "Only {availableMb} MB left on disk. Consider cleanup.",
   "health.disk.critical":
     "Only {availableMb} MB left on disk. Worlds may fail to save.",
   "health.disk.info": "Disk space is unavailable.",

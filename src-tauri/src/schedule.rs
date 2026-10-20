@@ -103,9 +103,7 @@ fn validate(input: &TaskInput) -> Result<()> {
         }
     }
     if input.action == TaskAction::Cleanup && !(1..=365).contains(&input.keep_days) {
-        return Err(AppError::user(
-            "Keep log files for between 1 and 365 days.",
-        ));
+        return Err(AppError::user("Keep log files for between 1 and 365 days."));
     }
     Ok(())
 }
@@ -113,8 +111,9 @@ fn validate(input: &TaskInput) -> Result<()> {
 fn next_run(input: &TaskInput) -> Result<String> {
     let now = Local::now();
     match input.mode {
-        TaskMode::Interval => Ok((now + chrono::Duration::minutes(input.every_minutes as i64))
-            .to_rfc3339()),
+        TaskMode::Interval => {
+            Ok((now + chrono::Duration::minutes(input.every_minutes as i64)).to_rfc3339())
+        }
         TaskMode::Daily => {
             let time = parse_time(input.at_time.as_deref().unwrap_or(""))?;
             let target = now.date_naive().and_time(time);
@@ -235,7 +234,12 @@ fn cleanup(m: &Manager, id: &str, keep_days: u32) -> Result<()> {
         if !(name.ends_with(".log") || name.ends_with(".log.gz")) {
             continue;
         }
-        if entry.metadata()?.modified().map(|t| t < cutoff).unwrap_or(false) {
+        if entry
+            .metadata()?
+            .modified()
+            .map(|t| t < cutoff)
+            .unwrap_or(false)
+        {
             fs::remove_file(file)?;
         }
     }
@@ -254,9 +258,7 @@ async fn execute(m: &Arc<Manager>, id: &str, task: &Task) -> Result<()> {
         TaskAction::Restart => m.restart(id).await,
         TaskAction::Start => m.start(id).await,
         TaskAction::Stop => m.stop(id).await,
-        TaskAction::Command => {
-            m.send(id, task.command.as_deref().unwrap_or("")).await
-        }
+        TaskAction::Command => m.send(id, task.command.as_deref().unwrap_or("")).await,
         TaskAction::Cleanup => cleanup(m, id, task.keep_days),
     }
 }

@@ -18,6 +18,7 @@ export interface Snapshot {
   message: string | null;
   players: string[];
 }
+export type JvmPreset = "balanced" | "aikar" | "paper" | "custom";
 export interface Server {
   id: string;
   name: string;
@@ -25,6 +26,8 @@ export interface Server {
   serverType: ServerType;
   memoryMinMb: number;
   memoryMaxMb: number;
+  jvmPreset: JvmPreset;
+  jvmFlags: string[];
   port: number;
   createdAt: string;
   lastStartedAt: string | null;
@@ -187,6 +190,11 @@ export interface VersionFile {
   primary: boolean;
 }
 export interface ProjectVersion {
+  dependencies: {
+    projectId: string | null;
+    versionId: string | null;
+    dependencyType: string;
+  }[];
   id: string;
   name: string;
   versionNumber: string;
@@ -196,6 +204,52 @@ export interface ProjectVersion {
   downloads: number;
   datePublished: string;
   files: VersionFile[];
+}
+export interface DependencyReport {
+  modules: { id: string; version: string; file: string }[];
+  edges: {
+    source: string;
+    target: string;
+    relation: string;
+    requirement: string;
+  }[];
+  issues: { code: string; source: string; target: string; detail: string }[];
+  remoteChecked: boolean;
+}
+export interface PlayerStats {
+  trackingSince: string;
+  players: Record<
+    string,
+    {
+      name: string;
+      visits: number;
+      seconds: number;
+      firstSeen: string;
+      lastSeen: string;
+    }
+  >;
+  sessions: {
+    name: string;
+    joinedAt: string;
+    leftAt: string;
+    seconds: number;
+  }[];
+  days: Record<string, { date: string; joins: number; seconds: number }>;
+}
+export interface BackupDiff {
+  added: number;
+  removed: number;
+  modified: number;
+  unchanged: number;
+  beforeBytes: number;
+  afterBytes: number;
+  truncated: boolean;
+  changes: {
+    path: string;
+    kind: string;
+    beforeBytes: number;
+    afterBytes: number;
+  }[];
 }
 export interface ContentEntry {
   file: string;
@@ -233,12 +287,7 @@ export interface AppError {
   details: string;
 }
 export type TaskAction =
-  | "backup"
-  | "restart"
-  | "start"
-  | "stop"
-  | "command"
-  | "cleanup";
+  "backup" | "restart" | "start" | "stop" | "command" | "cleanup";
 export type TaskMode = "interval" | "daily";
 export interface ScheduledTask {
   id: string;
@@ -317,6 +366,17 @@ export interface NetworkCheck {
   portFree: boolean;
   firewallRule: boolean;
   ruleName: string;
+}
+export interface TunnelConfig {
+  executable: string;
+  configPath: string;
+  address: string;
+}
+export interface TunnelInfo {
+  config: TunnelConfig;
+  running: boolean;
+  pid: number | null;
+  exitCode: number | null;
 }
 export interface NetworkReport {
   lanIp: string | null;

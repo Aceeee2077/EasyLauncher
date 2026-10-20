@@ -7,6 +7,15 @@ pub enum ServerType {
     Paper,
     Fabric,
 }
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum JvmPreset {
+    #[default]
+    Balanced,
+    Aikar,
+    Paper,
+    Custom,
+}
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum Status {
@@ -66,6 +75,10 @@ pub struct Server {
     pub memory_min_mb: u32,
     #[serde(default = "max_ram")]
     pub memory_max_mb: u32,
+    #[serde(default)]
+    pub jvm_preset: JvmPreset,
+    #[serde(default)]
+    pub jvm_flags: Vec<String>,
     #[serde(default = "port")]
     pub port: u16,
     pub created_at: String,
@@ -237,6 +250,8 @@ mod tests {
         let s: Server = serde_json::from_str(old).unwrap();
         assert_eq!(s.memory_max_mb, 2048);
         assert!(!s.installed);
+        assert_eq!(s.jvm_preset, JvmPreset::Balanced);
+        assert!(s.jvm_flags.is_empty());
         let round: Server = serde_json::from_str(&serde_json::to_string(&s).unwrap()).unwrap();
         assert_eq!(round.schema_version, 1);
         assert!(serde_json::from_str::<Server>("{}").is_err());
@@ -245,8 +260,14 @@ mod tests {
     fn language_defaults_to_chinese() {
         let s: Settings = serde_json::from_str(r#"{"appearance":"dark"}"#).unwrap();
         assert_eq!(s.language, Language::Chinese);
-        assert_eq!(serde_json::to_string(&Language::System).unwrap(), "\"system\"");
-        assert_eq!(serde_json::to_string(&Language::Chinese).unwrap(), "\"zh-CN\"");
+        assert_eq!(
+            serde_json::to_string(&Language::System).unwrap(),
+            "\"system\""
+        );
+        assert_eq!(
+            serde_json::to_string(&Language::Chinese).unwrap(),
+            "\"zh-CN\""
+        );
         assert_eq!(serde_json::to_string(&Language::English).unwrap(), "\"en\"");
     }
 }

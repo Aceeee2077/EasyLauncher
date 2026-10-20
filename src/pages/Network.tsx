@@ -9,6 +9,8 @@ import {
   Wifi,
 } from "lucide-react";
 import { Button, Field, date } from "../components/ui";
+import { ShareCard } from "../components/ShareCard";
+import { TunnelControl } from "../components/TunnelControl";
 import { call, desktop } from "../services/api";
 import { useI18n } from "../i18n";
 import { active } from "../types";
@@ -22,6 +24,7 @@ export function NetworkPanel({
 }: TaskProps & { server: ServerView }) {
   const { t } = useI18n();
   const [report, setReport] = useState<NetworkReport | null>(null);
+  const [tunnelAddress, setTunnelAddress] = useState("");
   const [check, setCheck] = useState<NetworkCheck | null>(null);
   const [port, setPort] = useState(String(server.port));
   const [message, setMessage] = useState("");
@@ -92,6 +95,22 @@ export function NetworkPanel({
   ];
   return (
     <div className="network-stack">
+      <TunnelControl
+        id={server.id}
+        run={run}
+        busy={busy}
+        onAddress={setTunnelAddress}
+      />
+      <ShareCard
+        server={server}
+        address={
+          tunnelAddress ||
+          report?.address ||
+          (report?.lanIp ? `${report.lanIp}:${report.port}` : "")
+        }
+        run={run}
+        busy={busy}
+      />
       <section className="panel">
         <div className="section-title">
           <div>
@@ -103,9 +122,7 @@ export function NetworkPanel({
           </div>
           <div className="monitor-actions">
             <span className={`net-badge ${report?.igdFound ? "ok" : ""}`}>
-              {report?.igdFound
-                ? t("network.igdOk")
-                : t("network.igdNo")}
+              {report?.igdFound ? t("network.igdOk") : t("network.igdNo")}
             </span>
             <Button
               busy={busy.has(`${key}-load`)}
@@ -194,7 +211,10 @@ export function NetworkPanel({
           </div>
         </div>
         <div className="rule-grid">
-          <Field label={t("network.externalPort")} hint={t("network.externalHint")}>
+          <Field
+            label={t("network.externalPort")}
+            hint={t("network.externalHint")}
+          >
             <input
               type="number"
               min={1024}
@@ -264,9 +284,7 @@ export function NetworkPanel({
                 </span>
                 <small>{t("network.firewallRule")}</small>
                 <code>{check.ruleName}</code>
-                <span
-                  className={`net-badge ${check.firewallRule ? "ok" : ""}`}
-                >
+                <span className={`net-badge ${check.firewallRule ? "ok" : ""}`}>
                   {check.firewallRule
                     ? t("network.checkFirewallOn")
                     : t("network.checkFirewallOff")}

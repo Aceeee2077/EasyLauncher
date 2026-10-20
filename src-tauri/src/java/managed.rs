@@ -67,7 +67,11 @@ pub fn list(root: &Path) -> Vec<ManagedJava> {
             items.push(item);
         }
     }
-    items.sort_by(|a, b| b.major.cmp(&a.major).then_with(|| b.version.cmp(&a.version)));
+    items.sort_by(|a, b| {
+        b.major
+            .cmp(&a.major)
+            .then_with(|| b.version.cmp(&a.version))
+    });
     items
 }
 
@@ -140,10 +144,11 @@ async fn resolve(client: &reqwest::Client, major: u32) -> Result<Release> {
     let url = format!("https://api.adoptium.net/v3/assets/latest/{major}/hotspot?architecture={arch}&image_type=jre&jvm_impl=hotspot&os={os}&vendor=eclipse");
     let response = client.get(url).send().await?.error_for_status()?;
     let assets: serde_json::Value = response.json().await?;
-    let asset = assets
-        .as_array()
-        .and_then(|a| a.first())
-        .ok_or_else(|| AppError::user(format!("No Eclipse Temurin {major} build is available for this system.")))?;
+    let asset = assets.as_array().and_then(|a| a.first()).ok_or_else(|| {
+        AppError::user(format!(
+            "No Eclipse Temurin {major} build is available for this system."
+        ))
+    })?;
     let package = &asset["binary"]["package"];
     let link = package["link"].as_str().ok_or_else(|| {
         AppError::user("The Java provider did not return a download link. Try again later.")
@@ -173,22 +178,13 @@ async fn resolve(client: &reqwest::Client, major: u32) -> Result<Release> {
     })
 }
 
-async fn download(
-    m: &Manager,
-    release: &Release,
-    dest: &Path,
-    id: &str,
-) -> Result<u64> {
+async fn download(m: &Manager, release: &Release, dest: &Path, id: &str) -> Result<u64> {
     storage::no_links(dest)?;
     let client = m.client();
     let mut last = AppError::user("Download failed.");
     for attempt in 1..=3 {
         let result = async {
-            let response = client
-                .get(&release.url)
-                .send()
-                .await?
-                .error_for_status()?;
+            let response = client.get(&release.url).send().await?.error_for_status()?;
             let total = release.size.or(response.content_length());
             let mut hash = Sha256::new();
             let mut bytes = 0u64;
@@ -283,7 +279,11 @@ fn extract(archive_path: &Path, dest: &Path) -> Result<u64> {
                 "The Java archive contains an unsafe path and was discarded.",
             ));
         };
-        if entry.unix_mode().map(|m| m & 0o170000 == 0o120000).unwrap_or(false) {
+        if entry
+            .unix_mode()
+            .map(|m| m & 0o170000 == 0o120000)
+            .unwrap_or(false)
+        {
             return Err(AppError::user(
                 "The Java archive contains a link and was discarded.",
             ));
@@ -360,8 +360,9 @@ pub async fn install(m: &Manager, major: u32) -> Result<ManagedJava> {
         })
         .await
         .map_err(|e| AppError::new("Java extraction was interrupted.", e))??;
-        let exe = executable(&runtime)
-            .ok_or_else(|| AppError::user("The extracted Java archive did not contain a runtime."))?;
+        let exe = executable(&runtime).ok_or_else(|| {
+            AppError::user("The extracted Java archive did not contain a runtime.")
+        })?;
         let inspected = crate::java::detector::inspect(&exe.to_string_lossy()).await?;
         if inspected.major != major {
             return Err(AppError::user(format!(
@@ -393,7 +394,10 @@ pub async fn install(m: &Manager, major: u32) -> Result<ManagedJava> {
     }
     match result {
         Ok(item) => {
-            m.logger.log("INFO", &format!("Installed managed Java {} ({})", item.major, item.id));
+            m.logger.log(
+                "INFO",
+                &format!("Installed managed Java {} ({})", item.major, item.id),
+            );
             Ok(item)
         }
         Err(e) => {
@@ -414,7 +418,9 @@ pub async fn install(m: &Manager, major: u32) -> Result<ManagedJava> {
 
 pub async fn delete(m: &Manager, id: &str, confirmed: bool) -> Result<()> {
     if !confirmed {
-        return Err(AppError::user("Confirm removal of this Java runtime first."));
+        return Err(AppError::user(
+            "Confirm removal of this Java runtime first.",
+        ));
     }
     let _gate = m.java_gate.lock().await;
     let dir = storage::managed(&m.java, id)?;
@@ -453,7 +459,9 @@ fn in_use(m: &Manager, runtime: &Path) -> Result<Option<String>> {
 
 pub fn mark(runtime: &JavaRuntime, managed_root: &Path) -> bool {
     let path = PathBuf::from(&runtime.path);
-    let root = managed_root.canonicalize().unwrap_or_else(|_| managed_root.to_path_buf());
+    let root = managed_root
+        .canonicalize()
+        .unwrap_or_else(|_| managed_root.to_path_buf());
     path.starts_with(root)
 }
 
@@ -530,7 +538,10 @@ mod tests {
             let mut writer = zip::ZipWriter::new(file);
             writer
                 .start_file(
-                    format!("jdk/bin/{}", if cfg!(windows) { "java.exe" } else { "java" }),
+                    format!(
+                        "jdk/bin/{}",
+                        if cfg!(windows) { "java.exe" } else { "java" }
+                    ),
                     SimpleFileOptions::default(),
                 )
                 .unwrap();

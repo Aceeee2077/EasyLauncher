@@ -281,9 +281,15 @@ async fn describe(client: &reqwest::Client, location: &str) -> Option<Gateway> {
 async fn external_ip(client: &reqwest::Client, gateway: &Gateway) -> Result<String> {
     let text = soap(client, gateway, "GetExternalIPAddress", "").await?;
     tag(&text, "NewExternalIPAddress")
-        .filter(|ip| Ipv4Addr::from_str(ip).map(|v| !v.is_unspecified()).unwrap_or(false))
+        .filter(|ip| {
+            Ipv4Addr::from_str(ip)
+                .map(|v| !v.is_unspecified())
+                .unwrap_or(false)
+        })
         .ok_or_else(|| {
-            AppError::user("The router did not report a public IP address. Check the WAN connection.")
+            AppError::user(
+                "The router did not report a public IP address. Check the WAN connection.",
+            )
         })
 }
 
@@ -353,7 +359,10 @@ async fn soap(
     };
     Err(AppError::new(
         message,
-        format!("HTTP {status}; UPnP error {code}; service {}", gateway.service),
+        format!(
+            "HTTP {status}; UPnP error {code}; service {}",
+            gateway.service
+        ),
     ))
 }
 
@@ -364,7 +373,10 @@ fn tag(xml: &str, name: &str) -> Option<String> {
         let start = from + start;
         let after = start + open.len();
         let boundary = xml[after..].chars().next();
-        if !matches!(boundary, Some('>') | Some(' ') | Some('\t') | Some('\r') | Some('\n') | Some('/')) {
+        if !matches!(
+            boundary,
+            Some('>') | Some(' ') | Some('\t') | Some('\r') | Some('\n') | Some('/')
+        ) {
             from = after;
             continue;
         }
@@ -465,8 +477,14 @@ mod tests {
         let services = blocks(DESCRIPTION, "service");
         assert_eq!(services.len(), 2);
         let control = tag(&services[0], "controlURL").unwrap();
-        assert_eq!(resolve("http://192.168.1.1:5000/root.xml", &control), "http://192.168.1.1:5000/upnp/control/WANIPConn1");
-        assert_eq!(tag(DESCRIPTION, "friendlyName").unwrap(), "Home Router & Gateway");
+        assert_eq!(
+            resolve("http://192.168.1.1:5000/root.xml", &control),
+            "http://192.168.1.1:5000/upnp/control/WANIPConn1"
+        );
+        assert_eq!(
+            tag(DESCRIPTION, "friendlyName").unwrap(),
+            "Home Router & Gateway"
+        );
     }
 
     #[test]

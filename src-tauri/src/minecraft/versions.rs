@@ -81,7 +81,11 @@ pub async fn json(client: &Client, url: &str) -> Result<Value> {
         .json()
         .await?)
 }
-pub async fn list(client: &Client, software: ServerType, source: DownloadSource) -> Result<Vec<Version>> {
+pub async fn list(
+    client: &Client,
+    software: ServerType,
+    source: DownloadSource,
+) -> Result<Vec<Version>> {
     let manifest: Manifest = client
         .get(manifest(source))
         .send()
@@ -117,11 +121,7 @@ pub async fn list(client: &Client, software: ServerType, source: DownloadSource)
             versions.retain(|v| supported.contains(&v.id.as_str()));
         }
         ServerType::Fabric => {
-            let p = json(
-                client,
-                &format!("{}/v2/versions/game", fabric_meta(source)),
-            )
-            .await?;
+            let p = json(client, &format!("{}/v2/versions/game", fabric_meta(source))).await?;
             let supported: Vec<&str> = p
                 .as_array()
                 .map(|a| a.iter().filter_map(|v| v["version"].as_str()).collect())
@@ -194,7 +194,10 @@ mod tests {
             "https://launchermeta.mojang.com/v1/packages/abc/1.21.4.json"
         );
         assert_eq!(
-            mirror_url("https://fill.papermc.io/v3/projects/paper", DownloadSource::China),
+            mirror_url(
+                "https://fill.papermc.io/v3/projects/paper",
+                DownloadSource::China
+            ),
             "https://fill.papermc.io/v3/projects/paper"
         );
     }
@@ -209,9 +212,6 @@ mod tests {
             v["downloads"]["server"]["url"],
             "https://bmclapi2.bangbang93.com/x/server.jar"
         );
-        assert_eq!(
-            v["list"][0],
-            "https://bmclapi2.bangbang93.com/y.json"
-        );
+        assert_eq!(v["list"][0], "https://bmclapi2.bangbang93.com/y.json");
     }
 }
