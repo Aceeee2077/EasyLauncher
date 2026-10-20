@@ -26,7 +26,7 @@
 
 - 定时任务、实时资源告警、世界回滚与崩溃重启；手机 Web 控制台、UPnP 端口映射、端口与 Windows 防火墙检查，以及现有服务器目录导入。
 - **配置与 JVM 预设**：小型、均衡、流畅配置建议；均衡、Aikar、Paper 调优变体和受校验的自定义 `-XX:` 参数；可填入当前系统的内存建议，保存后下次启动生效。
-- **依赖检查**：在内容页读取 Fabric 顶层和嵌套 JAR 的 `fabric.mod.json`，显示重复 ID、缺失依赖、版本问题、客户端模组和显式冲突。手动点击后查询 Modrinth 托管项目的必需、可选、内嵌和不兼容声明。
+- **依赖检查**：在内容页读取 Fabric 顶层和嵌套 JAR 的 `fabric.mod.json`，以及 Paper/Bukkit 插件的 `paper-plugin.yml`、`plugin.yml`，显示重复 ID、缺失依赖、版本问题、客户端模组、插件 API 版本和显式冲突。手动点击后查询 Modrinth 托管项目的必需、可选、内嵌和不兼容声明，并按 SHA-1 把手动安装的 JAR 映射回 Modrinth 项目。
 - **日志助手**：本地规则包含内存、Java、JVM 参数、端口、磁盘、存档和模组错误。可选连接用户自备的 Chat Completions 兼容接口：先预览和编辑片段，再显式发送；Key 不保存，请求结束后清空。较新的进程输出不会被旧崩溃报告覆盖。
 - **玩家洞察**：玩家页展示累计玩家、登录次数、在线时长、14 天登录图和会话记录。仅记录应用观察到的加入与离开事件；统计持久化保存在服务器目录，进程退出时结算。
 - **分享卡片**：网络页提供本地 Canvas PNG 卡片，支持编辑邀请语和连接地址、保存、复制图片与打开保存目录。卡片不包含 Web 控制台令牌。
@@ -141,7 +141,7 @@ src-tauri/src/
   server/job.rs        Windows 关闭即终止的子进程托管
   backup.rs            一致性快照、恢复暂存与回滚
   backup_diff.rs       文件哈希索引与快照差异
-  dependencies.rs      Fabric JAR 与 Modrinth 依赖检查
+  dependencies.rs      Fabric / Paper JAR 与 Modrinth 依赖检查
   player_stats.rs      持久化玩家时长、会话与日统计
   log_assistant.rs     可选自带 Key 的日志片段分析
   tunnel.rs            用户配置的 frpc 子进程托管
@@ -204,13 +204,13 @@ React 调用 Rust 命令，并订阅 `server-status`、`server-console-batch`、
 - RCON 由 Minecraft 自身在所有网络接口上监听，无法在 `server.properties` 中限制绑定地址。仅应在可信网络中启用，并保持自动生成的强密码；应用不会自动开启路由器端口映射。
 - 正常关闭会在所有支持的平台上优雅停止子进程。Windows 另外使用 Job Object 处理异常退出清理。Linux/macOS 上父进程被强制终止时的清理尚未保证；在这些平台重新启动前请检查残留的 Java 进程。
 - 局域网地址探测仅作为路由提示；VPN 与多网卡会影响结果。本地或局域网可用不代表公网可访问。用户可显式触发 UPnP 映射或 Windows 防火墙放行；frp 则需要用户自己的服务与配置。
-- 模组/插件支持 Modrinth 内容管理与依赖声明检查；本地 JAR 深入检查目前仅支持 Fabric。Minecraft 自身日志仍遵循服务器的上游日志策略；EasyLauncher 应用日志与控制台缓冲区各有独立上限。
+- 模组/插件支持 Modrinth 内容管理与依赖声明检查；本地检查覆盖 Fabric 模组、Paper/Bukkit 插件声明与常见语义化版本谓词，但不是完整的加载器解析器。无法映射回 Modrinth 的手动 JAR 仍可能显示“未找到托管前置”，需结合本地文件核对。Minecraft 自身日志仍遵循服务器的上游日志策略；EasyLauncher 应用日志与控制台缓冲区各有独立上限。
 - API 可用性与吞吐取决于上游服务。Paper 请求会携带标识性 User-Agent；若分发更名后的公开分支，请配置真实项目联系地址。
 - Windows 是已验证的构建目标。不包含代码签名、macOS 公证、自动更新以及 NSIS 之外的其他平台安装包。
 
 ## 路线图
 
-当前计划中的 A—D 组已具备可使用的基础实现，具体范围见开发进度。后续仍可扩展历史日志回填、Paper 本地插件元数据、完整 Fabric 版本谓词、playit.gg 账号与客户端集成，以及真实 Minecraft 与公网环境的验收。
+当前计划中的 A—D 组已具备可使用的基础实现，具体范围见开发进度。后续仍可扩展历史日志回填、加载器特有的边界版本谓词、playit.gg 账号与客户端集成，以及真实 Minecraft 与公网环境的验收。
 
 ## 上游参考
 

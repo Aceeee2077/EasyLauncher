@@ -186,13 +186,13 @@ Backups contain world data only, not server configuration, mods or plugins. They
 - Minecraft itself binds RCON on every network interface; `server.properties` has no bind-address option. Enable it only on trusted networks and keep the generated strong password. EasyLauncher does not create router port mappings automatically.
 - Normal close gracefully stops children on all supported platforms. Windows additionally uses Job Objects for abrupt exit cleanup. Abrupt parent termination cleanup on Linux/macOS is not yet guaranteed; inspect remaining Java processes before relaunching there.
 - LAN address detection is a routing hint; VPNs/multiple adapters can affect it. Local or LAN availability does not imply public access. Users can explicitly request UPnP mappings or Windows firewall rules. frp requires their own provider and configuration.
-- Mod/plugin management includes Modrinth content and dependency declarations; local JAR metadata inspection currently supports Fabric. Minecraft's own logs remain under the server's upstream logging policy; EasyLauncher application logs and console buffers have independent limits.
+- Mod/plugin management includes Modrinth content and dependency declarations. Local inspection covers Fabric mods plus Paper/Bukkit `paper-plugin.yml` and `plugin.yml` declarations and common semantic-version predicates, but it is not a complete loader resolver. Manually installed JARs that cannot be mapped back to Modrinth may still be reported as a missing managed dependency; check the local files. Minecraft's own logs remain under the server's upstream logging policy; EasyLauncher application logs and console buffers have independent limits.
 - API availability and throughput depend on upstream providers. Paper requests use an identifying User-Agent; configure a real project contact URL before distributing a renamed/public fork.
 - Windows is the tested build target. Code signing, macOS notarization, automatic updates and platform installers beyond NSIS are not included.
 
 ## Roadmap
 
-The A–D roadmap has usable baseline implementations. Remaining extensions include historical player-log backfill, local Paper plugin metadata, complete Fabric version semantics, playit.gg account/client integration, and acceptance testing with real Minecraft and public networks. See the development notes for scope.
+The A–D roadmap has usable baseline implementations. Remaining extensions include historical player-log backfill, loader-specific edge-case version predicates, playit.gg account/client integration, and acceptance testing with real Minecraft and public networks. See the development notes for scope.
 
 ## Upstream references
 

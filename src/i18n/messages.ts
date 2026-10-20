@@ -21,6 +21,8 @@ export const zh = {
   "deps.relation.optional": "可选",
   "deps.relation.incompatible": "冲突",
   "deps.relation.embedded": "内嵌",
+  "deps.kind.mod": "模组",
+  "deps.kind.plugin": "插件",
 
   "assistant.title": "可选 AI 日志助手",
   "assistant.desc": "本地规则始终可用。需要额外解释时，可连接自己的兼容接口。",
@@ -97,11 +99,12 @@ export const zh = {
   "preflight.force": "仍然启动",
 
   "deps.title": "依赖与冲突检查",
-  "deps.desc": "读取本地 Fabric 元数据，并按需查询 Modrinth 依赖图。",
+  "deps.desc":
+    "读取本地 Fabric 模组与 Paper/Bukkit 插件元数据，并按需查询 Modrinth 依赖图。",
   "deps.limit":
-    "支持 Fabric 顶层及内嵌 JAR。Paper 本地插件元数据暂不解析；未知版本表达式会标记待核对。远程检查仅能确认托管项目，手动安装的前置需自行核对。",
+    "支持 Fabric 顶层及内嵌 JAR，也支持 paper-plugin.yml 与 plugin.yml 的依赖声明；按 SHA-1 将手动安装的 JAR 映射回 Modrinth。未知版本表达式会标记待核对，未能映射的远程前置需自行核对。",
   "deps.check": "检查本地与 Modrinth",
-  "deps.summary": "{modules} 个本地模组 · {edges} 条依赖 · {issues} 项待处理",
+  "deps.summary": "{modules} 个本地内容 · {edges} 条依赖 · {issues} 项待处理",
   "deps.local": "本地检查",
   "deps.online": "已查询远程声明",
   "deps.clean": "已检查的声明中未发现问题；这不保证所有组合都兼容。",
@@ -111,11 +114,12 @@ export const zh = {
   "deps.conflict": "声明的模组冲突",
   "deps.version": "前置版本不匹配",
   "deps.clientOnly": "仅客户端模组",
+  "deps.apiVersion": "插件 API 版本高于当前服务端",
   "deps.unknown": "无法确认版本约束，请核对",
   "deps.unreadable": "无法读取 JAR 元数据",
   "deps.remoteError": "远程元数据查询失败",
   "deps.graph": "查看依赖关系",
-  "deps.modules": "本地模组与文件",
+  "deps.modules": "本地内容与文件",
   "deps.truncated": "仅显示前 300 条依赖关系。",
   "insights.title": "玩家洞察",
   "insights.desc": "根据本应用观察到的加入和离开日志统计，不回填旧日志。",
@@ -1115,6 +1119,8 @@ export const en: Record<MessageKey, string> = {
   "deps.relation.optional": "Optional",
   "deps.relation.incompatible": "Incompatible",
   "deps.relation.embedded": "Embedded",
+  "deps.kind.mod": "Mod",
+  "deps.kind.plugin": "Plugin",
 
   "assistant.title": "Optional AI log assistant",
   "assistant.desc":
@@ -1199,9 +1205,9 @@ export const en: Record<MessageKey, string> = {
 
   "deps.title": "Dependencies and conflicts",
   "deps.desc":
-    "Inspect local Fabric metadata and query Modrinth dependencies on demand.",
+    "Inspect local Fabric mod and Paper/Bukkit plugin metadata, then query Modrinth dependencies on demand.",
   "deps.limit":
-    "Supports Fabric and nested JARs. Local Paper metadata is not parsed. Unknown version expressions require review. Remote checks only identify managed projects; verify manual dependencies yourself.",
+    "Supports Fabric and nested JARs plus dependency declarations in paper-plugin.yml and plugin.yml, and maps manually installed JARs back to Modrinth by SHA-1. Unknown version expressions require review; dependencies that cannot be mapped still need manual verification.",
   "deps.check": "Check local and Modrinth",
   "deps.summary": "{modules} local modules · {edges} edges · {issues} findings",
   "deps.local": "Local inspection",
@@ -1214,11 +1220,12 @@ export const en: Record<MessageKey, string> = {
   "deps.conflict": "Declared incompatibility",
   "deps.version": "Dependency version mismatch",
   "deps.clientOnly": "Client-only mod",
+  "deps.apiVersion": "Plugin API version is newer than the server",
   "deps.unknown": "Version constraint needs review",
   "deps.unreadable": "Cannot inspect JAR metadata",
   "deps.remoteError": "Remote metadata request failed",
   "deps.graph": "Dependency graph",
-  "deps.modules": "Local modules and files",
+  "deps.modules": "Local content and files",
   "deps.truncated": "Showing the first 300 dependency edges.",
   "insights.title": "Player insights",
   "insights.desc":

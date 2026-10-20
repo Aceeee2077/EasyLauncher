@@ -65,6 +65,7 @@ pub struct VersionFile {
 #[serde(rename_all = "camelCase")]
 pub struct ProjectVersion {
     pub id: String,
+    pub project_id: String,
     pub name: String,
     pub version_number: String,
     pub channel: String,
@@ -192,6 +193,8 @@ struct RawVersion {
     dependencies: Vec<ProjectDependency>,
     #[serde(default)]
     id: String,
+    #[serde(default)]
+    project_id: String,
     #[serde(default)]
     name: String,
     #[serde(default)]
@@ -323,6 +326,7 @@ fn map_versions(raw: Vec<RawVersion>) -> Vec<ProjectVersion> {
         .map(|v| ProjectVersion {
             dependencies: v.dependencies,
             id: v.id,
+            project_id: v.project_id,
             name: v.name,
             version_number: v.version_number,
             channel: v.channel,
@@ -360,6 +364,37 @@ pub async fn version_dependencies(
         .json()
         .await?;
     Ok(raw.dependencies)
+}
+
+/// Map a locally installed JAR to its Modrinth version using its SHA-1 hash.
+/// The hash is the only stable link for manually installed files, whose names
+/// and Fabric IDs need not match a Modrinth project slug.
+pub async fn version_by_hash(client: &reqwest::Client, hash: &str) -> Result<ProjectVersion> {
+    version_by_hash_opt(client, hash)
+        .await?
+        .ok_or_else(|| AppError::user("Modrinth did not return a project for this file hash."))
+}
+/// Same lookup, but an unlisted file is `None` rather than an error. Most
+/// manually installed JARs are not published on Modrinth.
+pub async fn version_by_hash_opt(
+    client: &reqwest::Client,
+    hash: &str,
+) -> Result<Option<ProjectVersion>> {
+    if !(32..=64).contains(&hash.len()) || !hash.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err(AppError::user("The file hash is not a valid SHA-1 value."));
+    }
+    let response = client
+        .get(format!("{API_BASE}/version_file/{hash}?algorithm=sha1"))
+        .send()
+        .await?;
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        return Ok(None);
+    }
+    let raw: RawVersion = response.error_for_status()?.json().await?;
+    if raw.project_id.is_empty() || raw.id.is_empty() {
+        return Ok(None);
+    }
+    Ok(map_versions(vec![raw]).into_iter().next())
 }
 
 pub async fn install(

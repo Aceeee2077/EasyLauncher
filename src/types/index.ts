@@ -243,6 +243,7 @@ export interface ProjectVersion {
     dependencyType: string;
   }[];
   id: string;
+  projectId: string;
   name: string;
   versionNumber: string;
   channel: string;
@@ -253,7 +254,7 @@ export interface ProjectVersion {
   files: VersionFile[];
 }
 export interface DependencyReport {
-  modules: { id: string; version: string; file: string }[];
+  modules: { id: string; version: string; file: string; kind: string }[];
   edges: {
     source: string;
     target: string;

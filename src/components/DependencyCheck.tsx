@@ -102,7 +102,9 @@ export function DependencyCheck({ id, run, busy }: TaskProps & { id: string }) {
                     <strong>
                       {m.id} · {m.version}
                     </strong>
-                    <small className="break-anywhere">{m.file}</small>
+                    <small className="break-anywhere">
+                      {t(`deps.kind.${m.kind}` as MessageKey)} · {m.file}
+                    </small>
                   </div>
                 </div>
               ))}
