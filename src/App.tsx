@@ -29,6 +29,7 @@ import {
   Package,
   Globe,
   FolderInput,
+  LayoutGrid,
 } from "lucide-react";
 import {
   Button,
@@ -48,6 +49,7 @@ import { Schedule } from "./pages/Schedule";
 import { Monitor } from "./pages/Monitor";
 import { NetworkPanel } from "./pages/Network";
 import { Ops } from "./pages/Ops";
+import { Overview } from "./pages/Overview";
 import { Content } from "./pages/Content";
 import { AppSettings } from "./pages/AppSettings";
 import { Splash } from "./components/Splash";
@@ -68,6 +70,7 @@ import {
 } from "./types";
 type Page =
   | "dashboard"
+  | "overview"
   | "servers"
   | "players"
   | "backups"
@@ -76,6 +79,7 @@ type Page =
   | "detail";
 const nav = [
   ["dashboard", "nav.dashboard", LayoutDashboard],
+  ["overview", "nav.overview", LayoutGrid],
   ["servers", "nav.servers", ServerIcon],
   ["players", "nav.players", Users],
   ["backups", "nav.backups", Archive],
@@ -641,6 +645,33 @@ export default function App() {
                 </span>
                 <small>{t("footer.disclaimer")}</small>
               </div>
+            </>
+          )}
+          {page === "overview" && (
+            <>
+              <div className="page-heading">
+                <div>
+                  <div className="eyebrow">{t("overview.eyebrow")}</div>
+                  <h1>{t("overview.title")}</h1>
+                  <p>{t("overview.subtitle")}</p>
+                </div>
+                <div className="page-actions">
+                  <Button
+                    variant="primary"
+                    disabled={!desktop}
+                    onClick={() => setWizard(true)}
+                  >
+                    <Plus size={17} />
+                    {t("common.createServer")}
+                  </Button>
+                </div>
+              </div>
+              <Overview
+                {...shared}
+                servers={servers}
+                reload={load}
+                onManage={manage}
+              />
             </>
           )}
           {page === "settings" && (
