@@ -36,6 +36,7 @@ The interface uses **Shan Shui Glass**: frosted layers, azurite blue, malachite 
 - Local RCON (optional): explicitly enable it in server settings to generate a strong password, then refresh the authoritative online player list after restarting. EasyLauncher always connects to `127.0.0.1`; enabling RCON makes Minecraft listen on the port on every interface, and the UI says so.
 - Disk space and cleanup: the ops page breaks the server folder down by worlds, backups, logs, mods and more, alongside the free space on that disk. You can select old logs (`latest.log` is kept), crash reports and interrupted leftovers, confirm, then see how much was actually freed. Worlds, backups and configuration are never cleaned.
 - World preview and save health: the backup page reads Anvil MCA/NBT data without modifying the world. It renders a 2D map per region with player markers and local online tracks, counts chunks, entities and block entities by type, lists region-header, chunk-compression and NBT damage, and compares two backups by region-file SHA-256. Maps support 1/2/4/8-block detail; worlds and backups stay untouched.
+- Crash attribution 2.0: the ops page uses the `CrashAnalyzer` contract and a deterministic signature library to identify out-of-memory failures, mod conflicts or missing dependencies, chunk corruption, Java and JVM-option problems, port conflicts, disk exhaustion and file permissions. It picks the first root cause in log order and lists later errors and watchdog dumps as related symptoms, with the matching line, occurrence count, port, required Java version, mods or plugin. A one-click, never-persisted sanitized Markdown report redacts paths, URLs, IP addresses and credential-bearing lines.
 
 ## Screenshots
 
@@ -141,6 +142,8 @@ src-tauri/src/
   server/manager.rs    Persistence, per-server operation locks and event/history state
   server/installer.rs  Software adapters, retries, hashes, progress and cancellation
   server/process.rs    Java lifecycle, pipe reading, stdin and readiness/crash observation
+  server/crash.rs      Crash signature library, first root-cause selection and fix context
+  server/diagnostics.rs Pre-flight health, crash reports and evidence sanitization
   server/job.rs        Windows kill-on-close child process containment
   backup.rs            Consistent snapshots, restore staging and rollback
   backup_store.rs      zstd chunk storage, content-addressed dedupe, verified restore and GC
@@ -153,7 +156,7 @@ src-tauri/src/
   rcon.rs              Optional local RCON client, password generation and player-list parsing
   network.rs           Local bind checks and LAN address detection
   logger.rs            Separate timestamped logs; 2 MB rotation with two retained files
-  extensions.rs        Contracts for future content providers and crash analysis
+  extensions.rs        Content-provider contracts and the CrashAnalyzer root-cause interface
 ```
 
 React invokes Rust commands and subscribes to `server-status`, `server-console-batch`, `download-progress`, `backup-progress`, `app-closing` and `app-error`. Rust is authoritative. No lifecycle booleans or frontend timers fabricate server status. Backups, lifecycle changes and installation share a per-server operation mutex. Process monitoring holds no child lock while awaiting exit or reading streams.

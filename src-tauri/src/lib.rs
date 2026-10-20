@@ -136,6 +136,7 @@ pub fn run() {
             commands::open_folder,
             commands::server_health,
             commands::server_diagnosis,
+            commands::server_crash_report,
             commands::disk_report,
             commands::clean_disk,
             commands::log_assistant_preview,

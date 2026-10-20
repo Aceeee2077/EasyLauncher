@@ -19,6 +19,7 @@ import type {
   PropertyChange,
   PropertyTemplate,
   DiagnosisReport,
+  CrashReport,
   DiskReport,
   DiskCleanupResult,
   ProjectPage,
@@ -221,6 +222,10 @@ type Contract = {
   open_folder: [{ id?: string; kind: string }, void];
   server_health: [{ id: string }, HealthReport];
   server_diagnosis: [{ id: string }, DiagnosisReport];
+  server_crash_report: [
+    { id: string; language: string },
+    CrashReport,
+  ];
   disk_report: [{ id: string }, DiskReport];
   clean_disk: [
     { id: string; targets: string[]; confirmed: boolean },

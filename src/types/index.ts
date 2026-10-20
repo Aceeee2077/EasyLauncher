@@ -395,13 +395,27 @@ export interface DiagnosisFinding {
   id: string;
   severity: DiagnosisSeverity;
   evidence: string[];
+  rootCause: boolean;
+  symptom: boolean;
+  line: number | null;
+  occurrences: number;
+  values: Record<string, string>;
 }
 export interface DiagnosisReport {
   serverId: string;
   available: boolean;
   source: string | null;
   generatedAt: string;
+  exitCode: number | null;
+  rootCause: string | null;
+  scannedLines: number;
   findings: DiagnosisFinding[];
+}
+export interface CrashReport {
+  serverId: string;
+  source: string | null;
+  generatedAt: string;
+  text: string;
 }
 export interface DiskCategory {
   id: string;

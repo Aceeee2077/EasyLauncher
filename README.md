@@ -48,6 +48,7 @@
 - **本地 RCON（可选）**：在服务器设置中显式启用并生成强密码，重启后用 RCON 拉取权威在线玩家列表；连接固定发往 `127.0.0.1`。启用会让 Minecraft 在所有网络接口监听 RCON 端口，界面会给出提示。
 - **磁盘空间与清理**：运维页按世界、备份、日志、模组等分类统计服务器目录占用，并显示所在磁盘可用空间。可勾选清理历史日志（保留 `latest.log`）、崩溃报告和中断残留，确认后显示实际释放量；世界、备份与配置不会被清理。
 - **世界预览与存档健康**：备份页只读解析 Anvil MCA/NBT，按区域渲染 2D 地图并叠加玩家位置与本地在线轨迹；统计区块、实体、方块实体及类型，列出区域头、区块压缩与 NBT 损坏，并按区域文件 SHA-256 比较两次备份。地图可选 1/2/4/8 格精度；存档与备份不会被修改。
+- **崩溃归因 2.0**：运维页通过 `CrashAnalyzer` 契约与确定性签名库识别内存不足、模组冲突或缺依赖、区块损坏、Java 版本、JVM 参数、端口占用、磁盘与文件权限等启动失败。按日志首次出现顺序定位“第一个根因”，后续错误与看门狗转储作为关联症状列出；展示命中行号、次数、端口、所需 Java、相关模组或插件等细节，并可一键生成不落盘的脱敏 Markdown 报告。报告会遮挡路径、URL、IP 地址与含凭据的行。
 
 各项入口、边界与验证记录见 [开发进度](docs/DEVELOPMENT.md)。
 
@@ -156,6 +157,8 @@ src-tauri/src/
   server/software.rs   各服务端软件的版本来源、产物解析与 Java 要求
   server/installer.rs  共享下载、重试、哈希、进度与取消
   server/process.rs    Java 生命周期、管道读取、stdin 与就绪/崩溃观察
+  server/crash.rs      崩溃签名库、首个根因选择与修复建议上下文
+  server/diagnostics.rs 开服体检、崩溃归因报告与证据脱敏
   server/job.rs        Windows 关闭即终止的子进程托管
   backup.rs            一致性快照、恢复暂存与回滚
   backup_store.rs      zstd 分块存储、内容寻址去重、校验恢复与垃圾回收
@@ -173,7 +176,7 @@ src-tauri/src/
   rcon.rs              可选本地 RCON 客户端、密码生成与玩家列表解析
   network.rs           本地绑定检查与局域网地址探测
   logger.rs            独立的时间戳日志；2 MB 轮转并保留两个文件
-  extensions.rs        未来内容提供方与崩溃分析的契约
+  extensions.rs        内容提供方契约与 CrashAnalyzer 根因接口
 ```
 
 React 调用 Rust 命令，并订阅 `server-status`、`server-console-batch`、`download-progress`、`backup-progress`、`app-closing` 与 `app-error` 事件。以 Rust 为权威来源，不使用生命周期布尔值或前端计时器伪造服务器状态。备份、生命周期变更与安装共享同一把按服务器的操作互斥锁。进程监控在等待退出或读取流时不持有子进程锁。

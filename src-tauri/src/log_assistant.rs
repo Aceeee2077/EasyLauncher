@@ -13,7 +13,7 @@ pub struct Preview {
     pub source: Option<String>,
     pub excerpt: String,
 }
-fn sanitize(text: &str) -> String {
+pub(crate) fn sanitize(text: &str) -> String {
     text.lines()
         .rev()
         .take(160)
@@ -40,7 +40,11 @@ fn sanitize(text: &str) -> String {
                 .map(|word| {
                     // Keep stack traces readable while hiding common connection and user paths.
                     if word.contains("://")
+                        || word.contains(":\\")
+                        || word.contains(":/")
+                        || word.starts_with('/')
                         || word.contains("Users\\")
+                        || word.contains("Users/")
                         || word.contains("/home/")
                         || word.contains("/Users/")
                         || word.contains('@')

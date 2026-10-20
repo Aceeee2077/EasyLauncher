@@ -1265,7 +1265,7 @@ export const zh = {
   "disk.failed": "有 {count} 个文件未能删除，请查看日志。",
   "ops.diagnosisTitle": "崩溃诊断",
   "ops.diagnosisDesc":
-    "读取最新崩溃报告或 logs/latest.log 末尾，识别常见启动失败原因。",
+    "读取最新崩溃报告或 logs/latest.log 末尾，用签名库定位第一个根因，并列出后续关联错误与可操作修复建议。",
   "ops.analyze": "重新分析",
   "ops.source": "日志来源：{source}",
   "ops.evidence": "查看证据",
@@ -1277,6 +1277,28 @@ export const zh = {
     "日志中没有匹配到常见崩溃特征。若仍有异常，可在控制台查看完整输出。",
   "ops.severity.critical": "严重",
   "ops.severity.warning": "警告",
+  "ops.rootCause": "根因",
+  "ops.symptom": "关联症状",
+  "ops.firstLine": "首次出现于第 {line} 行",
+  "ops.occurrences": "命中 {count} 次",
+  "ops.exitCode": "退出码 {code}",
+  "ops.diagValue.port": "端口 {value}",
+  "ops.diagValue.requiredJava": "需要 Java {value}",
+  "ops.diagValue.classFile": "class 文件版本 {value}",
+  "ops.diagValue.mods": "相关模组：{value}",
+  "ops.diagValue.plugin": "插件：{value}",
+  "ops.diagValue.option": "参数：{value}",
+  "ops.diagValue.memory": "内存类型：{value}",
+  "ops.diagValue.maxMemoryMb": "当前最大内存 {value} MB",
+  "ops.diagValue.chunk": "区块坐标 {value}",
+  "ops.report": "生成脱敏报告",
+  "ops.reportTitle": "脱敏诊断报告",
+  "ops.reportDesc":
+    "仅在点击时本地生成，包含根因、证据和修复建议；路径、URL、IP 地址与凭据行会被遮挡。分享前仍请人工检查。",
+  "ops.reportCopy": "复制报告",
+  "ops.reportCopied": "已复制",
+  "ops.reportCopyFailed": "复制失败，请手动选择报告文本。",
+  "ops.reportSource": "报告来源：{source}",
 
   "health.install.title": "服务器文件",
   "health.install.ok": "已安装 {artifact} {version}。",
@@ -1334,13 +1356,13 @@ export const zh = {
 
   "diagnosis.outOfMemory.title": "内存不足",
   "diagnosis.outOfMemory.advice":
-    "增加最大内存，或减少模组、视距与模拟距离后重试。",
+    "在物理内存允许时提高最大内存；否则降低视距与模拟距离，并移除占用内存过高的模组或数据包。",
   "diagnosis.portInUse.title": "端口被占用",
   "diagnosis.portInUse.advice":
-    "关闭占用该端口的程序，或在服务器设置中更换端口。",
+    "关闭占用该端口的程序，或在服务器设置中更换 server-port 后重新启动。",
   "diagnosis.javaVersion.title": "Java 版本不匹配",
   "diagnosis.javaVersion.advice":
-    "安装服务器要求的 Java 主版本，并在运行时设置中选择它。",
+    "安装服务器要求的 Java 主版本，并在运行时设置中选择它，不要让服务器继续使用较旧的系统 Java。",
   "diagnosis.missingJar.title": "缺少 server.jar",
   "diagnosis.missingJar.advice": "重新安装服务器核心后再启动。",
   "diagnosis.eula.title": "EULA 未接受",
@@ -1349,25 +1371,25 @@ export const zh = {
   "diagnosis.diskSpace.advice": "清理磁盘空间，至少保留数百 MB 后再启动。",
   "diagnosis.worldCorruption.title": "世界数据可能损坏",
   "diagnosis.worldCorruption.advice":
-    "从备份恢复世界；如无备份，先移走损坏的区域文件再尝试启动。",
+    "优先从备份恢复受影响的世界；如无备份，先移走损坏的区域文件，让服务器重建该区域。",
   "diagnosis.fileAccess.title": "文件访问被拒绝",
   "diagnosis.fileAccess.advice":
-    "检查杀毒软件或文件权限，确保 EasyLauncher 可以读写服务器目录。",
+    "检查杀毒软件或文件夹权限，确保 EasyLauncher 可以读写服务器目录；关闭占用世界文件的程序。",
   "diagnosis.modConflict.title": "模组冲突",
   "diagnosis.modConflict.advice":
-    "移除重复或不兼容的模组，并检查模组之间的依赖关系。",
+    "移除重复或不兼容的模组，并检查提示中的模组是否使用相同的 Minecraft 与加载器版本。",
   "diagnosis.missingDependency.title": "缺少模组依赖",
   "diagnosis.missingDependency.advice":
     "安装日志中提示的前置模组，或改用包含完整依赖的整合包。",
   "diagnosis.watchdog.title": "服务器卡顿或看门狗超时",
   "diagnosis.watchdog.advice":
-    "排查性能压力过大的模组或区块加载器，并适当降低视距与模拟距离。",
+    "排查性能压力过大的模组或区块加载器，适当降低视距与模拟距离，并根据线程转储定位阻塞线程。",
   "diagnosis.pluginError.title": "插件加载失败",
   "diagnosis.pluginError.advice":
-    "确认插件与服务器版本匹配，并在控制台查看该插件的完整堆栈。",
+    "确认插件与服务器版本匹配，查看其完整堆栈；必要时先移出该插件以确认问题来源。",
   "diagnosis.generic.title": "未分类的启动异常",
   "diagnosis.generic.advice":
-    "展开证据查看完整堆栈，或到控制台查看启动前后的日志。",
+    "展开证据或查看启动前后的控制台输出；通常第一个异常才包含原始原因。",
   "serverSettings.rcon.title": "RCON 控制通道",
   "serverSettings.rcon.desc":
     "可选的本地 RCON，用于权威玩家列表和一致性操作。连接始终发往 127.0.0.1。",
@@ -2820,7 +2842,7 @@ export const en: Record<MessageKey, string> = {
   "disk.failed": "{count} files could not be removed; check the logs.",
   "ops.diagnosisTitle": "Crash diagnosis",
   "ops.diagnosisDesc":
-    "Reads the newest crash report or the tail of logs/latest.log to identify common startup failures.",
+    "Reads the newest crash report or the tail of logs/latest.log, uses a signature library to find the first root cause, and lists later related errors with actionable fixes.",
   "ops.analyze": "Analyze again",
   "ops.source": "Log source: {source}",
   "ops.evidence": "Show evidence",
@@ -2832,6 +2854,28 @@ export const en: Record<MessageKey, string> = {
     "No common crash signatures matched. If something still looks wrong, review the full console output.",
   "ops.severity.critical": "Critical",
   "ops.severity.warning": "Warning",
+  "ops.rootCause": "Root cause",
+  "ops.symptom": "Related symptom",
+  "ops.firstLine": "First seen on line {line}",
+  "ops.occurrences": "{count} matches",
+  "ops.exitCode": "Exit code {code}",
+  "ops.diagValue.port": "Port {value}",
+  "ops.diagValue.requiredJava": "Requires Java {value}",
+  "ops.diagValue.classFile": "Class file version {value}",
+  "ops.diagValue.mods": "Related mods: {value}",
+  "ops.diagValue.plugin": "Plugin: {value}",
+  "ops.diagValue.option": "Option: {value}",
+  "ops.diagValue.memory": "Memory type: {value}",
+  "ops.diagValue.maxMemoryMb": "Configured maximum memory: {value} MB",
+  "ops.diagValue.chunk": "Chunk position {value}",
+  "ops.report": "Generate sanitized report",
+  "ops.reportTitle": "Sanitized diagnosis report",
+  "ops.reportDesc":
+    "Generated locally only when requested. It contains the root cause, evidence and fixes; paths, URLs, IP addresses and credential lines are redacted. Review it before sharing.",
+  "ops.reportCopy": "Copy report",
+  "ops.reportCopied": "Copied",
+  "ops.reportCopyFailed": "Copy failed. Select the report text manually.",
+  "ops.reportSource": "Report source: {source}",
 
   "health.install.title": "Server files",
   "health.install.ok": "{artifact} {version} is installed.",
@@ -2902,13 +2946,13 @@ export const en: Record<MessageKey, string> = {
 
   "diagnosis.outOfMemory.title": "Out of memory",
   "diagnosis.outOfMemory.advice":
-    "Increase the maximum memory, or reduce mods, view distance and simulation distance.",
+    "Raise the maximum heap if the machine has free RAM; otherwise lower view and simulation distance and remove memory-heavy mods or datapacks.",
   "diagnosis.portInUse.title": "Port already in use",
   "diagnosis.portInUse.advice":
-    "Close the program using that port, or change the port in server settings.",
+    "Stop the other process using this port, or change server-port in server settings and restart.",
   "diagnosis.javaVersion.title": "Java version mismatch",
   "diagnosis.javaVersion.advice":
-    "Install the Java major version the server requires and select it in the runtime settings.",
+    "Install the Java major the server requires and select it under Runtime settings; do not point the server at an older system Java.",
   "diagnosis.missingJar.title": "Missing server.jar",
   "diagnosis.missingJar.advice":
     "Reinstall the server core before starting again.",
@@ -2920,25 +2964,25 @@ export const en: Record<MessageKey, string> = {
     "Free up disk space, leaving at least a few hundred MB before starting.",
   "diagnosis.worldCorruption.title": "World data may be corrupted",
   "diagnosis.worldCorruption.advice":
-    "Restore the world from a backup, or move the damaged region files away before retrying.",
+    "Restore the affected world from a backup first. Without one, move the damaged region file aside and let the server regenerate that region.",
   "diagnosis.fileAccess.title": "File access denied",
   "diagnosis.fileAccess.advice":
-    "Check antivirus or file permissions so EasyLauncher can read and write the server folder.",
+    "Check antivirus or folder permissions so EasyLauncher can read and write the server directory, and close programs that lock world files.",
   "diagnosis.modConflict.title": "Mod conflict",
   "diagnosis.modConflict.advice":
-    "Remove duplicate or incompatible mods and verify dependencies between them.",
+    "Remove duplicate or incompatible mods, then check that the named mods share the same Minecraft and loader version.",
   "diagnosis.missingDependency.title": "Missing mod dependency",
   "diagnosis.missingDependency.advice":
     "Install the dependency named in the log, or use a modpack with complete dependencies.",
   "diagnosis.watchdog.title": "Server stall or watchdog timeout",
   "diagnosis.watchdog.advice":
-    "Look for expensive mods or chunk loaders and lower view and simulation distances.",
+    "Look for expensive mods or chunk loaders, lower view and simulation distance, and inspect the thread dump for the blocking thread.",
   "diagnosis.pluginError.title": "Plugin failed to load",
   "diagnosis.pluginError.advice":
-    "Verify the plugin matches the server version and read its full stack trace in the console.",
+    "Confirm the plugin matches the server version, read its full stack trace, and temporarily remove it if needed to isolate the failure.",
   "diagnosis.generic.title": "Unclassified startup error",
   "diagnosis.generic.advice":
-    "Expand the evidence to see the full stack trace, or review the console around startup.",
+    "Expand the evidence or review the console around startup; the first exception usually contains the original cause.",
   "serverSettings.rcon.title": "RCON control channel",
   "serverSettings.rcon.desc":
     "Optional local RCON for an authoritative player list and consistent operations. Connections always go to 127.0.0.1.",

@@ -909,6 +909,19 @@ pub async fn server_diagnosis(
         .map_err(|e| AppError::new("Could not analyze server logs.", e))?
 }
 #[tauri::command]
+pub async fn server_crash_report(
+    m: Managed<'_>,
+    id: String,
+    language: String,
+) -> Result<crate::server::diagnostics::CrashReport> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || {
+        crate::server::diagnostics::sanitized_report(&manager, &id, &language)
+    })
+    .await
+    .map_err(|e| AppError::new("Could not build the crash report.", e))?
+}
+#[tauri::command]
 pub async fn open_guide(kind: String) -> Result<()> {
     let url = match kind.as_str() {
         "eula" => "https://www.minecraft.net/eula",

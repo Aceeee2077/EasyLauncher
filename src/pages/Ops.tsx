@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import {
   Activity,
+  Check,
+  Copy,
   FileSearch,
+  FileText,
   HeartPulse,
   RefreshCw,
   ShieldCheck,
@@ -15,6 +18,7 @@ import { DiskUsage } from "../components/DiskUsage";
 import { call } from "../services/api";
 import { useI18n, type MessageKey } from "../i18n";
 import type {
+  CrashReport,
   DiagnosisReport,
   HealthCheck,
   HealthReport,
@@ -26,10 +30,15 @@ const scoreClass = (score: number) =>
   score >= 90 ? "good" : score >= 70 ? "fair" : "poor";
 
 export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [health, setHealth] = useState<HealthReport | null>(null);
   const [report, setReport] = useState<DiagnosisReport | null>(null);
+  const [crashReport, setCrashReport] = useState<CrashReport | null>(null);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
   const key = `ops-${server.id}`;
+  const reportKey = `crash-report-${server.id}`;
   const load = async () => {
     const [nextHealth, nextReport] = await Promise.all([
       call("server_health", { id: server.id }),
@@ -37,6 +46,25 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
     ]);
     setHealth(nextHealth);
     setReport(nextReport);
+    setCrashReport(null);
+    setCopyState("idle");
+  };
+  const generateReport = async () => {
+    const next = await call("server_crash_report", {
+      id: server.id,
+      language: locale,
+    });
+    setCrashReport(next);
+    setCopyState("idle");
+  };
+  const copyReport = async () => {
+    if (!crashReport) return;
+    try {
+      await navigator.clipboard.writeText(crashReport.text);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
   };
   useEffect(() => {
     void run(`ops-load-${server.id}-${crypto.randomUUID()}`, load);
@@ -153,14 +181,25 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
             </h2>
             <p>{t("ops.diagnosisDesc")}</p>
           </div>
-          <Button
-            busy={busy.has(key)}
-            disabled={!report}
-            onClick={() => void run(key, load)}
-          >
-            <FileSearch size={15} />
-            {t("ops.analyze")}
-          </Button>
+          <div className="diag-actions">
+            <Button
+              variant="ghost"
+              busy={busy.has(reportKey)}
+              disabled={!report?.findings.length}
+              onClick={() => void run(reportKey, generateReport)}
+            >
+              <FileText size={15} />
+              {t("ops.report")}
+            </Button>
+            <Button
+              busy={busy.has(key)}
+              disabled={!report}
+              onClick={() => void run(key, load)}
+            >
+              <FileSearch size={15} />
+              {t("ops.analyze")}
+            </Button>
+          </div>
         </div>
         {report?.source && (
           <p className="diag-source">
@@ -177,7 +216,7 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
           <div className="diag-list">
             {report.findings.map((finding) => (
               <article
-                className={`diag-item ${finding.severity}`}
+                className={`diag-item ${finding.severity}${finding.rootCause ? " root" : ""}`}
                 key={finding.id}
               >
                 <div className="diag-head">
@@ -189,11 +228,45 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
                   <strong>
                     {t(`diagnosis.${finding.id}.title` as MessageKey)}
                   </strong>
+                  {finding.rootCause && (
+                    <span className="tag root">{t("ops.rootCause")}</span>
+                  )}
+                  {finding.symptom && (
+                    <span className="tag info">{t("ops.symptom")}</span>
+                  )}
                   <span className={`tag ${finding.severity}`}>
                     {t(`ops.severity.${finding.severity}` as MessageKey)}
                   </span>
                 </div>
                 <p>{t(`diagnosis.${finding.id}.advice` as MessageKey)}</p>
+                <div className="diag-meta">
+                  {finding.line !== null && (
+                    <span>
+                      {t("ops.firstLine", { line: finding.line })}
+                    </span>
+                  )}
+                  {finding.occurrences > 1 && (
+                    <span>
+                      {t("ops.occurrences", { count: finding.occurrences })}
+                    </span>
+                  )}
+                  {finding.rootCause && report.exitCode !== null && (
+                    <span>{t("ops.exitCode", { code: report.exitCode })}</span>
+                  )}
+                </div>
+                {Object.keys(finding.values).length > 0 && (
+                  <div className="diag-values">
+                    {Object.entries(finding.values).map(([name, value]) => {
+                      const label = `ops.diagValue.${name}` as MessageKey;
+                      const text = t(label, { value });
+                      return (
+                        <span key={name}>
+                          {text === label ? `${name}: ${value}` : text}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
                 {finding.evidence.length > 0 && (
                   <details className="diag-evidence">
                     <summary>{t("ops.evidence")}</summary>
@@ -211,6 +284,35 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
           </div>
         ) : (
           <p className="mini-empty">{t("common.loading")}</p>
+        )}
+        {crashReport && (
+          <div className="diag-report">
+            <div className="diag-report-head">
+              <div>
+                <strong>{t("ops.reportTitle")}</strong>
+                <p>{t("ops.reportDesc")}</p>
+              </div>
+              <Button variant="ghost" onClick={() => void copyReport()}>
+                {copyState === "copied" ? (
+                  <Check size={15} />
+                ) : (
+                  <Copy size={15} />
+                )}
+                {copyState === "copied"
+                  ? t("ops.reportCopied")
+                  : t("ops.reportCopy")}
+              </Button>
+            </div>
+            <pre className="diag-report-text">{crashReport.text}</pre>
+            <small>
+              {t("ops.reportSource", {
+                source: crashReport.source ?? "—",
+              })}
+            </small>
+            {copyState === "failed" && (
+              <p className="diag-copy-failed">{t("ops.reportCopyFailed")}</p>
+            )}
+          </div>
         )}
       </section>
       <DiskUsage id={server.id} run={run} busy={busy} />
