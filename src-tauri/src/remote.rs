@@ -8,7 +8,7 @@ use std::{
     collections::HashMap,
     net::{IpAddr, UdpSocket},
     sync::{Arc, Mutex},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -20,6 +20,11 @@ const MAX_HEAD: usize = 16 * 1024;
 const MAX_BODY: usize = 64 * 1024;
 const CONSOLE_LINES: usize = 160;
 const PAGE: &str = include_str!("mobile.html");
+const SESSION_TTL: Duration = Duration::from_secs(12 * 60 * 60);
+const SESSION_LIMIT: usize = 16;
+const LOGIN_WINDOW: Duration = Duration::from_secs(60);
+const LOGIN_FAILURES: u32 = 8;
+const CSP: &str = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -33,6 +38,89 @@ pub struct WebConsoleInfo {
 struct Session {
     info: WebConsoleInfo,
     stop: watch::Sender<bool>,
+}
+
+struct SessionRecord {
+    csrf: String,
+    created: Instant,
+}
+struct LoginFailures {
+    count: u32,
+    window: Instant,
+}
+struct Auth {
+    token: String,
+    sessions: Mutex<HashMap<String, SessionRecord>>,
+    failures: Mutex<LoginFailures>,
+}
+#[derive(Debug)]
+enum LoginError {
+    Bad,
+    Rate,
+}
+impl Auth {
+    fn new(token: String) -> Self {
+        Self {
+            token,
+            sessions: Mutex::new(HashMap::new()),
+            failures: Mutex::new(LoginFailures {
+                count: 0,
+                window: Instant::now(),
+            }),
+        }
+    }
+    fn login(&self, attempt: &str) -> std::result::Result<(String, String), LoginError> {
+        {
+            let mut failures = self.failures.lock().unwrap_or_else(|e| e.into_inner());
+            if failures.window.elapsed() >= LOGIN_WINDOW {
+                failures.count = 0;
+                failures.window = Instant::now();
+            }
+            if failures.count >= LOGIN_FAILURES {
+                return Err(LoginError::Rate);
+            }
+        }
+        if !same_secret(attempt, &self.token) {
+            let mut failures = self.failures.lock().unwrap_or_else(|e| e.into_inner());
+            failures.count = failures.count.saturating_add(1);
+            return Err(LoginError::Bad);
+        }
+        {
+            let mut failures = self.failures.lock().unwrap_or_else(|e| e.into_inner());
+            failures.count = 0;
+        }
+        let id = uuid::Uuid::new_v4().simple().to_string();
+        let csrf = uuid::Uuid::new_v4().simple().to_string();
+        let mut sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
+        sessions.retain(|_, session| session.created.elapsed() < SESSION_TTL);
+        if sessions.len() >= SESSION_LIMIT {
+            let oldest = sessions
+                .iter()
+                .min_by_key(|(_, session)| session.created)
+                .map(|(id, _)| id.clone());
+            if let Some(oldest) = oldest {
+                sessions.remove(&oldest);
+            }
+        }
+        sessions.insert(
+            id.clone(),
+            SessionRecord {
+                csrf: csrf.clone(),
+                created: Instant::now(),
+            },
+        );
+        Ok((id, csrf))
+    }
+    fn csrf(&self, id: &str) -> Option<String> {
+        let mut sessions = self.sessions.lock().unwrap_or_else(|e| e.into_inner());
+        sessions.retain(|_, session| session.created.elapsed() < SESSION_TTL);
+        sessions.get(id).map(|session| session.csrf.clone())
+    }
+    fn validate(&self, id: &str, csrf: &str) -> bool {
+        self.csrf(id)
+            .map(|expected| same_secret(&expected, csrf))
+            .unwrap_or(false)
+    }
 }
 
 pub struct WebConsole {
@@ -69,7 +157,8 @@ impl WebConsole {
             .port();
         let token = uuid::Uuid::new_v4().simple().to_string();
         let host = local_ip().unwrap_or_else(|| "127.0.0.1".into());
-        let url = format!("http://{host}:{port}/?token={token}");
+        let url = format!("http://{host}:{port}/#token={token}");
+        let auth = Arc::new(Auth::new(token.clone()));
         let (stop, mut stopped) = watch::channel(false);
         *self.session.lock().unwrap_or_else(|e| e.into_inner()) = Some(Session {
             info: WebConsoleInfo {
@@ -88,9 +177,9 @@ impl WebConsole {
                     accepted = listener.accept() => match accepted {
                         Ok((mut stream, _)) => {
                             let manager = manager.clone();
-                            let token = token.clone();
+                            let auth = auth.clone();
                             tauri::async_runtime::spawn(async move {
-                                let _ = serve(&mut stream, &manager, &token).await;
+                                let _ = serve(&mut stream, &manager, &auth).await;
                             });
                         }
                         Err(_) => break,
@@ -100,7 +189,7 @@ impl WebConsole {
         });
         self.manager
             .logger
-            .log("INFO", &format!("Phone console listening on {url}"));
+            .log("INFO", &format!("Phone console listening on http://{host}:{port}/"));
         Ok(self.info().expect("session was just created"))
     }
     pub fn stop(&self) {
@@ -126,6 +215,10 @@ struct CommandBody {
     id: String,
     command: String,
 }
+#[derive(Deserialize)]
+struct SessionBody {
+    token: String,
+}
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct MobileServer {
@@ -145,10 +238,11 @@ struct Request {
     method: String,
     path: String,
     query: HashMap<String, String>,
+    headers: HashMap<String, String>,
     body: Vec<u8>,
 }
 
-async fn serve(stream: &mut TcpStream, manager: &Arc<Manager>, token: &str) -> std::io::Result<()> {
+async fn serve(stream: &mut TcpStream, manager: &Arc<Manager>, auth: &Arc<Auth>) -> std::io::Result<()> {
     let request = match read_request(stream).await {
         Ok(Some(request)) => request,
         Ok(None) => return Ok(()),
@@ -162,29 +256,15 @@ async fn serve(stream: &mut TcpStream, manager: &Arc<Manager>, token: &str) -> s
             .await
         }
     };
-    let authorized = request
-        .query
-        .get("token")
-        .map(|value| same_secret(value, token))
-        .unwrap_or(false);
     if request.path == "/" || request.path == "/index.html" {
-        return if authorized {
-            respond(
-                stream,
-                "200 OK",
-                "text/html; charset=utf-8",
-                PAGE.as_bytes(),
-            )
-            .await
-        } else {
-            respond(
-                stream,
-                "401 Unauthorized",
-                "text/plain; charset=utf-8",
-                "This link is not valid. Scan the QR code in EasyLauncher again.".as_bytes(),
-            )
-            .await
-        };
+        return respond_with(
+            stream,
+            "200 OK",
+            "text/html; charset=utf-8",
+            PAGE.as_bytes(),
+            &format!("Content-Security-Policy: {CSP}\r\n"),
+        )
+        .await;
     }
     if !request.path.starts_with("/api/") {
         return respond(
@@ -195,13 +275,84 @@ async fn serve(stream: &mut TcpStream, manager: &Arc<Manager>, token: &str) -> s
         )
         .await;
     }
-    if !authorized {
+    if request.path == "/api/session" {
+        return match request.method.as_str() {
+            "POST" => {
+                let body = match body_json::<SessionBody>(&request.body) {
+                    Ok(body) => body,
+                    Err(e) => return json_error(stream, "400 Bad Request", &e).await,
+                };
+                match auth.login(&body.token) {
+                    Ok((id, csrf)) => {
+                        let cookie = format!(
+                            "Set-Cookie: el_session={id}; Path=/; HttpOnly; SameSite=Strict; Max-Age=43200\r\n"
+                        );
+                        let body = serde_json::to_vec(&serde_json::json!({ "csrf": csrf }))
+                            .unwrap_or_else(|_| b"{}".to_vec());
+                        respond_with(
+                            stream,
+                            "200 OK",
+                            "application/json; charset=utf-8",
+                            &body,
+                            &cookie,
+                        )
+                        .await
+                    }
+                    Err(LoginError::Rate) => {
+                        respond_with(
+                            stream,
+                            "429 Too Many Requests",
+                            "application/json; charset=utf-8",
+                            br#"{"error":"Too many failed attempts. Wait a minute and try again."}"#,
+                            "Retry-After: 60\r\n",
+                        )
+                        .await
+                    }
+                    Err(LoginError::Bad) => {
+                        json_error(stream, "401 Unauthorized", "Invalid or expired access token.")
+                            .await
+                    }
+                }
+            }
+            "GET" => match session_csrf(&request, auth) {
+                Some(csrf) => json_ok(stream, &serde_json::json!({ "csrf": csrf })).await,
+                None => {
+                    json_error(
+                        stream,
+                        "401 Unauthorized",
+                        "Sign in again by scanning the QR code in EasyLauncher.",
+                    )
+                    .await
+                }
+            },
+            _ => {
+                respond(
+                    stream,
+                    "405 Method Not Allowed",
+                    "text/plain; charset=utf-8",
+                    b"Method not allowed",
+                )
+                .await
+            }
+        };
+    }
+    let Some(csrf) = session_csrf(&request, auth) else {
         return json_error(
             stream,
             "401 Unauthorized",
-            "Invalid or expired access token.",
+            "Sign in again by scanning the QR code in EasyLauncher.",
         )
         .await;
+    };
+    if request.method != "GET" {
+        let offered = request
+            .headers
+            .get("x-csrf-token")
+            .map(String::as_str)
+            .unwrap_or("");
+        if !same_secret(offered, &csrf) {
+            return json_error(stream, "403 Forbidden", "Missing or invalid CSRF token.").await;
+        }
     }
     match (request.method.as_str(), request.path.as_str()) {
         ("GET", "/api/state") => {
@@ -302,10 +453,15 @@ async fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Request>
     let method = first.next().unwrap_or_default().to_uppercase();
     let target = first.next().unwrap_or("/");
     let (path, query) = split_target(target);
-    let length = lines
-        .filter_map(|line| line.split_once(':'))
-        .find(|(name, _)| name.eq_ignore_ascii_case("content-length"))
-        .and_then(|(_, value)| value.trim().parse::<usize>().ok())
+    let mut headers = HashMap::new();
+    for line in lines {
+        if let Some((name, value)) = line.split_once(':') {
+            headers.insert(name.trim().to_ascii_lowercase(), value.trim().to_string());
+        }
+    }
+    let length = headers
+        .get("content-length")
+        .and_then(|value| value.parse::<usize>().ok())
         .unwrap_or(0);
     if length > MAX_BODY {
         return Err(std::io::Error::new(
@@ -329,6 +485,7 @@ async fn read_request(stream: &mut TcpStream) -> std::io::Result<Option<Request>
         method,
         path,
         query,
+        headers,
         body,
     }))
 }
@@ -395,6 +552,20 @@ fn same_secret(a: &str, b: &str) -> bool {
         == 0
 }
 
+fn cookie(headers: &HashMap<String, String>, name: &str) -> Option<String> {
+    headers
+        .get("cookie")?
+        .split(';')
+        .filter_map(|part| part.trim().split_once('='))
+        .find(|(key, _)| key.eq_ignore_ascii_case(name))
+        .map(|(_, value)| value.trim().to_string())
+}
+
+fn session_csrf(request: &Request, auth: &Auth) -> Option<String> {
+    let id = cookie(&request.headers, "el_session")?;
+    auth.csrf(&id)
+}
+
 fn local_ip() -> Option<String> {
     let socket = UdpSocket::bind(("0.0.0.0", 0)).ok()?;
     socket.connect(("8.8.8.8", 80)).ok()?;
@@ -421,8 +592,18 @@ async fn respond(
     content_type: &str,
     body: &[u8],
 ) -> std::io::Result<()> {
+    respond_with(stream, status, content_type, body, "").await
+}
+
+async fn respond_with(
+    stream: &mut TcpStream,
+    status: &str,
+    content_type: &str,
+    body: &[u8],
+    extra: &str,
+) -> std::io::Result<()> {
     let head = format!(
-        "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nConnection: close\r\n\r\n",
+        "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nReferrer-Policy: no-referrer\r\nX-Frame-Options: DENY\r\nCross-Origin-Resource-Policy: same-origin\r\n{extra}Connection: close\r\n\r\n",
         body.len()
     );
     stream.write_all(head.as_bytes()).await?;
@@ -446,10 +627,52 @@ mod tests {
     }
 
     #[test]
+    fn cookie_header_is_parsed_by_name() {
+        let mut headers = HashMap::new();
+        headers.insert(
+            "cookie".to_string(),
+            "theme=dark; el_session=abc123; other=1".to_string(),
+        );
+        assert_eq!(cookie(&headers, "el_session").as_deref(), Some("abc123"));
+        assert_eq!(cookie(&headers, "EL_SESSION").as_deref(), Some("abc123"));
+        assert_eq!(cookie(&headers, "missing"), None);
+        assert_eq!(cookie(&HashMap::new(), "el_session"), None);
+    }
+
+    #[test]
+    fn login_issues_matching_session_and_csrf() {
+        let auth = Auth::new("secret-token".into());
+        let (id, csrf) = auth.login("secret-token").expect("valid token logs in");
+        assert!(!id.is_empty());
+        assert!(!csrf.is_empty());
+        assert_eq!(auth.csrf(&id).as_deref(), Some(csrf.as_str()));
+        assert!(auth.validate(&id, &csrf));
+        assert!(!auth.validate(&id, "wrong"));
+        assert!(!auth.validate("unknown", &csrf));
+        assert!(matches!(
+            auth.login("wrong-token"),
+            Err(LoginError::Bad)
+        ));
+    }
+
+    #[test]
+    fn login_is_rate_limited_after_repeated_failures() {
+        let auth = Auth::new("secret-token".into());
+        for _ in 0..LOGIN_FAILURES {
+            assert!(matches!(auth.login("nope"), Err(LoginError::Bad)));
+        }
+        assert!(matches!(auth.login("secret-token"), Err(LoginError::Rate)));
+    }
+
+    #[test]
     fn embedded_page_is_mobile_friendly() {
         assert!(PAGE.contains("viewport"));
         assert!(PAGE.contains("/api/state"));
         assert!(PAGE.contains("/api/action"));
-        assert!(PAGE.contains("token"));
+        assert!(PAGE.contains("/api/session"));
+        assert!(PAGE.contains("credentials"));
+        assert!(PAGE.contains("X-CSRF-Token"));
+        assert!(PAGE.contains("location.hash"));
+        assert!(!PAGE.contains("token=\" + token"));
     }
 }

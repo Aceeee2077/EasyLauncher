@@ -121,7 +121,9 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
 <script>
 (function () {
   "use strict";
-  var token = new URLSearchParams(location.search).get("token") || "";
+  var token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+  var csrf = "";
   var selected = null;
   var servers = [];
   var busy = false;
@@ -139,11 +141,6 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
   var connEl = document.getElementById("conn");
   var toastEl = document.getElementById("toast");
 
-  if (!token) {
-    serversEl.innerHTML = '<div class="card empty">链接缺少访问令牌，请在 EasyLauncher 中重新扫码。</div>';
-    return;
-  }
-
   function toast(text, bad) {
     toastEl.textContent = text;
     toastEl.className = "show" + (bad ? " error" : "");
@@ -151,18 +148,68 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
     toastTimer = setTimeout(function () { toastEl.className = ""; }, 2600);
   }
 
+  function report(error) {
+    if (error && error.status === 401) {
+      setConn(false, "会话已失效");
+      toast("会话已失效，请在 EasyLauncher 中重新扫码。", true);
+      return;
+    }
+    toast(error && error.message ? error.message : "请求失败", true);
+  }
+
   function api(path, body) {
-    var url = path + (path.indexOf("?") >= 0 ? "&" : "?") + "token=" + encodeURIComponent(token);
-    var options = body ? {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    } : {};
-    return fetch(url, options).then(function (response) {
+    var options = { credentials: "same-origin", headers: {} };
+    if (body) {
+      options.method = "POST";
+      options.headers["Content-Type"] = "application/json";
+      options.headers["X-CSRF-Token"] = csrf;
+      options.body = JSON.stringify(body);
+    }
+    return fetch(path, options).then(function (response) {
       return response.json().catch(function () { return {}; }).then(function (data) {
-        if (!response.ok) throw new Error(data.error || ("请求失败 " + response.status));
+        if (!response.ok) {
+          var error = new Error(data.error || ("请求失败 " + response.status));
+          error.status = response.status;
+          throw error;
+        }
         return data;
       });
+    });
+  }
+
+  function login() {
+    return fetch("/api/session", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token })
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (data) {
+        if (!response.ok) throw new Error(data.error || "链接无效，请在 EasyLauncher 中重新扫码。");
+        csrf = data.csrf || "";
+        token = "";
+      });
+    });
+  }
+
+  function boot() {
+    api("/api/session").then(function (data) {
+      csrf = data.csrf || "";
+    }).catch(function (error) {
+      if (error.status !== 401) throw error;
+      if (!token) throw new Error("链接已失效，请在 EasyLauncher 中重新扫码。");
+      return login();
+    }).then(function () {
+      refresh();
+      setInterval(refresh, 3000);
+      setInterval(loadConsole, 2500);
+    }).catch(function (error) {
+      setConn(false, "未连接");
+      serversEl.textContent = "";
+      var card = document.createElement("div");
+      card.className = "card empty";
+      card.textContent = error.message;
+      serversEl.appendChild(card);
     });
   }
 
@@ -178,9 +225,7 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
     api("/api/action", { id: id, action: kind }).then(function () {
       toast(name + " · " + (kind === "start" ? "启动请求已发送" : kind === "stop" ? "停止请求已发送" : "重启请求已发送"));
       setTimeout(refresh, 900);
-    }).catch(function (error) {
-      toast(error.message, true);
-    }).finally(function () {
+    }).catch(report).finally(function () {
       busy = false;
       render();
     });
@@ -280,7 +325,7 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
       }
     }).catch(function (error) {
       setConn(false, "连接断开");
-      toast(error.message, true);
+      report(error);
     });
   }
 
@@ -291,9 +336,7 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
       var atBottom = consoleEl.scrollHeight - consoleEl.scrollTop - consoleEl.clientHeight < 60;
       consoleEl.textContent = lines.map(function (line) { return line.text; }).join("\n");
       if (atBottom) consoleEl.scrollTop = consoleEl.scrollHeight;
-    }).catch(function (error) {
-      toast(error.message, true);
-    });
+    }).catch(report);
   }
 
   document.getElementById("commandForm").addEventListener("submit", function (event) {
@@ -304,9 +347,7 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
     api("/api/command", { id: selected, command: command }).then(function () {
       input.value = "";
       setTimeout(loadConsole, 400);
-    }).catch(function (error) {
-      toast(error.message, true);
-    });
+    }).catch(report);
   });
   document.getElementById("closeConsole").onclick = function () {
     selected = null;
@@ -314,9 +355,7 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
     render();
   };
 
-  refresh();
-  setInterval(refresh, 3000);
-  setInterval(loadConsole, 2500);
+  boot();
 })();
 </script>
 </body>
