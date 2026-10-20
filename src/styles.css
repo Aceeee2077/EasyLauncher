@@ -3173,6 +3173,198 @@ progress::-webkit-progress-value {
   color: #c4553f;
   border-color: color-mix(in srgb, #c4553f 40%, transparent);
 }
+.task-note em.warn {
+  color: #b08434;
+  border-color: color-mix(in srgb, #b08434 40%, transparent);
+}
+.task-dependency {
+  color: var(--accent) !important;
+  margin-top: 2px !important;
+}
+.task-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.task-calendar-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 116px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface2);
+}
+.task-calendar-date {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.task-calendar-date strong {
+  font-size: 11px;
+  font-weight: 550;
+}
+.task-calendar-date small,
+.task-calendar-empty {
+  color: var(--muted);
+  font-size: 9px;
+}
+.task-calendar-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 7px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.task-calendar-entry span {
+  font-size: 10px;
+  font-weight: 550;
+}
+.task-calendar-entry small {
+  color: var(--muted);
+  font-size: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cron-editor {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--fill);
+}
+.cron-preset {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.cron-preset select {
+  flex: 1;
+}
+.cron-fields {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.cron-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cron-fields label span {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.4px;
+}
+.cron-fields input {
+  font-family: var(--mono, monospace);
+  text-align: center;
+  padding: 7px 6px;
+}
+.cron-hint {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.5;
+}
+.task-preview {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  font-size: 10px;
+}
+.task-preview > small {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.task-preview ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.task-preview li {
+  font-variant-numeric: tabular-nums;
+}
+.task-preview-error {
+  margin: 0;
+  color: #c4553f;
+  line-height: 1.5;
+}
+.task-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.task-history-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface2);
+}
+.task-history-row strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.task-history-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.task-history-row em {
+  font-style: normal;
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+.task-history-row em.ok {
+  color: #3f9d6a;
+  border-color: color-mix(in srgb, #3f9d6a 40%, transparent);
+}
+.task-history-row em.fail {
+  color: #c4553f;
+  border-color: color-mix(in srgb, #c4553f 40%, transparent);
+}
+.task-history-row em.warn {
+  color: #b08434;
+  border-color: color-mix(in srgb, #b08434 40%, transparent);
+}
+.task-history-row p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
 .task-row .btn {
   padding: 7px 9px;
   min-height: 32px;

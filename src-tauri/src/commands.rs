@@ -958,6 +958,35 @@ pub async fn run_task_now(m: Managed<'_>, id: String, task_id: String) -> Result
     Ok(())
 }
 #[tauri::command]
+pub fn preview_task_schedule(
+    input: crate::schedule::TaskInput,
+    count: Option<u32>,
+) -> Result<Vec<String>> {
+    crate::schedule::preview(&input, count)
+}
+#[tauri::command]
+pub async fn task_calendar(
+    m: Managed<'_>,
+    id: String,
+    days: Option<u32>,
+) -> Result<Vec<crate::schedule::CalendarEntry>> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::schedule::calendar(&manager, &id, days))
+        .await
+        .map_err(|e| AppError::new("Could not build the task calendar.", e))?
+}
+#[tauri::command]
+pub async fn task_history(
+    m: Managed<'_>,
+    id: String,
+    task_id: Option<String>,
+) -> Result<Vec<crate::schedule::HistoryEntry>> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::schedule::history(&manager, &id, task_id.as_deref()))
+        .await
+        .map_err(|e| AppError::new("Could not read task history.", e))?
+}
+#[tauri::command]
 pub async fn monitor_metrics(
     m: Managed<'_>,
     id: String,

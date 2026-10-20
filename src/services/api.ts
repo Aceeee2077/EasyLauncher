@@ -31,6 +31,8 @@ import type {
   ModpackReport,
   ScheduledTask,
   TaskInput,
+  TaskCalendarEntry,
+  TaskHistoryEntry,
   ServerMetrics,
   MetricsSample,
   ServerAlert,
@@ -212,6 +214,15 @@ type Contract = {
   ];
   delete_task: [{ id: string; taskId: string }, void];
   run_task_now: [{ id: string; taskId: string }, void];
+  preview_task_schedule: [{ input: TaskInput; count?: number }, string[]];
+  task_calendar: [
+    { id: string; days?: number },
+    TaskCalendarEntry[],
+  ];
+  task_history: [
+    { id: string; taskId?: string },
+    TaskHistoryEntry[],
+  ];
   monitor_metrics: [{ id: string }, ServerMetrics | null];
   monitor_history: [{ id: string }, MetricsSample[]];
   monitor_alerts: [{ id: string }, ServerAlert[]];

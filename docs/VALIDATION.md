@@ -55,3 +55,10 @@ The upgrade flow stages a verified `server.upgrade.jar`, swaps it with `server.j
 Installed Modrinth packages can be checked for newer versions that match the server's Minecraft release and loader, with changelog, dependency impact (added, changed, removed, missing required, incompatible), pre-release and older-than-installed warnings, and per-project version pinning. A confirmed update copies the current JAR into `content-backups/`, records it in `content-rollback.json`, downloads and verifies the new file, swaps it in, and updates `content.json`; the UI offers a one-step, per-package rollback.
 
 Validation stayed offline: 99 library tests and one storage integration test pass. New tests cover newest-release selection over newer betas, dependency-impact classification and warnings, changelog bounding, the renamed-file swap in a temporary directory, pin normalisation, and rollback-store filtering. TypeScript checking, the Vite production build and Rust formatting pass. No Modrinth request was made by these tests, no content was downloaded, and no Java process or server was started. The live check, download and rollback paths plus the new UI still need an explicitly requested acceptance run.
+
+
+## Scheduled tasks 2.0 (2026-10-20)
+
+Scheduled tasks gained five-field cron expressions with a preset editor and a backend-computed preview of the next five runs, a seven-day calendar, a single prerequisite for serial execution, a missed-run policy (skip or catch up once), and per-task run history with manual and scheduled trigger labels.
+
+Validation stayed offline: 106 library tests and one storage integration test pass. New tests cover cron field parsing and bounds, Sunday as 0 or 7, impossible dates, preview ordering and spacing for cron and daily schedules, the two-minute missed-run threshold, prerequisite loop rejection, and dependency ordering. TypeScript checking, the Vite production build and Rust formatting pass. No scheduled task action was executed and no Java process or server was started. The calendar and history UI, DST transitions and real overnight catch-up behaviour still need an explicitly requested acceptance run.

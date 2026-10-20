@@ -404,13 +404,17 @@ export type TaskAction =
   | "cleanup"
   | "broadcast"
   | "maintenance";
-export type TaskMode = "interval" | "daily";
+export type TaskMode = "interval" | "daily" | "cron";
+export type MissedRun = "skip" | "catchUp";
 export interface ScheduledTask {
   id: string;
   action: TaskAction;
   mode: TaskMode;
   everyMinutes: number;
   atTime: string | null;
+  cron: string | null;
+  missedRun: MissedRun;
+  dependsOn: string | null;
   command: string | null;
   message: string | null;
   keepDays: number;
@@ -424,10 +428,26 @@ export interface TaskInput {
   mode: TaskMode;
   everyMinutes: number;
   atTime: string | null;
+  cron: string | null;
+  missedRun: MissedRun;
+  dependsOn: string | null;
   command: string | null;
   message: string | null;
   keepDays: number;
   enabled: boolean;
+}
+export interface TaskCalendarEntry {
+  taskId: string;
+  action: TaskAction;
+  at: string;
+}
+export interface TaskHistoryEntry {
+  taskId: string;
+  action: TaskAction;
+  at: string;
+  result: "ok" | "failed" | "missed" | "blocked";
+  detail: string;
+  trigger: "schedule" | "manual";
 }
 export type AlertKind = "cpu" | "memory" | "lag";
 export interface ServerMetrics {
