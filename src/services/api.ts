@@ -53,6 +53,10 @@ import type {
   RetentionPolicy,
   RetentionPreview,
   RetentionOutcome,
+  RemoteConfig,
+  RemoteInfo,
+  RemoteSecretsInput,
+  RemoteUploadOutcome,
   TunnelConfig,
   TunnelInfo,
   RconInfo,
@@ -172,6 +176,16 @@ type Contract = {
   apply_backup_cleanup: [
     { id: string; confirmed: boolean },
     RetentionOutcome,
+  ];
+  remote_backup_info: [{ id: string }, RemoteInfo];
+  save_remote_backup: [
+    { id: string; config: RemoteConfig; credentials: RemoteSecretsInput },
+    RemoteInfo,
+  ];
+  test_remote_backup: [{ id: string }, void];
+  upload_backup_remote: [
+    { id: string; backupId: string; confirmed: boolean },
+    RemoteUploadOutcome,
   ];
   player_action: [{ id: string; player: string; action: string }, void];
   rcon_info: [{ id: string }, RconInfo];

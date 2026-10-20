@@ -658,6 +658,67 @@ pub async fn apply_backup_cleanup(
     Ok(outcome)
 }
 #[tauri::command]
+pub fn remote_backup_info(m: Managed<'_>, id: String) -> Result<crate::remote_backup::RemoteInfo> {
+    crate::remote_backup::info(&m, &id)
+}
+#[tauri::command]
+pub fn save_remote_backup(
+    m: Managed<'_>,
+    id: String,
+    config: crate::remote_backup::RemoteConfig,
+    credentials: crate::remote_backup::RemoteSecretsInput,
+) -> Result<crate::remote_backup::RemoteInfo> {
+    m.ensure_writable()?;
+    let info = crate::remote_backup::save(&m, &id, config, credentials)?;
+    audit(
+        &m,
+        "backup.remote.save",
+        &id,
+        format!(
+            "kind={} prefix={} encrypt={} verifyContent={} retries={}",
+            info.config.kind.label(),
+            info.config.prefix,
+            info.config.encrypt,
+            info.config.verify_content,
+            info.config.retries
+        ),
+    );
+    Ok(info)
+}
+#[tauri::command]
+pub async fn test_remote_backup(m: Managed<'_>, id: String) -> Result<()> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    let server_id = id.clone();
+    let result = crate::remote_backup::test(manager, id).await;
+    if result.is_ok() {
+        audit(&m, "backup.remote.test", &server_id, "connection succeeded");
+    }
+    result
+}
+#[tauri::command]
+pub async fn upload_backup_remote(
+    m: Managed<'_>,
+    id: String,
+    backup_id: String,
+    confirmed: bool,
+) -> Result<crate::remote_backup::RemoteUploadOutcome> {
+    m.ensure_writable()?;
+    let outcome =
+        crate::remote_backup::upload(m.inner().clone(), id.clone(), backup_id.clone(), confirmed)
+            .await?;
+    audit(
+        &m,
+        "backup.remote.upload",
+        &id,
+        format!(
+            "backup={} object={} bytes={} verification={}",
+            backup_id, outcome.archive.object, outcome.archive.bytes, outcome.verification
+        ),
+    );
+    Ok(outcome)
+}
+#[tauri::command]
 pub async fn player_action(
     m: Managed<'_>,
     id: String,

@@ -166,6 +166,59 @@ export interface RestoreOutcome {
   backupId: string;
   safetyBackupId: string | null;
 }
+export type RemoteKind = "webdav" | "s3" | "rclone";
+export interface RemoteConfig {
+  kind: RemoteKind;
+  endpoint: string;
+  bucket: string;
+  region: string;
+  prefix: string;
+  remote: string;
+  username: string;
+  accessKey: string;
+  rclonePath: string;
+  encrypt: boolean;
+  verifyContent: boolean;
+  retries: number;
+  pathStyle: boolean;
+}
+export interface RemoteSecretsInput {
+  password?: string | null;
+  secretKey?: string | null;
+  passphrase?: string | null;
+  clear: boolean;
+}
+export interface RemoteArchive {
+  backupId: string;
+  object: string;
+  bytes: number;
+  sha256: string;
+  encrypted: boolean;
+  uploadedAt: string;
+  backupCreatedAt: string;
+  label: string | null;
+  kind: RemoteKind;
+  verification: "sha256" | "size" | "backend";
+}
+export interface RemotePending {
+  backupId: string;
+  bytes: number;
+  parts: number;
+}
+export interface RemoteInfo {
+  configured: boolean;
+  config: RemoteConfig;
+  secretSet: boolean;
+  passphraseSet: boolean;
+  secretsAvailable: boolean;
+  rcloneAvailable: boolean;
+  archives: RemoteArchive[];
+  pending: RemotePending | null;
+}
+export interface RemoteUploadOutcome {
+  archive: RemoteArchive;
+  verification: string;
+}
 export interface Settings {
   appearance: "system" | "light" | "dark";
   language: "system" | "zh-CN" | "en";

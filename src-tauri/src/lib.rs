@@ -20,6 +20,7 @@ pub mod network;
 pub mod player_stats;
 pub mod rcon;
 pub mod remote;
+pub mod remote_backup;
 pub mod retention;
 pub mod schedule;
 pub mod secrets;
@@ -109,6 +110,10 @@ pub fn run() {
             commands::set_backup_retention,
             commands::preview_backup_cleanup,
             commands::apply_backup_cleanup,
+            commands::remote_backup_info,
+            commands::save_remote_backup,
+            commands::test_remote_backup,
+            commands::upload_backup_remote,
             commands::check_dependencies,
             commands::player_stats,
             commands::restore_backup,

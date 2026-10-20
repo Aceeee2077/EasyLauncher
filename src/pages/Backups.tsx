@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button, Field, Modal, bytes, date } from "../components/ui";
 import { BackupComparison } from "../components/BackupComparison";
+import { RemoteBackup } from "../components/RemoteBackup";
 import { call } from "../services/api";
 import {
   idle,
@@ -332,6 +333,12 @@ export function Backups({
           )}
         </div>
       )}
+      <RemoteBackup
+        id={server.id}
+        backups={backups}
+        run={run}
+        busy={busy}
+      />
       {live && rcon && !rcon.enabled && (
         <p className="small muted">{t("backups.liveRconHint")}</p>
       )}

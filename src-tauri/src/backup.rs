@@ -111,7 +111,7 @@ pub async fn compare(
     .await
     .map_err(|e| AppError::new("Could not compare backups.", e))?
 }
-fn read(dir: &Path) -> Result<Backup> {
+pub(crate) fn read(dir: &Path) -> Result<Backup> {
     storage::no_links(dir)?;
     let mut b: Backup = serde_json::from_slice(&fs::read(storage::child(dir, "backup.json")?)?)?;
     // Older safety snapshots predate the reason field.

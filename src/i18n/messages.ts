@@ -647,6 +647,96 @@ export const zh = {
   "backups.retentionApply": "执行清理",
   "backups.retentionApplied": "已删除 {count} 个备份，释放 {size}。",
 
+  "backups.remoteTitle": "远程备份目标",
+  "backups.remoteDesc":
+    "把备份打包为自包含归档，可选 age 口令加密后上传到 WebDAV、S3 兼容存储或本机 rclone。凭据保存在 Windows 密钥库，不写入配置文件。",
+  "backups.remoteConfigure": "配置目标",
+  "backups.remoteEdit": "编辑目标",
+  "backups.remoteTest": "测试连接",
+  "backups.remoteNotConfigured": "尚未配置远程目标；备份目前只保存在本机。",
+  "backups.remoteKind": "类型",
+  "backups.remoteTarget": "目标",
+  "backups.remoteEncryption": "归档加密",
+  "backups.remoteVerification": "上传校验",
+  "backups.remoteKindWebdav": "WebDAV",
+  "backups.remoteKindS3": "S3 兼容",
+  "backups.remoteKindRclone": "rclone",
+  "backups.remoteEncrypted": "age 口令加密",
+  "backups.remotePlain": "未加密 ZIP",
+  "backups.remoteVerifySha": "重新下载并校验 SHA-256",
+  "backups.remoteVerifySize": "仅校验远程大小",
+  "backups.remoteCredentialsSaved": "远程凭据已保存",
+  "backups.remoteCredentialsMissing": "远程凭据未保存",
+  "backups.remotePassphraseSavedShort": "归档口令已保存",
+  "backups.remotePassphraseMissing": "归档口令未设置",
+  "backups.remoteSecretsUnavailable":
+    "当前构建无法使用 Windows DPAPI，不能保存远程凭据。",
+  "backups.remoteRcloneMissing":
+    "未找到 rclone。请安装并加入 PATH，或在目标配置中填写完整路径。",
+  "backups.remotePending":
+    "上次上传未完成（已完成 {parts} 个分片）；再次上传同一备份会从断点继续。",
+  "backups.remoteSelect": "选择要上传的备份",
+  "backups.remoteUpload": "上传所选备份",
+  "backups.remoteUploadTitle": "上传备份到远程目标",
+  "backups.remoteUploadBody":
+    "将 {date} 的备份上传到 {target}。归档会先在本机生成，再通过网络发送。",
+  "backups.remoteUploadConfirm": "确认上传",
+  "backups.remoteUploaded": "上传完成，已通过{verification}。",
+  "backups.remoteVerificationSha": "SHA-256 内容校验",
+  "backups.remoteVerificationSize": "大小校验",
+  "backups.remoteHistory": "已上传的归档",
+  "backups.remoteHistoryCount": "共 {count} 个",
+  "backups.remoteHistoryEmpty": "还没有上传记录。",
+  "backups.remoteHistoryMore": "只显示最近 {count} 条。",
+  "backups.remoteSaved": "远程目标已保存。",
+  "backups.remoteTestOk": "连接测试成功。",
+  "backups.remoteConfigureTitle": "配置远程备份目标",
+  "backups.remoteEndpoint": "WebDAV 地址",
+  "backups.remoteEndpointHint":
+    "填写完整集合地址，例如 https://dav.example.com/remote.php/dav/files/me/mc。",
+  "backups.remoteS3Endpoint": "自定义端点（可留空）",
+  "backups.remoteS3EndpointHint":
+    "AWS 留空；MinIO 或自建网关填写地址，例如 http://127.0.0.1:9000。",
+  "backups.remoteBucket": "存储桶",
+  "backups.remoteRegion": "区域",
+  "backups.remoteAccessKey": "Access Key ID",
+  "backups.remoteAccessKeyHint":
+    "Access Key ID 不是密钥，会写入配置文件；Secret Key 只保存在 Windows 密钥库。",
+  "backups.remoteSecretKey": "Secret Key",
+  "backups.remoteSecretSaved": "已保存；留空表示不修改",
+  "backups.remoteUsername": "用户名（可留空）",
+  "backups.remotePassword": "密码（可留空）",
+  "backups.remotePasswordSaved": "已保存；留空表示不修改",
+  "backups.remoteRcloneRemote": "rclone 目标",
+  "backups.remoteRcloneRemoteHint":
+    "例如 myremote:mc-backups。rclone 自己的配置文件负责其远程凭据。",
+  "backups.remoteRclonePath": "rclone 可执行文件（可留空）",
+  "backups.remoteRclonePathHint": "留空时从 PATH 查找 rclone。",
+  "backups.remotePrefix": "存储子目录（可留空）",
+  "backups.remotePrefixHint": "只允许字母、数字、点、横线和下划线，使用 / 分隔。",
+  "backups.remotePathStyle": "使用路径式 S3 地址（MinIO 通常需要）",
+  "backups.remoteEncrypt": "上传前用口令加密归档",
+  "backups.remoteEncryptHint":
+    "使用 age 口令加密。口令只保存在 Windows 密钥库；遗失后远程归档无法恢复。",
+  "backups.remotePassphrase": "归档口令",
+  "backups.remotePassphraseSaved": "已保存；留空表示不修改",
+  "backups.remotePassphraseHint": "至少 8 个字符。请另外妥善保管，遗失后无法解密。",
+  "backups.remoteVerifyContent": "上传后重新下载并校验 SHA-256",
+  "backups.remoteVerifyHint":
+    "更可靠，但会额外消耗一次下载流量。关闭时只校验远程文件大小。",
+  "backups.remoteRetries": "失败重试次数",
+  "backups.remoteClear": "清除已保存的密码、Secret Key 和口令",
+  "backups.remoteSave": "保存目标",
+  "backups.remoteCredentialNote":
+    "密码、Secret Key 与归档口令通过 Windows DPAPI 绑定当前账户加密保存，不会写入 JSON 配置或审计日志。",
+  "backups.remoteUploadNote":
+    "上传由你手动触发。S3 分片上传会记录已完成分片，失败后可继续；WebDAV 没有标准续传，会从头重试；rclone 使用其自身的续传能力。",
+  "backups.remoteHttpWarning":
+    "当前地址使用 HTTP，凭据和备份内容会以明文传输。仅在本机或完全可信的网络中使用。",
+  "backups.remoteRestoreNote":
+    "当前版本只支持上传与校验，尚不能直接从远程归档恢复；请同时保留本地备份。",
+  "backups.remoteEncryptedShort": "加密",
+
   "common.schedule": "定时任务",
   "schedule.title": "定时任务",
   "schedule.desc": "让备份、重启与日志清理在你不需要盯着的时段自动完成。",
@@ -2014,6 +2104,99 @@ export const en: Record<MessageKey, string> = {
   "backups.retentionNothing": "The current policy removes no backups.",
   "backups.retentionApply": "Run cleanup",
   "backups.retentionApplied": "Deleted {count} backups and freed {size}.",
+
+  "backups.remoteTitle": "Remote backup target",
+  "backups.remoteDesc":
+    "Package a backup as a self-contained archive, optionally encrypt it with an age passphrase, and upload it to WebDAV, S3-compatible storage or local rclone. Credentials live in the Windows vault, never in the configuration file.",
+  "backups.remoteConfigure": "Configure target",
+  "backups.remoteEdit": "Edit target",
+  "backups.remoteTest": "Test connection",
+  "backups.remoteNotConfigured":
+    "No remote target is configured. Backups are currently kept on this machine only.",
+  "backups.remoteKind": "Type",
+  "backups.remoteTarget": "Target",
+  "backups.remoteEncryption": "Archive encryption",
+  "backups.remoteVerification": "Upload check",
+  "backups.remoteKindWebdav": "WebDAV",
+  "backups.remoteKindS3": "S3 compatible",
+  "backups.remoteKindRclone": "rclone",
+  "backups.remoteEncrypted": "age passphrase",
+  "backups.remotePlain": "Unencrypted ZIP",
+  "backups.remoteVerifySha": "Download again and verify SHA-256",
+  "backups.remoteVerifySize": "Verify remote size only",
+  "backups.remoteCredentialsSaved": "Remote credentials saved",
+  "backups.remoteCredentialsMissing": "Remote credentials not saved",
+  "backups.remotePassphraseSavedShort": "archive passphrase saved",
+  "backups.remotePassphraseMissing": "archive passphrase not set",
+  "backups.remoteSecretsUnavailable":
+    "This build cannot use Windows DPAPI, so remote credentials cannot be saved.",
+  "backups.remoteRcloneMissing":
+    "rclone was not found. Install it on PATH, or set the full executable path in the target settings.",
+  "backups.remotePending":
+    "The last upload did not finish ({parts} parts completed). Uploading the same backup again resumes from there.",
+  "backups.remoteSelect": "Backup to upload",
+  "backups.remoteUpload": "Upload selected backup",
+  "backups.remoteUploadTitle": "Upload backup to the remote target",
+  "backups.remoteUploadBody":
+    "Upload the backup from {date} to {target}. The archive is created locally first and then sent over the network.",
+  "backups.remoteUploadConfirm": "Upload",
+  "backups.remoteUploaded": "Upload complete; passed {verification}.",
+  "backups.remoteVerificationSha": "SHA-256 content verification",
+  "backups.remoteVerificationSize": "size verification",
+  "backups.remoteHistory": "Uploaded archives",
+  "backups.remoteHistoryCount": "{count} total",
+  "backups.remoteHistoryEmpty": "No archives have been uploaded yet.",
+  "backups.remoteHistoryMore": "Showing the most recent {count}.",
+  "backups.remoteSaved": "Remote target saved.",
+  "backups.remoteTestOk": "Connection test succeeded.",
+  "backups.remoteConfigureTitle": "Configure a remote backup target",
+  "backups.remoteEndpoint": "WebDAV URL",
+  "backups.remoteEndpointHint":
+    "Enter the full collection URL, for example https://dav.example.com/remote.php/dav/files/me/mc.",
+  "backups.remoteS3Endpoint": "Custom endpoint (optional)",
+  "backups.remoteS3EndpointHint":
+    "Leave empty for AWS; for MinIO or a self-hosted gateway enter an address such as http://127.0.0.1:9000.",
+  "backups.remoteBucket": "Bucket",
+  "backups.remoteRegion": "Region",
+  "backups.remoteAccessKey": "Access key ID",
+  "backups.remoteAccessKeyHint":
+    "The access key ID is an identifier and is stored in the configuration; the secret key is only stored in the Windows vault.",
+  "backups.remoteSecretKey": "Secret key",
+  "backups.remoteSecretSaved": "Saved; leave blank to keep it",
+  "backups.remoteUsername": "Username (optional)",
+  "backups.remotePassword": "Password (optional)",
+  "backups.remotePasswordSaved": "Saved; leave blank to keep it",
+  "backups.remoteRcloneRemote": "rclone destination",
+  "backups.remoteRcloneRemoteHint":
+    "For example myremote:mc-backups. rclone's own configuration file holds its remote credentials.",
+  "backups.remoteRclonePath": "rclone executable (optional)",
+  "backups.remoteRclonePathHint": "Leave empty to find rclone on PATH.",
+  "backups.remotePrefix": "Storage folder (optional)",
+  "backups.remotePrefixHint":
+    "Letters, digits, dots, dashes and underscores only; separate folders with /.",
+  "backups.remotePathStyle": "Use path-style S3 URLs (usually required by MinIO)",
+  "backups.remoteEncrypt": "Encrypt the archive with a passphrase before upload",
+  "backups.remoteEncryptHint":
+    "Uses age passphrase encryption. The passphrase is stored only in the Windows vault; if it is lost, the remote archive cannot be recovered.",
+  "backups.remotePassphrase": "Archive passphrase",
+  "backups.remotePassphraseSaved": "Saved; leave blank to keep it",
+  "backups.remotePassphraseHint":
+    "At least 8 characters. Store it separately; it cannot be recovered.",
+  "backups.remoteVerifyContent": "Download the upload again and verify SHA-256",
+  "backups.remoteVerifyHint":
+    "More reliable, but downloads the archive a second time. When off, only the remote size is checked.",
+  "backups.remoteRetries": "Retry attempts",
+  "backups.remoteClear": "Delete the saved password, secret key and passphrase",
+  "backups.remoteSave": "Save target",
+  "backups.remoteCredentialNote":
+    "Passwords, secret keys and archive passphrases are encrypted with Windows DPAPI for this account. They are never written to the JSON configuration or audit log.",
+  "backups.remoteUploadNote":
+    "Uploads are always manual. S3 multipart uploads record completed parts and resume after a failure; WebDAV has no standard resume and restarts; rclone uses its own resumability.",
+  "backups.remoteHttpWarning":
+    "This address uses HTTP, so credentials and backup contents travel in clear text. Use it only on this machine or a fully trusted network.",
+  "backups.remoteRestoreNote":
+    "This version supports uploading and verification only; restoring directly from a remote archive is not available yet. Keep local backups as well.",
+  "backups.remoteEncryptedShort": "Encrypted",
 
   "common.schedule": "Scheduled tasks",
   "schedule.title": "Scheduled tasks",
