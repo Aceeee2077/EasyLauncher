@@ -30,6 +30,7 @@ import {
   Globe,
   FolderInput,
   LayoutGrid,
+  TriangleAlert,
 } from "lucide-react";
 import {
   Button,
@@ -62,6 +63,7 @@ import {
   idle,
   type AppError,
   type ConsoleLine,
+  type HealthCheck,
   type Progress,
   type Server,
   type ServerView,
@@ -97,6 +99,10 @@ export default function App() {
   const [tab, setTab] = useState("console");
   const [progress, setProgress] = useState<Record<string, Progress>>({});
   const [confirmDelete, setConfirmDelete] = useState<ServerView | null>(null);
+  const [guard, setGuard] = useState<{
+    server: ServerView;
+    checks: HealthCheck[];
+  } | null>(null);
   const [log, setLog] = useState<string | null>(null);
   const [loading, setLoading] = useState(desktop);
   const [closing, setClosing] = useState(false);
@@ -160,9 +166,32 @@ export default function App() {
     action: "start_server" | "stop_server" | "restart_server",
   ) =>
     void run(`control-${s.id}`, async () => {
-      await call(action, { id: s.id });
+      try {
+        await call(action, { id: s.id });
+      } catch (e) {
+        if (
+          action === "start_server" &&
+          (e as AppError).code === "server.preflightBlocked"
+        ) {
+          setGuard({
+            server: s,
+            checks: await call("start_preflight", { id: s.id }),
+          });
+          return;
+        }
+        throw e;
+      }
       await load();
     });
+  const forceStart = () => {
+    if (!guard) return;
+    const target = guard.server;
+    setGuard(null);
+    void run(`control-${target.id}`, async () => {
+      await call("start_server", { id: target.id, force: true });
+      await load();
+    });
+  };
   const install = (s: Server | ServerView) =>
     void run(`install-${s.id}`, async () => {
       await call("install_server", { id: s.id });
@@ -940,6 +969,44 @@ export default function App() {
               }
             >
               {t("delete.confirm")}
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {guard && (
+        <Modal
+          title={t("preflight.title", { name: guard.server.name })}
+          onClose={() => setGuard(null)}
+        >
+          <p>{t("preflight.body")}</p>
+          <div className="health-list">
+            {guard.checks.map((check) => (
+              <div className={`health-row ${check.level}`} key={check.id}>
+                <span className={`health-dot ${check.level}`} />
+                <div>
+                  <strong>
+                    {t(`health.${check.id}.title` as MessageKey)}
+                  </strong>
+                  <p>
+                    {t(
+                      `health.${check.id}.${check.level}` as MessageKey,
+                      check.values,
+                    )}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p>{t("preflight.note")}</p>
+          <div className="modal-actions">
+            <Button onClick={() => setGuard(null)}>{t("common.cancel")}</Button>
+            <Button
+              variant="danger"
+              busy={busy.has(`control-${guard.server.id}`)}
+              onClick={forceStart}
+            >
+              <TriangleAlert size={15} />
+              {t("preflight.force")}
             </Button>
           </div>
         </Modal>

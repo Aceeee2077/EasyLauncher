@@ -73,6 +73,14 @@ export const zh = {
     "服务器端口已被占用或不可用。请换个端口，或停止占用它的程序。",
   "errors.backup.noWorld":
     "还没有世界数据。先启动一次服务器，停止后再创建备份。",
+  "errors.server.preflightBlocked":
+    "启动前检查发现严重问题。请先处理，或确认风险后仍然启动。",
+
+  "preflight.title": "启动前检查 · {name}",
+  "preflight.body": "以下严重问题会导致服务器无法正常启动：",
+  "preflight.note":
+    "仍然启动可能立即崩溃或无法连接。处理这些问题后，下次启动会直接通过检查。",
+  "preflight.force": "仍然启动",
 
   "deps.title": "依赖与冲突检查",
   "deps.desc": "读取本地 Fabric 元数据，并按需查询 Modrinth 依赖图。",
@@ -1040,6 +1048,14 @@ export const en: Record<MessageKey, string> = {
     "The server port is already in use or unavailable. Choose another port or stop the program using it.",
   "errors.backup.noWorld":
     "No world data exists yet. Start the server once, stop it, then create a backup.",
+  "errors.server.preflightBlocked":
+    "The pre-flight check found blocking issues. Fix them, or confirm the risk and start anyway.",
+
+  "preflight.title": "Pre-flight check · {name}",
+  "preflight.body": "These blocking issues would prevent a normal start:",
+  "preflight.note":
+    "Starting anyway may crash immediately or leave the server unreachable. Once fixed, later starts skip this prompt.",
+  "preflight.force": "Start anyway",
 
   "deps.title": "Dependencies and conflicts",
   "deps.desc":

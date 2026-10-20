@@ -116,8 +116,30 @@ pub async fn cancel_install(m: Managed<'_>, id: String) -> Result<()> {
     m.runtime(&id)?.cancelled.store(true, Ordering::Relaxed);
     Ok(())
 }
+/// Critical pre-flight findings that should stop a start attempt before Java launches.
 #[tauri::command]
-pub async fn start_server(m: Managed<'_>, id: String) -> Result<()> {
+pub async fn start_preflight(
+    m: Managed<'_>,
+    id: String,
+) -> Result<Vec<crate::server::diagnostics::HealthCheck>> {
+    let report = crate::server::diagnostics::health(m.inner().as_ref(), &id).await?;
+    Ok(report
+        .checks
+        .into_iter()
+        .filter(|check| check.level == "critical")
+        .collect())
+}
+#[tauri::command]
+pub async fn start_server(m: Managed<'_>, id: String, force: Option<bool>) -> Result<()> {
+    if !force.unwrap_or(false) {
+        let report = crate::server::diagnostics::health(m.inner().as_ref(), &id).await?;
+        if report.checks.iter().any(|check| check.level == "critical") {
+            return Err(crate::error::AppError::user(
+                "The pre-flight check found blocking issues. Review them, then start anyway if you accept the risk.",
+            )
+            .with_code("server.preflightBlocked"));
+        }
+    }
     m.start(&id).await
 }
 #[tauri::command]

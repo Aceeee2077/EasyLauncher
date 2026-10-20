@@ -15,6 +15,7 @@ import type {
   ServerType,
   LaunchInfo,
   HealthReport,
+  HealthCheck,
   DiagnosisReport,
   ProjectPage,
   ProjectVersion,
@@ -70,7 +71,8 @@ type Contract = {
   delete_server: [{ id: string; confirmed: boolean }, void];
   install_server: [{ id: string }, void];
   cancel_install: [{ id: string }, void];
-  start_server: [{ id: string }, void];
+  start_preflight: [{ id: string }, HealthCheck[]];
+  start_server: [{ id: string; force?: boolean }, void];
   stop_server: [{ id: string }, void];
   restart_server: [{ id: string }, void];
   get_server_status: [{ id: string }, Snapshot];

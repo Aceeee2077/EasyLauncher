@@ -55,6 +55,7 @@ pub fn run() {
             commands::delete_server,
             commands::install_server,
             commands::cancel_install,
+            commands::start_preflight,
             commands::start_server,
             commands::stop_server,
             commands::restart_server,
