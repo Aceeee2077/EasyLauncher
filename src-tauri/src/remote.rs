@@ -20,11 +20,15 @@ const MAX_HEAD: usize = 16 * 1024;
 const MAX_BODY: usize = 64 * 1024;
 const CONSOLE_LINES: usize = 160;
 const PAGE: &str = include_str!("mobile.html");
+const MANIFEST: &str = include_str!("mobile-manifest.json");
+const WORKER: &str = include_str!("mobile-sw.js");
+const ICON_192: &[u8] = include_bytes!("mobile-icon-192.png");
+const ICON_512: &[u8] = include_bytes!("mobile-icon-512.png");
 const SESSION_TTL: Duration = Duration::from_secs(12 * 60 * 60);
 const SESSION_LIMIT: usize = 16;
 const LOGIN_WINDOW: Duration = Duration::from_secs(60);
 const LOGIN_FAILURES: u32 = 8;
-const CSP: &str = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+const CSP: &str = "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -261,15 +265,37 @@ async fn serve(
             .await
         }
     };
-    if request.path == "/" || request.path == "/index.html" {
-        return respond_with(
-            stream,
-            "200 OK",
+    let asset = match request.path.as_str() {
+        "/" | "/index.html" => Some((
             "text/html; charset=utf-8",
             PAGE.as_bytes(),
-            &format!("Content-Security-Policy: {CSP}\r\n"),
-        )
-        .await;
+            format!("Content-Security-Policy: {CSP}\r\n"),
+        )),
+        "/manifest.webmanifest" => Some((
+            "application/manifest+json; charset=utf-8",
+            MANIFEST.as_bytes(),
+            String::new(),
+        )),
+        "/sw.js" => Some((
+            "text/javascript; charset=utf-8",
+            WORKER.as_bytes(),
+            "Service-Worker-Allowed: /\r\n".to_string(),
+        )),
+        "/icon-192.png" | "/favicon.ico" => Some(("image/png", ICON_192, String::new())),
+        "/icon-512.png" => Some(("image/png", ICON_512, String::new())),
+        _ => None,
+    };
+    if let Some((content_type, body, extra)) = asset {
+        if request.method != "GET" {
+            return respond(
+                stream,
+                "405 Method Not Allowed",
+                "text/plain; charset=utf-8",
+                b"Method not allowed",
+            )
+            .await;
+        }
+        return respond_with(stream, "200 OK", content_type, body, &extra).await;
     }
     if !request.path.starts_with("/api/") {
         return respond(
@@ -678,5 +704,66 @@ mod tests {
         assert!(PAGE.contains("X-CSRF-Token"));
         assert!(PAGE.contains("location.hash"));
         assert!(!PAGE.contains("token=\" + token"));
+    }
+
+    #[test]
+    fn embedded_page_supports_install_and_notifications() {
+        assert!(PAGE.contains("rel=\"manifest\""));
+        assert!(PAGE.contains("manifest.webmanifest"));
+        assert!(PAGE.contains("apple-touch-icon"));
+        assert!(PAGE.contains("serviceWorker.register"));
+        assert!(PAGE.contains("isSecureContext"));
+        assert!(PAGE.contains("showNotification"));
+        assert!(PAGE.contains("beforeinstallprompt"));
+        assert!(PAGE.contains("粘贴从电脑复制的访问令牌"));
+    }
+
+    #[test]
+    fn manifest_references_installable_icons() {
+        let manifest: serde_json::Value =
+            serde_json::from_str(MANIFEST).expect("manifest is valid JSON");
+        assert_eq!(manifest["start_url"], "/");
+        assert_eq!(manifest["scope"], "/");
+        assert_eq!(manifest["display"], "standalone");
+        assert_eq!(manifest["theme_color"], "#08120d");
+        let icons = manifest["icons"].as_array().expect("icons array");
+        let sizes: Vec<&str> = icons
+            .iter()
+            .filter_map(|icon| icon["sizes"].as_str())
+            .collect();
+        assert!(sizes.contains(&"192x192"));
+        assert!(sizes.contains(&"512x512"));
+        assert!(icons.iter().all(|icon| icon["src"]
+            .as_str()
+            .is_some_and(|src| src.starts_with('/') && src.ends_with(".png"))));
+    }
+
+    #[test]
+    fn service_worker_keeps_live_data_out_of_the_cache() {
+        assert!(WORKER.contains("\"/api/\""));
+        assert!(WORKER.contains("caches.match"));
+        assert!(WORKER.contains("navigate"));
+        assert!(WORKER.contains("notificationclick"));
+        assert!(WORKER.contains("skipWaiting"));
+        assert!(!WORKER.contains("cache.put(event.request"));
+    }
+
+    #[test]
+    fn embedded_icons_are_valid_png_files() {
+        for (bytes, expected) in [(ICON_192, 192u32), (ICON_512, 512u32)] {
+            assert!(bytes.len() > 1024);
+            assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n");
+            let width = u32::from_be_bytes([bytes[16], bytes[17], bytes[18], bytes[19]]);
+            let height = u32::from_be_bytes([bytes[20], bytes[21], bytes[22], bytes[23]]);
+            assert_eq!(width, expected);
+            assert_eq!(height, expected);
+        }
+    }
+
+    #[test]
+    fn csp_allows_manifest_and_worker_assets() {
+        assert!(CSP.contains("manifest-src 'self'"));
+        assert!(CSP.contains("worker-src 'self'"));
+        assert!(CSP.contains("default-src 'none'"));
     }
 }

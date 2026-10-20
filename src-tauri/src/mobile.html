@@ -4,7 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#08120d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EasyLauncher">
 <title>EasyLauncher 手机控制台</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <style>
 :root {
   color-scheme: dark;
@@ -93,6 +99,16 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 #toast.error { border-color: rgba(255,122,122,0.4); color: #ffd7d7; }
+.alert-bar {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 14px; padding: 11px 14px; border-radius: 16px;
+  background: rgba(255, 122, 122, 0.12); border: 1px solid rgba(255, 122, 122, 0.38);
+  color: #ffd7d7; font-size: 13px;
+}
+.alert-bar span { flex: 1; overflow-wrap: anywhere; }
+.alert-bar button { flex: none; min-height: 30px; padding: 4px 10px; border-radius: 9px; }
+#companion .actions { margin-top: 10px; }
+#companion .meta { line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -101,6 +117,10 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
   <div class="conn" id="conn">连接中…</div>
 </header>
 <main>
+  <div class="alert-bar hidden" id="alertBar" role="alert">
+    <span id="alertText"></span>
+    <button type="button" id="alertClose" aria-label="关闭提醒">关闭</button>
+  </div>
   <section id="servers"></section>
   <section class="panel hidden" id="consolePanel">
     <div class="panel-head">
@@ -113,9 +133,23 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
       <button class="primary" type="submit">发送</button>
     </form>
   </section>
+  <section class="panel" id="companion">
+    <div class="panel-head">
+      <h2>状态提醒</h2>
+      <span class="meta" id="notifyState">未开启</span>
+    </div>
+    <p class="meta" id="notifyHint">
+      服务器崩溃、安装失败或意外停止时提醒你。提醒只在本机页面产生，不会经过第三方推送服务。
+    </p>
+    <div class="actions">
+      <button type="button" id="notifyToggle">开启提醒</button>
+      <button type="button" id="installButton" class="hidden">添加到主屏幕</button>
+    </div>
+  </section>
 </main>
 <footer>
-  仅在同一局域网内可用 · 关闭手机控制台或退出 EasyLauncher 后链接立即失效
+  仅在同一局域网内可用 · 关闭手机控制台或退出 EasyLauncher 后链接立即失效<br>
+  状态提醒需要保持此页面打开；浏览器可能限制后台轮询频率。
 </footer>
 <div id="toast" role="status"></div>
 <script>
@@ -140,6 +174,19 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
   var titleEl = document.getElementById("consoleTitle");
   var connEl = document.getElementById("conn");
   var toastEl = document.getElementById("toast");
+  var notifyToggle = document.getElementById("notifyToggle");
+  var notifyStateEl = document.getElementById("notifyState");
+  var notifyHintEl = document.getElementById("notifyHint");
+  var installButton = document.getElementById("installButton");
+  var alertBar = document.getElementById("alertBar");
+  var alertText = document.getElementById("alertText");
+  var known = null;
+  var installPrompt = null;
+  var refreshTimer = null;
+  var consoleTimer = null;
+  var secure = typeof window.isSecureContext === "boolean" ? window.isSecureContext : false;
+  var notifyPref = false;
+  try { notifyPref = localStorage.getItem("el_notify") === "1"; } catch (error) { notifyPref = false; }
 
   function toast(text, bad) {
     toastEl.textContent = text;
@@ -150,8 +197,10 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
 
   function report(error) {
     if (error && error.status === 401) {
+      stopTimers();
       setConn(false, "会话已失效");
-      toast("会话已失效，请在 EasyLauncher 中重新扫码。", true);
+      toast("会话已失效，请重新扫码或粘贴访问令牌。", true);
+      showLogin("会话已失效，请在 EasyLauncher 中重新扫码，或在下方粘贴访问令牌。");
       return;
     }
     toast(error && error.message ? error.message : "请求失败", true);
@@ -185,31 +234,91 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
       body: JSON.stringify({ token: token })
     }).then(function (response) {
       return response.json().catch(function () { return {}; }).then(function (data) {
-        if (!response.ok) throw new Error(data.error || "链接无效，请在 EasyLauncher 中重新扫码。");
+        if (!response.ok) {
+          var error = new Error(data.error || "链接无效，请在 EasyLauncher 中重新扫码。");
+          error.status = response.status;
+          throw error;
+        }
         csrf = data.csrf || "";
         token = "";
       });
     });
   }
 
-  function boot() {
-    api("/api/session").then(function (data) {
+  function startTimers() {
+    if (refreshTimer) return;
+    refreshTimer = setInterval(refresh, 3000);
+    consoleTimer = setInterval(loadConsole, 2500);
+  }
+
+  function stopTimers() {
+    clearInterval(refreshTimer);
+    clearInterval(consoleTimer);
+    refreshTimer = null;
+    consoleTimer = null;
+  }
+
+  function connect() {
+    return api("/api/session").then(function (data) {
       csrf = data.csrf || "";
     }).catch(function (error) {
       if (error.status !== 401) throw error;
-      if (!token) throw new Error("链接已失效，请在 EasyLauncher 中重新扫码。");
+      if (!token) throw error;
       return login();
     }).then(function () {
-      refresh();
-      setInterval(refresh, 3000);
-      setInterval(loadConsole, 2500);
-    }).catch(function (error) {
-      setConn(false, "未连接");
-      serversEl.textContent = "";
-      var card = document.createElement("div");
-      card.className = "card empty";
-      card.textContent = error.message;
-      serversEl.appendChild(card);
+      startTimers();
+      return refresh();
+    });
+  }
+
+  function showLogin(message) {
+    setConn(false, "未连接");
+    serversEl.textContent = "";
+    var card = document.createElement("div");
+    card.className = "card";
+    var text = document.createElement("p");
+    text.className = "empty";
+    text.style.padding = "0 0 14px";
+    text.textContent = message;
+    card.appendChild(text);
+    var form = document.createElement("form");
+    var input = document.createElement("input");
+    input.type = "password";
+    input.placeholder = "粘贴从电脑复制的访问令牌";
+    input.autocomplete = "off";
+    input.autocapitalize = "off";
+    input.spellcheck = false;
+    var submit = document.createElement("button");
+    submit.type = "submit";
+    submit.className = "primary";
+    submit.textContent = "连接";
+    form.appendChild(input);
+    form.appendChild(submit);
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var value = input.value.trim();
+      if (!value) return;
+      token = value;
+      input.disabled = true;
+      submit.disabled = true;
+      connect().then(function () {
+        input.value = "";
+      }).catch(function (error) {
+        input.disabled = false;
+        submit.disabled = false;
+        toast(error && error.status === 401 ? "访问令牌无效，请重新复制。" : (error && error.message ? error.message : "连接失败"), true);
+      });
+    });
+    card.appendChild(form);
+    serversEl.appendChild(card);
+  }
+
+  function boot() {
+    connect().catch(function (error) {
+      var message = error && error.status === 401
+        ? "链接已失效，请在 EasyLauncher 中重新扫码，或在下方粘贴访问令牌。"
+        : (error && error.status && error.message ? error.message : "无法连接，请检查手机与电脑是否在同一 Wi-Fi。");
+      showLogin(message);
     });
   }
 
@@ -318,6 +427,7 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
     return api("/api/state").then(function (data) {
       servers = data.servers || [];
       setConn(true, "已连接");
+      track(servers);
       render();
       if (selected && !servers.some(function (server) { return server.id === selected; })) {
         selected = null;
@@ -339,6 +449,137 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
     }).catch(report);
   }
 
+  function savePref() {
+    try { localStorage.setItem("el_notify", notifyPref ? "1" : "0"); } catch (error) {}
+  }
+
+  function updateNotifyUI() {
+    if (notifyPref && (typeof Notification === "undefined" || Notification.permission !== "granted")) {
+      notifyPref = false;
+    }
+    notifyToggle.textContent = notifyPref ? "关闭提醒" : "开启提醒";
+    notifyToggle.className = notifyPref ? "primary" : "";
+    if (!secure) {
+      notifyStateEl.textContent = "仅页面内提醒";
+      notifyToggle.textContent = "系统通知不可用";
+      notifyToggle.disabled = true;
+      notifyHintEl.textContent = "当前是局域网 HTTP 连接，浏览器不允许系统通知。保持页面打开时仍会在顶部显示提醒；通过 HTTPS 打开后可开启系统通知。";
+      return;
+    }
+    if (typeof Notification === "undefined" || typeof Notification.requestPermission !== "function") {
+      notifyStateEl.textContent = "不支持系统通知";
+      notifyHintEl.textContent = "这个浏览器不支持系统通知，但页面打开时仍会在顶部提醒你。";
+      notifyToggle.disabled = true;
+      return;
+    }
+    notifyStateEl.textContent = notifyPref ? "已开启" : Notification.permission === "denied" ? "已被浏览器阻止" : "未开启";
+    notifyToggle.disabled = Notification.permission === "denied";
+    notifyHintEl.textContent = "服务器崩溃、安装失败或意外停止时提醒你。提醒只在本机页面产生，不会经过第三方推送服务。";
+  }
+
+  function toggleNotify() {
+    if (notifyPref) {
+      notifyPref = false;
+      savePref();
+      updateNotifyUI();
+      toast("已关闭提醒");
+      return;
+    }
+    if (!secure || typeof Notification === "undefined" || typeof Notification.requestPermission !== "function") {
+      toast("系统通知需要 HTTPS 连接；页面内的提醒仍会工作。", true);
+      return;
+    }
+    if (Notification.permission === "denied") {
+      toast("浏览器已阻止通知，请在网站设置中允许。", true);
+      return;
+    }
+    Notification.requestPermission().then(function (permission) {
+      notifyPref = permission === "granted";
+      savePref();
+      updateNotifyUI();
+      toast(notifyPref ? "提醒已开启" : "未获得通知权限", !notifyPref);
+    }).catch(function () {
+      toast("无法请求通知权限。", true);
+    });
+  }
+
+  function notify(title, body, tag) {
+    if (!notifyPref || typeof Notification === "undefined" || Notification.permission !== "granted") {
+      return;
+    }
+    var options = { body: body, tag: tag, icon: "/icon-192.png", badge: "/icon-192.png" };
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready.then(function (registration) {
+        return registration.showNotification(title, options);
+      }).catch(function () {
+        try { new Notification(title, options); } catch (error) {}
+      });
+    } else {
+      try { new Notification(title, options); } catch (error) {}
+    }
+  }
+
+  function alertEvent(text) {
+    alertText.textContent = text;
+    alertBar.classList.remove("hidden");
+  }
+
+  function track(next) {
+    var states = {};
+    next.forEach(function (server) { states[server.id] = server.status; });
+    if (known === null) {
+      known = states;
+      return;
+    }
+    next.forEach(function (server) {
+      var previous = known[server.id];
+      if (!previous || previous === server.status) return;
+      var detail = server.message ? "：" + server.message : "";
+      if (server.status === "crashed") {
+        alertEvent(server.name + " 已崩溃" + detail);
+        notify(server.name, "服务器已崩溃" + detail, "crash-" + server.id);
+      } else if (server.status === "installationFailed") {
+        alertEvent(server.name + " 安装失败" + detail);
+        notify(server.name, "安装失败" + detail, "install-" + server.id);
+      } else if (previous === "running" && server.status === "stopped") {
+        notify(server.name, "服务器已停止", "stop-" + server.id);
+      } else if ((previous === "starting" || previous === "restarting") && server.status === "running") {
+        notify(server.name, "服务器已启动", "start-" + server.id);
+      }
+    });
+    known = states;
+  }
+
+  window.addEventListener("beforeinstallprompt", function (event) {
+    event.preventDefault();
+    installPrompt = event;
+    installButton.classList.remove("hidden");
+  });
+  window.addEventListener("appinstalled", function () {
+    installPrompt = null;
+    installButton.classList.add("hidden");
+    toast("已添加到主屏幕");
+  });
+  installButton.addEventListener("click", function () {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    installPrompt.userChoice.then(function (choice) {
+      if (choice && choice.outcome === "accepted") toast("已添加到主屏幕");
+      installPrompt = null;
+      installButton.classList.add("hidden");
+    }).catch(function () {
+      installPrompt = null;
+      installButton.classList.add("hidden");
+    });
+  });
+  notifyToggle.addEventListener("click", toggleNotify);
+  document.getElementById("alertClose").addEventListener("click", function () {
+    alertBar.classList.add("hidden");
+  });
+  if (secure && "serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(function () {});
+  }
+
   document.getElementById("commandForm").addEventListener("submit", function (event) {
     event.preventDefault();
     var input = document.getElementById("commandInput");
@@ -355,6 +596,7 @@ footer { margin-top: 18px; text-align: center; color: rgba(157,180,166,0.7); fon
     render();
   };
 
+  updateNotifyUI();
   boot();
 })();
 </script>

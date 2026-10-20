@@ -1,0 +1,28 @@
+{
+  "id": "/",
+  "name": "EasyLauncher 手机控制台",
+  "short_name": "EasyLauncher",
+  "description": "在同一局域网内查看和管理 EasyLauncher 中的 Minecraft 服务器。",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#060f0a",
+  "theme_color": "#08120d",
+  "categories": ["utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

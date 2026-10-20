@@ -1021,6 +1021,7 @@ export function Monitor({
                 {t("remote.copy")}
               </Button>
               <p className="muted">{t("remote.hint")}</p>
+              <p className="muted">{t("remote.app")}</p>
             </div>
           </div>
         ) : (

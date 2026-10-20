@@ -1116,6 +1116,8 @@ export const zh = {
   "remote.copied": "链接已复制，请妥善保管。",
   "remote.hint":
     "链接包含一次性访问令牌，关闭控制台或退出 EasyLauncher 后立即失效。若手机无法打开，请在 Windows 防火墙中允许 EasyLauncher 访问专用网络。",
+  "remote.app":
+    "手机页面可以添加到主屏幕；允许通知后会提醒服务器崩溃或停止。局域网 HTTP 连接下浏览器只能显示页面内提醒。",
 
   "network.title": "一键联机",
   "network.desc": "自动在路由器上开启端口映射，让朋友通过互联网加入你的世界。",
@@ -3015,6 +3017,8 @@ export const en: Record<MessageKey, string> = {
   "remote.copied": "Link copied. Keep it private.",
   "remote.hint":
     "The link contains a one-time access token and expires when the console stops or EasyLauncher closes. If the phone cannot connect, allow EasyLauncher on private networks in Windows Firewall.",
+  "remote.app":
+    "Add the phone page to your home screen; allow notifications there to hear about crashes and stops. Over plain LAN HTTP the browser only shows in-page alerts.",
 
   "network.title": "One-click multiplayer",
   "network.desc":
