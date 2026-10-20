@@ -349,6 +349,25 @@ export interface Settings {
   readOnly: boolean;
   assistantEndpoint: string | null;
   assistantModel: string | null;
+  updateChannel: string | null;
+  autoCheckUpdates: boolean;
+}
+export interface UpdateAsset {
+  platform: string;
+  url: string;
+  size: number;
+  sha256: string;
+}
+export interface UpdateStatus {
+  configured: boolean;
+  channel: string | null;
+  currentVersion: string;
+  latestVersion: string | null;
+  available: boolean;
+  notes: string | null;
+  pubDate: string | null;
+  asset: UpdateAsset | null;
+  downloadedPath: string | null;
 }
 export interface AuditEntry {
   at: string;

@@ -32,6 +32,7 @@ import {
   LayoutGrid,
   TriangleAlert,
   Search,
+  X,
 } from "lucide-react";
 import {
   Button,
@@ -73,6 +74,7 @@ import {
   type ServerView,
   type Snapshot,
   type SystemInfo,
+  type UpdateStatus,
 } from "./types";
 type Page =
   | "dashboard"
@@ -114,12 +116,31 @@ export default function App() {
   const [log, setLog] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [update, setUpdate] = useState<UpdateStatus | null>(null);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
   const [loading, setLoading] = useState(desktop);
   const [closing, setClosing] = useState(false);
   const load = useCallback(async () => {
     const list = await call("list_servers");
     setServers(list);
     setSelected((s) => (list.some((v) => v.id === s) ? s : list[0]?.id || ""));
+  }, []);
+  useEffect(() => {
+    if (!desktop) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const settings = await call("get_settings");
+        if (!settings.autoCheckUpdates || !settings.updateChannel) return;
+        const status = await call("update_check");
+        if (alive && status.available) setUpdate(status);
+      } catch {
+        // Automatic checks stay silent; the settings page can retry.
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
   useEffect(() => {
     if (!desktop) return;
@@ -452,6 +473,32 @@ export default function App() {
             </Button>
           </div>
         </header>
+        {update && !updateDismissed && (
+          <div className="update-banner" role="status">
+            <Download size={16} />
+            <span>
+              {t("update.available", {
+                version: update.latestVersion || "",
+              })}
+            </span>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setPage("settings");
+                setUpdateDismissed(true);
+              }}
+            >
+              {t("update.openSettings")}
+            </Button>
+            <button
+              className="update-dismiss"
+              aria-label={t("update.dismiss")}
+              onClick={() => setUpdateDismissed(true)}
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
         <main>
           {!desktop && (
             <div className="browser-banner">

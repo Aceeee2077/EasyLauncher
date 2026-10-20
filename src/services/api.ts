@@ -54,6 +54,7 @@ import type {
   StartOptions,
   SupervisorSupport,
   ServicePreview,
+  UpdateStatus,
   WebConsoleInfo,
   NetworkReport,
   NetworkCheck,
@@ -345,6 +346,9 @@ type Contract = {
     ServicePreview,
   ];
   supervision_remove: [{ id: string; confirmed: boolean }, ServicePreview];
+  update_check: [undefined, UpdateStatus];
+  update_download: [{ version: string }, UpdateStatus];
+  update_open: [{ version: string }, void];
   web_console_info: [undefined, WebConsoleInfo | null];
   start_web_console: [undefined, WebConsoleInfo];
   stop_web_console: [undefined, void];

@@ -1,0 +1,135 @@
+name: Signed release (manual only)
+
+# Manual trigger only. This workflow builds a Windows NSIS installer, signs the
+# update manifest with the Ed25519 key from the UPDATER_SIGNING_KEY secret and
+# publishes a GitHub release. It never runs on push, so routine development
+# does not create releases or extra repository activity.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the v prefix (for example 0.2.0)"
+        required: true
+        type: string
+      notes:
+        description: "Release notes shown in the app and on GitHub"
+        required: false
+        default: ""
+        type: string
+
+concurrency:
+  group: signed-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Build, sign and publish
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_NOTES: ${{ inputs.notes }}
+      UPDATER_SIGNING_KEY: ${{ secrets.UPDATER_SIGNING_KEY }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Validate the version and signing key
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = $env:RELEASE_VERSION.Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Version must be three numeric parts, for example 0.2.0."
+          }
+          if ([string]::IsNullOrWhiteSpace($env:UPDATER_SIGNING_KEY)) {
+            throw "Set the UPDATER_SIGNING_KEY repository secret to the Ed25519 private key (PEM)."
+          }
+          $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $packageVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $cargo = Get-Content src-tauri/Cargo.toml -Raw
+          if ($tauriVersion -ne $version) { throw "tauri.conf.json is $tauriVersion, not $version." }
+          if ($packageVersion -ne $version) { throw "package.json is $packageVersion, not $version." }
+          if ($cargo -notmatch "(?m)^version\s*=\s*`"$([regex]::Escape($version))`"\s*$") {
+            throw "src-tauri/Cargo.toml does not declare version $version."
+          }
+          $key = (Get-Content src-tauri/updater.pub -Raw).Trim()
+          if ($key -notmatch '^[0-9a-fA-F]{64}$') {
+            throw "src-tauri/updater.pub must contain one 32-byte Ed25519 public key as hex."
+          }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build the installer
+        run: npm run tauri build
+
+      - name: Build and sign the update manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = $env:RELEASE_VERSION.Trim()
+          $installer = Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe" |
+            Select-Object -First 1
+          if (-not $installer) { throw "The NSIS installer was not produced." }
+          $name = "EasyLauncher_${version}_x64-setup.exe"
+          Copy-Item $installer.FullName $name
+
+          $url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v$version/$name"
+          $manifest = [ordered]@{
+            version = $version
+            notes = $env:RELEASE_NOTES
+            pubDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+            assets = @(
+              [ordered]@{
+                platform = "windows-x86_64"
+                url = $url
+                size = (Get-Item $name).Length
+                sha256 = (Get-FileHash $name -Algorithm SHA256).Hash.ToLower()
+              }
+            )
+          }
+          $json = $manifest | ConvertTo-Json -Depth 5
+          [IO.File]::WriteAllText("$PWD/latest.json", $json, [Text.UTF8Encoding]::new($false))
+
+          $keyPath = Join-Path $env:RUNNER_TEMP "updater-signing-key.pem"
+          [IO.File]::WriteAllText($keyPath, $env:UPDATER_SIGNING_KEY, [Text.UTF8Encoding]::new($false))
+          openssl pkeyutl -sign -rawin -inkey $keyPath -in latest.json -out latest.sig.bin
+          if ($LASTEXITCODE -ne 0) { throw "Manifest signing failed." }
+          $signature = [Convert]::ToHexString([IO.File]::ReadAllBytes("latest.sig.bin")).ToLower()
+          [IO.File]::WriteAllText("$PWD/latest.json.sig", $signature, [Text.UTF8Encoding]::new($false))
+
+          # Verify with the exact public key compiled into the app.
+          $publicHex = (Get-Content src-tauri/updater.pub -Raw).Trim()
+          $der = [Convert]::FromHexString("302a300506032b6570032100" + $publicHex)
+          [IO.File]::WriteAllBytes("public-key.der", $der)
+          openssl pkey -pubin -inform DER -in public-key.der -out public-key.pem
+          openssl pkeyutl -verify -pubin -inkey public-key.pem -rawin -in latest.json -sigfile latest.sig.bin
+          if ($LASTEXITCODE -ne 0) { throw "The signature did not verify with updater.pub." }
+
+      - name: Publish the release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $version = $env:RELEASE_VERSION.Trim()
+          $name = "EasyLauncher_${version}_x64-setup.exe"
+          $notes = $env:RELEASE_NOTES
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            $notes = "EasyLauncher $version"
+          }
+          gh release create "v$version" $name latest.json latest.json.sig `
+            --title "EasyLauncher $version" --notes $notes

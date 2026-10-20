@@ -205,6 +205,15 @@ pub struct Settings {
     pub assistant_endpoint: Option<String>,
     #[serde(default)]
     pub assistant_model: Option<String>,
+    /// Direct HTTPS URL of the signed update manifest, or none to disable.
+    #[serde(default)]
+    pub update_channel: Option<String>,
+    /// Silent startup check; the user still downloads and opens installers.
+    #[serde(default = "yes")]
+    pub auto_check_updates: bool,
+}
+fn yes() -> bool {
+    true
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]

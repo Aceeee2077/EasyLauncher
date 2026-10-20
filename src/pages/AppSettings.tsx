@@ -12,6 +12,7 @@ import {
   ScrollText,
   Shield,
   Trash2,
+  TriangleAlert,
 } from "lucide-react";
 import { Button, Field, GuideLink, Modal, bytes, date } from "../components/ui";
 import { brand, call, desktop } from "../services/api";
@@ -24,6 +25,7 @@ import type {
   SecretStatus,
   Settings,
   SystemInfo,
+  UpdateStatus,
 } from "../types";
 import type { TaskProps } from "../utils/task";
 
@@ -48,6 +50,8 @@ export function AppSettings({
     readOnly: false,
     assistantEndpoint: null,
     assistantModel: null,
+    updateChannel: null,
+    autoCheckUpdates: true,
   });
   const [java, setJava] = useState<JavaRuntime[]>([]);
   const [managed, setManaged] = useState<ManagedJava[]>([]);
@@ -58,6 +62,7 @@ export function AppSettings({
   const [secrets, setSecrets] = useState<SecretStatus | null>(null);
   const [clearingAudit, setClearingAudit] = useState(false);
   const [message, setMessage] = useState("");
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
 
   const reload = async () => setManaged(await call("list_managed_java"));
   const reloadAudit = async () =>
@@ -148,6 +153,33 @@ export function AppSettings({
       setClearingAudit(false);
       await reloadAudit();
       setMessage(t("settings.security.cleared"));
+    });
+
+  const checkUpdate = () =>
+    void run("updateCheck", async () => {
+      const normalized = {
+        ...settings,
+        updateChannel: settings.updateChannel?.trim() || null,
+      };
+      await call("save_settings", { settings: normalized });
+      setSettings(normalized);
+      setUpdateStatus(await call("update_check"));
+    });
+
+  const downloadUpdate = () =>
+    void run("updateDownload", async () => {
+      if (!updateStatus?.latestVersion) return;
+      setUpdateStatus(
+        await call("update_download", {
+          version: updateStatus.latestVersion,
+        }),
+      );
+    });
+
+  const openUpdate = () =>
+    void run("updateOpen", async () => {
+      if (!updateStatus?.latestVersion) return;
+      await call("update_open", { version: updateStatus.latestVersion });
     });
 
   return (
@@ -496,6 +528,129 @@ export function AppSettings({
             {t("settings.security.secretsUnsupported")}
           </p>
         )}
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <Download size={18} />
+              {t("settings.update.title")}
+            </h2>
+            <p>{t("settings.update.desc")}</p>
+          </div>
+          <Button busy={busy.has("updateCheck")} onClick={checkUpdate}>
+            <RefreshCw size={15} />
+            {t("settings.update.check")}
+          </Button>
+        </div>
+        <Field
+          label={t("settings.update.channel")}
+          hint={t("settings.update.channelHint")}
+        >
+          <input
+            placeholder={t("settings.update.channelPlaceholder")}
+            value={settings.updateChannel || ""}
+            onChange={(e) =>
+              setSettings((s) => ({
+                ...s,
+                updateChannel: e.target.value || null,
+              }))
+            }
+          />
+        </Field>
+        <label className="inline-check">
+          <input
+            type="checkbox"
+            checked={settings.autoCheckUpdates}
+            onChange={(e) =>
+              setSettings((s) => ({
+                ...s,
+                autoCheckUpdates: e.target.checked,
+              }))
+            }
+          />
+          <strong>{t("settings.update.autoCheck")}</strong>
+        </label>
+        <div className="update-status">
+          <p className="small muted">
+            {t("settings.update.current", {
+              version: updateStatus?.currentVersion ?? brand.version,
+            })}
+          </p>
+          {updateStatus &&
+            (!updateStatus.configured ? (
+              <p className="small muted">
+                {t("settings.update.notConfigured")}
+              </p>
+            ) : !updateStatus.available ? (
+              <p className="success-text small">
+                {t("settings.update.upToDate", {
+                  version: updateStatus.currentVersion,
+                })}
+              </p>
+            ) : (
+              <>
+                <div className="update-found">
+                  <strong>
+                    {t("settings.update.available", {
+                      version: updateStatus.latestVersion || "",
+                    })}
+                  </strong>
+                  {updateStatus.notes && <p>{updateStatus.notes}</p>}
+                  {!updateStatus.asset && (
+                    <p className="service-warning">
+                      <TriangleAlert size={16} />
+                      {t("settings.update.noAsset")}
+                    </p>
+                  )}
+                </div>
+                {updateStatus.asset && (
+                  <div className="row">
+                    {updateStatus.downloadedPath ? (
+                      <>
+                        <span className="success-text small">
+                          {t("settings.update.downloaded")}
+                        </span>
+                        <Button
+                          busy={busy.has("updateOpen")}
+                          disabled={settings.readOnly}
+                          onClick={openUpdate}
+                        >
+                          {t("settings.update.open")}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          busy={busy.has("updateDownload")}
+                          disabled={settings.readOnly}
+                          onClick={downloadUpdate}
+                        >
+                          {t("settings.update.downloadAgain")}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        busy={busy.has("updateDownload")}
+                        disabled={settings.readOnly}
+                        onClick={downloadUpdate}
+                      >
+                        {t("settings.update.download", {
+                          size: bytes(updateStatus.asset.size),
+                        })}
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {settings.readOnly && (
+                  <p className="small muted">
+                    {t("settings.update.readOnly")}
+                  </p>
+                )}
+                <p className="small muted">
+                  {t("settings.update.openHint")}
+                </p>
+              </>
+            ))}
+        </div>
       </section>
       <section className="panel">
         <div className="section-title">

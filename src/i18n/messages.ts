@@ -108,6 +108,21 @@ export const zh = {
   "errors.supervision.notInstalled":
     "请先安装服务器文件，再创建生产服务。",
   "errors.supervision.noFile": "这个服务器没有已安装的服务文件。",
+  "errors.update.invalidChannel":
+    "请填写 latest.json 的直接 HTTPS 地址，不要包含空格、查询参数或片段。",
+  "errors.update.notConfigured": "这个构建没有可用的更新签名公钥。",
+  "errors.update.network": "无法连接更新渠道，请检查 URL、代理和网络。",
+  "errors.update.tooLarge": "更新响应比预期更大，已停止读取。",
+  "errors.update.invalidManifest": "更新清单格式无效。",
+  "errors.update.badSignature":
+    "更新清单签名无效，可能不是由本应用的签名密钥发布。",
+  "errors.update.changed": "发布已变化或不再是新版本，请重新检查。",
+  "errors.update.noAsset": "这个版本没有适用于当前平台的安装包。",
+  "errors.update.sizeMismatch": "安装包大小与签名清单不一致。",
+  "errors.update.hashMismatch": "安装包校验失败，请重新下载。",
+  "errors.update.invalidRecord": "已下载安装包的记录无效，请重新下载。",
+  "errors.update.notDownloaded": "安装包已不在磁盘上，请重新下载。",
+  "errors.update.openFailed": "无法打开安装程序，请从应用数据目录手动打开。",
   "errors.backup.noWorld":
     "还没有世界数据。先启动一次服务器，停止后再创建备份。",
   "errors.backup.notRunning":
@@ -244,6 +259,9 @@ export const zh = {
   "topbar.hostedLocally": "托管在您的电脑上",
   "topbar.refresh": "刷新服务器",
   "topbar.workspace": "工作区",
+  "update.available": "EasyLauncher {version} 已发布。",
+  "update.openSettings": "查看更新",
+  "update.dismiss": "关闭更新提示",
   "palette.trigger": "搜索或跳转",
   "palette.title": "命令面板",
   "palette.placeholder": "搜索服务器、页面或动作…",
@@ -502,6 +520,28 @@ export const zh = {
   "settings.security.secretsEmpty": "没有保存的密钥。",
   "settings.security.secretsUnsupported":
     "当前构建不支持 Windows DPAPI，无法安全保存密钥。",
+  "settings.update.title": "应用更新",
+  "settings.update.desc":
+    "从直接 HTTPS 地址读取带签名的更新清单；下载后校验大小与 SHA-256，安装程序只在你点击时打开。",
+  "settings.update.channel": "更新清单 URL",
+  "settings.update.channelHint":
+    "填写 latest.json 的直接 HTTPS 地址，签名会从同地址加 .sig 读取。留空关闭更新检查。",
+  "settings.update.channelPlaceholder":
+    "https://example.com/easylauncher/latest.json",
+  "settings.update.autoCheck": "启动时静默检查更新",
+  "settings.update.check": "立即检查",
+  "settings.update.current": "当前版本 {version}。",
+  "settings.update.notConfigured": "尚未配置更新清单。",
+  "settings.update.upToDate": "已是最新版本（{version}）。",
+  "settings.update.available": "发现新版本 {version}。",
+  "settings.update.noAsset": "这个版本没有适用于当前平台的安装包。",
+  "settings.update.download": "下载安装包（{size}）",
+  "settings.update.downloadAgain": "重新下载",
+  "settings.update.downloaded": "安装包已下载并通过校验。",
+  "settings.update.open": "打开安装程序",
+  "settings.update.openHint":
+    "打开后由系统安装程序完成升级；EasyLauncher 不会静默安装。",
+  "settings.update.readOnly": "只读模式下不能下载或打开安装程序。",
   "settings.about.desc": "独立软件。与 Mojang 或 Microsoft 无关联。",
   "settings.about.logs": "打开应用日志",
   "settings.save": "保存偏好设置",
@@ -1802,6 +1842,31 @@ export const en: Record<MessageKey, string> = {
     "Install the server files before creating a production service.",
   "errors.supervision.noFile":
     "No service file is installed for this server.",
+  "errors.update.invalidChannel":
+    "Enter a direct HTTPS URL to latest.json without spaces, a query or a fragment.",
+  "errors.update.notConfigured":
+    "This build has no usable update signing public key.",
+  "errors.update.network":
+    "Could not reach the update channel. Check the URL, proxy and connection.",
+  "errors.update.tooLarge":
+    "The update response was larger than expected and was stopped.",
+  "errors.update.invalidManifest": "The update manifest is invalid.",
+  "errors.update.badSignature":
+    "The update manifest signature does not match this app's signing key.",
+  "errors.update.changed":
+    "The release changed or is no longer newer. Check again.",
+  "errors.update.noAsset":
+    "This release has no installer for the current platform.",
+  "errors.update.sizeMismatch":
+    "The installer size does not match the signed manifest.",
+  "errors.update.hashMismatch":
+    "The installer checksum failed. Download it again.",
+  "errors.update.invalidRecord":
+    "The downloaded installer record is invalid. Download it again.",
+  "errors.update.notDownloaded":
+    "The installer is no longer on disk. Download it again.",
+  "errors.update.openFailed":
+    "The installer could not be opened. Open it from the app data folder.",
   "errors.backup.noWorld":
     "No world data exists yet. Start the server once, stop it, then create a backup.",
   "errors.backup.notRunning":
@@ -1943,6 +2008,9 @@ export const en: Record<MessageKey, string> = {
   "topbar.hostedLocally": "Hosted on your computer",
   "topbar.refresh": "Refresh servers",
   "topbar.workspace": "Workspace",
+  "update.available": "EasyLauncher {version} is available.",
+  "update.openSettings": "View update",
+  "update.dismiss": "Dismiss update notice",
   "palette.trigger": "Search or jump to",
   "palette.title": "Command palette",
   "palette.placeholder": "Search servers, pages or actions…",
@@ -2216,6 +2284,31 @@ export const en: Record<MessageKey, string> = {
   "settings.security.secretsEmpty": "No secrets stored.",
   "settings.security.secretsUnsupported":
     "This build cannot use Windows DPAPI, so secrets cannot be stored securely.",
+  "settings.update.title": "Application updates",
+  "settings.update.desc":
+    "Reads a signed update manifest from a direct HTTPS URL. Downloads are checked for the signed size and SHA-256, and the installer opens only when you ask.",
+  "settings.update.channel": "Manifest URL",
+  "settings.update.channelHint":
+    "Use a direct HTTPS URL to latest.json; its signature is read from the same URL plus .sig. Leave empty to disable update checks.",
+  "settings.update.channelPlaceholder":
+    "https://example.com/easylauncher/latest.json",
+  "settings.update.autoCheck": "Check silently at startup",
+  "settings.update.check": "Check now",
+  "settings.update.current": "Current version {version}.",
+  "settings.update.notConfigured": "No update manifest is configured.",
+  "settings.update.upToDate": "Up to date ({version}).",
+  "settings.update.available": "Version {version} is available.",
+  "settings.update.noAsset":
+    "This release has no installer for the current platform.",
+  "settings.update.download": "Download installer ({size})",
+  "settings.update.downloadAgain": "Download again",
+  "settings.update.downloaded":
+    "The installer was downloaded and verified.",
+  "settings.update.open": "Open installer",
+  "settings.update.openHint":
+    "The system installer completes the upgrade; EasyLauncher never installs silently.",
+  "settings.update.readOnly":
+    "Read-only mode blocks downloading or opening the installer.",
   "settings.about.desc":
     "Independent software. Not affiliated with Mojang or Microsoft.",
   "settings.about.logs": "Open application logs",

@@ -427,6 +427,64 @@ nav > button small {
 .topbar .row {
   gap: 22px;
 }
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 24px 0;
+  padding: 8px 12px 8px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--fill));
+  font-size: 11px;
+  color: var(--text);
+}
+.update-banner > span {
+  flex: 1;
+  min-width: 0;
+}
+.update-banner > svg {
+  color: var(--accent);
+}
+.update-dismiss {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+}
+.update-dismiss:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.update-status {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+.update-status > p {
+  margin: 0;
+}
+.update-found {
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--fill);
+}
+.update-found p {
+  margin: 7px 0 0;
+  white-space: pre-wrap;
+  font-size: 10px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.update-found .service-warning {
+  margin-top: 10px;
+}
 .palette-trigger {
   display: flex;
   align-items: center;

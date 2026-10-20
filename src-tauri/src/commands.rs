@@ -1456,6 +1456,28 @@ pub async fn supervision_remove(
     audit(&m, "supervision.remove", &server_id, &preview.file_name);
     Ok(preview)
 }
+#[tauri::command]
+pub async fn update_check(m: Managed<'_>) -> Result<crate::update::Status> {
+    crate::update::check(&m).await
+}
+#[tauri::command]
+pub async fn update_download(m: Managed<'_>, version: String) -> Result<crate::update::Status> {
+    m.ensure_writable()?;
+    let status = crate::update::download(&m, &version).await?;
+    crate::audit::record(&m, "update.download", None, None, &version);
+    Ok(status)
+}
+#[tauri::command]
+pub async fn update_open(m: Managed<'_>, version: String) -> Result<()> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    let opened = version.clone();
+    tokio::task::spawn_blocking(move || crate::update::open_installer(&manager, &opened))
+        .await
+        .map_err(|e| AppError::new("Could not open the downloaded installer.", e))??;
+    crate::audit::record(&m, "update.open", None, None, &version);
+    Ok(())
+}
 type Remote<'a> = State<'a, Arc<crate::remote::WebConsole>>;
 #[tauri::command]
 pub fn web_console_info(r: Remote<'_>) -> Option<crate::remote::WebConsoleInfo> {

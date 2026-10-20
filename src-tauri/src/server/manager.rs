@@ -610,6 +610,18 @@ impl Manager {
             }
             _ => None,
         };
+        s.update_channel = match s.update_channel.as_deref().map(str::trim) {
+            Some(channel) if !channel.is_empty() => {
+                if !crate::update::valid_channel(channel) {
+                    return Err(AppError::user(
+                        "Enter a direct HTTPS URL to latest.json, without spaces, a query or a fragment.",
+                    )
+                    .with_code("update.invalidChannel"));
+                }
+                Some(channel.to_string())
+            }
+            _ => None,
+        };
         let client = build_client(s.proxy.as_deref())?;
         storage::write_json(&storage::child(&self.root, "settings.json")?, &s)?;
         *self.client.write().unwrap_or_else(|e| e.into_inner()) = client;

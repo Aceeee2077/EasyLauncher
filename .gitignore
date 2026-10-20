@@ -4,3 +4,5 @@ src-tauri/target/
 *.log
 .verification/
 EasyLauncher_*_x64-setup.exe
+
+src-tauri/updater-signing-key.pem

@@ -30,6 +30,7 @@ pub mod server;
 pub mod storage;
 pub mod supervision;
 pub mod tunnel;
+pub mod update;
 pub mod upgrade;
 pub mod upnp;
 pub mod world_map;
@@ -193,6 +194,9 @@ pub fn run() {
             commands::supervision_preview,
             commands::supervision_install,
             commands::supervision_remove,
+            commands::update_check,
+            commands::update_download,
+            commands::update_open,
             commands::web_console_info,
             commands::start_web_console,
             commands::stop_web_console,
