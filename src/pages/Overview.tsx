@@ -1,13 +1,20 @@
 import { useState } from "react";
 import {
   Activity,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   CirclePause,
+  MessageSquare,
   Play,
   RotateCw,
   Server as ServerIcon,
+  ShieldCheck,
   Square,
   TriangleAlert,
+  UserMinus,
+  UserRound,
+  Users,
 } from "lucide-react";
 import { Button, StatusBadge } from "../components/ui";
 import { useI18n } from "../i18n";
@@ -52,6 +59,13 @@ export function Overview({
   const { t } = useI18n();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [openPlayers, setOpenPlayers] = useState<Set<string>>(new Set());
+  const [chat, setChat] = useState<{
+    serverId: string;
+    player: string;
+  } | null>(null);
+  const [draft, setDraft] = useState("");
+  const [sent, setSent] = useState<Record<string, string>>({});
   const running = servers.filter((s) => s.runtime.status === "running").length;
   const idleCount = servers.filter((s) => idle(s.runtime.status)).length;
   const attention = servers.filter((s) =>
@@ -65,6 +79,39 @@ export function Overview({
       if (!next.delete(id)) next.add(id);
       return next;
     });
+  const togglePlayers = (id: string) =>
+    setOpenPlayers((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  const remember = (id: string, text: string) =>
+    setSent((prev) => ({ ...prev, [id]: text }));
+  const act = (server: ServerView, player: string, action: "kick" | "op") =>
+    void run(`overview-player-${server.id}`, async () => {
+      await call("player_action", { id: server.id, player, action });
+      remember(
+        server.id,
+        t("overview.playerDone", {
+          action: t(action === "kick" ? "overview.kick" : "overview.op"),
+          player,
+        }),
+      );
+    });
+  const sendMessage = (server: ServerView) => {
+    if (!chat || chat.serverId !== server.id) return;
+    const text = draft.trim();
+    if (!text) return;
+    void run(`overview-chat-${server.id}`, async () => {
+      await call("send_console_command", {
+        id: server.id,
+        command: `tell ${chat.player} ${text}`,
+      });
+      remember(server.id, t("overview.msgDone", { player: chat.player }));
+      setChat(null);
+      setDraft("");
+    });
+  };
   const allSelected =
     servers.length > 0 && servers.every((s) => selected.has(s.id));
   const perform = (action: Action) => {
@@ -201,38 +248,160 @@ export function Overview({
         )}
         {servers.length ? (
           <div className="overview-list">
-            {servers.map((s) => (
-              <div className="overview-row" key={s.id}>
-                <input
-                  type="checkbox"
-                  aria-label={t("overview.select", { name: s.name })}
-                  checked={selected.has(s.id)}
-                  onChange={() => toggle(s.id)}
-                />
-                <div className="overview-main">
-                  <strong>
-                    {s.name}
-                    <StatusBadge status={s.runtime.status} />
-                  </strong>
-                  <p>
-                    {t("overview.meta", {
-                      type: s.serverType,
-                      version: s.minecraftVersion,
-                      port: s.port,
-                    })}
-                    {s.runtime.status === "running"
-                      ? ` · ${t("overview.players", {
+            {servers.map((s) => {
+              const online = openPlayers.has(s.id);
+              const busyKey = `overview-player-${s.id}`;
+              return (
+                <div className="overview-item" key={s.id}>
+                  <div className="overview-row">
+                    <input
+                      type="checkbox"
+                      aria-label={t("overview.select", { name: s.name })}
+                      checked={selected.has(s.id)}
+                      onChange={() => toggle(s.id)}
+                    />
+                    <div className="overview-main">
+                      <strong>
+                        {s.name}
+                        <StatusBadge status={s.runtime.status} />
+                      </strong>
+                      <p>
+                        {t("overview.meta", {
+                          type: s.serverType,
+                          version: s.minecraftVersion,
+                          port: s.port,
+                        })}
+                        {s.runtime.status === "running"
+                          ? ` · ${t("overview.players", {
+                              count: s.runtime.players.length,
+                            })}`
+                          : ""}
+                      </p>
+                    </div>
+                    {s.runtime.status === "running" && (
+                      <Button
+                        onClick={() => togglePlayers(s.id)}
+                        aria-expanded={online}
+                      >
+                        <Users size={14} />
+                        {t("overview.online", {
                           count: s.runtime.players.length,
-                        })}`
-                      : ""}
-                  </p>
+                        })}
+                        {online ? (
+                          <ChevronUp size={14} />
+                        ) : (
+                          <ChevronDown size={14} />
+                        )}
+                      </Button>
+                    )}
+                    <Button onClick={() => onManage(s)}>
+                      {t("common.manage")}
+                      <ChevronRight size={14} />
+                    </Button>
+                  </div>
+                  {online && s.runtime.status === "running" && (
+                    <div className="overview-players">
+                      {s.runtime.players.length ? (
+                        s.runtime.players.map((player) => {
+                          const chatting =
+                            chat?.serverId === s.id && chat.player === player;
+                          return (
+                            <div className="overview-player" key={player}>
+                              <span className="avatar">
+                                <UserRound size={15} />
+                              </span>
+                              <strong>{player}</strong>
+                              <div className="row">
+                                <button
+                                  className="player-action"
+                                  disabled={busy.has(busyKey)}
+                                  onClick={() => act(s, player, "kick")}
+                                >
+                                  <UserMinus size={13} />
+                                  {t("overview.kick")}
+                                </button>
+                                <button
+                                  className="player-action"
+                                  disabled={busy.has(busyKey)}
+                                  onClick={() => act(s, player, "op")}
+                                >
+                                  <ShieldCheck size={13} />
+                                  {t("overview.op")}
+                                </button>
+                                <button
+                                  className={`player-action${chatting ? " active" : ""}`}
+                                  onClick={() => {
+                                    setChat(
+                                      chatting
+                                        ? null
+                                        : { serverId: s.id, player },
+                                    );
+                                    setDraft("");
+                                  }}
+                                >
+                                  <MessageSquare size={13} />
+                                  {t("overview.message")}
+                                </button>
+                              </div>
+                              {chatting && (
+                                <form
+                                  className="overview-chat"
+                                  onSubmit={(e) => {
+                                    e.preventDefault();
+                                    sendMessage(s);
+                                  }}
+                                >
+                                  <input
+                                    autoFocus
+                                    maxLength={256}
+                                    required
+                                    value={draft}
+                                    placeholder={t(
+                                      "overview.messagePlaceholder",
+                                      { player },
+                                    )}
+                                    onChange={(e) => setDraft(e.target.value)}
+                                  />
+                                  <Button
+                                    variant="primary"
+                                    type="submit"
+                                    busy={busy.has(
+                                      `overview-chat-${s.id}`,
+                                    )}
+                                    disabled={!draft.trim()}
+                                  >
+                                    {t("overview.send")}
+                                  </Button>
+                                  <button
+                                    type="button"
+                                    className="player-action"
+                                    onClick={() => setChat(null)}
+                                  >
+                                    {t("common.cancel")}
+                                  </button>
+                                </form>
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="overview-players-empty">
+                          {t("overview.noPlayers")}
+                        </p>
+                      )}
+                      <p className="overview-players-note">
+                        {t("overview.playerNote")}
+                      </p>
+                      {sent[s.id] && (
+                        <p className="success-text small" role="status">
+                          {sent[s.id]}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <Button onClick={() => onManage(s)}>
-                  {t("common.manage")}
-                  <ChevronRight size={14} />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="overview-empty">{t("overview.empty")}</p>
