@@ -4123,6 +4123,127 @@ progress::-webkit-progress-value {
 .chart-card .mini-empty {
   margin: 18px 0 8px;
 }
+.perf-settings {
+  margin-bottom: 12px;
+}
+.perf-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 6px 0 16px;
+}
+.perf-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--fill);
+}
+.perf-stats small {
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+.perf-stats strong {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.perf-stats em {
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+}
+.perf-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.perf-chart .chart-head span {
+  font-variant-numeric: tabular-nums;
+}
+.spark-line.tps {
+  stroke: var(--accent);
+}
+.spark-line.mspt {
+  stroke: #e0b86a;
+}
+.spark-line.memory {
+  stroke: #6d9eff;
+}
+.warn-text {
+  color: #e0b86a;
+  font-size: 12px;
+  margin: 4px 0 10px;
+}
+.jfr-tools {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--fill);
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.jfr-tools.ready {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  color: var(--text);
+}
+.jfr-tools.blocked {
+  border-color: color-mix(in srgb, #e0b86a 35%, var(--border));
+}
+.perf-subtitle {
+  margin: 16px 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+.jfr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jfr-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--fill);
+}
+.jfr-item div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.jfr-item strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  font-weight: 500;
+}
+.jfr-item small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.heap-card {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--fill);
+}
+.heap-card .perf-stats {
+  margin-bottom: 8px;
+}
 .rule-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

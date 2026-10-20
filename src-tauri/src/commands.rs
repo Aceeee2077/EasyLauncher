@@ -1293,6 +1293,67 @@ pub async fn save_monitor_rules(
         .await
         .map_err(|e| AppError::new("Could not save alert rules.", e))?
 }
+#[tauri::command]
+pub async fn perf_report(m: Managed<'_>, id: String) -> Result<crate::perf::PerfReport> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::perf::report(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not read the performance history.", e))?
+}
+#[tauri::command]
+pub async fn perf_save_config(
+    m: Managed<'_>,
+    id: String,
+    config: crate::perf::PerfConfig,
+) -> Result<crate::perf::PerfConfig> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::perf::save_config(&manager, &id, config))
+        .await
+        .map_err(|e| AppError::new("Could not save performance recording settings.", e))?
+}
+#[tauri::command]
+pub async fn perf_sample_now(m: Managed<'_>, id: String) -> Result<crate::perf::PerfSample> {
+    let manager = m.inner().clone();
+    crate::perf::sample_now(&manager, &id).await
+}
+#[tauri::command]
+pub async fn perf_jfr_tools(m: Managed<'_>, id: String) -> Result<crate::perf::JfrTools> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::perf::jfr_tools(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not inspect the Java profiling tools.", e))?
+}
+#[tauri::command]
+pub async fn perf_jfr_start(
+    m: Managed<'_>,
+    id: String,
+    duration_secs: u64,
+    settings: Option<String>,
+) -> Result<crate::perf::Recording> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    crate::perf::start_jfr(&manager, &id, duration_secs, settings).await
+}
+#[tauri::command]
+pub async fn perf_jfr_stop(m: Managed<'_>, id: String, name: String) -> Result<()> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    crate::perf::stop_jfr(&manager, &id, &name).await
+}
+#[tauri::command]
+pub async fn perf_delete_profile(m: Managed<'_>, id: String, name: String) -> Result<()> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::perf::delete_profile(&manager, &id, &name))
+        .await
+        .map_err(|e| AppError::new("Could not delete the profile recording.", e))?
+}
+#[tauri::command]
+pub async fn perf_heap_info(m: Managed<'_>, id: String) -> Result<crate::perf::HeapInfo> {
+    let manager = m.inner().clone();
+    crate::perf::heap_info(&manager, &id).await
+}
 type Remote<'a> = State<'a, Arc<crate::remote::WebConsole>>;
 #[tauri::command]
 pub fn web_console_info(r: Remote<'_>) -> Option<crate::remote::WebConsoleInfo> {

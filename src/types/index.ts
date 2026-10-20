@@ -748,6 +748,63 @@ export interface AlertRules {
   memoryPercent: number;
   lagEvents: number;
 }
+export interface PerfConfig {
+  enabled: boolean;
+  intervalSecs: number;
+}
+export interface PerfSample {
+  id: string;
+  at: string;
+  tps1m: number | null;
+  tps5m: number | null;
+  tps15m: number | null;
+  mspt: number | null;
+  players: number;
+  memoryMb: number | null;
+  source: string;
+}
+export interface PerfIssue {
+  code: string;
+  message: string;
+}
+export interface ActiveRecording {
+  name: string;
+  file: string;
+  startedAt: string;
+  durationSecs: number;
+}
+export interface ProfileFile {
+  name: string;
+  sizeBytes: number;
+  modifiedAt: string | null;
+}
+export interface PerfReport {
+  id: string;
+  enabled: boolean;
+  intervalSecs: number;
+  samples: PerfSample[];
+  latest: PerfSample | null;
+  lastError: PerfIssue | null;
+  rconReady: boolean;
+  spark: boolean;
+  recordings: ActiveRecording[];
+  profiles: ProfileFile[];
+}
+export interface JfrTools {
+  javaPath: string;
+  jcmd: string | null;
+  available: boolean;
+  reason: "noJava" | "jreOnly" | null;
+}
+export interface HeapInfo {
+  at: string;
+  usedMb: number | null;
+  committedMb: number | null;
+  maxMb: number | null;
+  metaspaceUsedMb: number | null;
+  collector: string | null;
+  unparsed: boolean;
+}
 export interface WebConsoleInfo {
   running: boolean;
   url: string;

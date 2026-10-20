@@ -78,6 +78,7 @@ pub struct Manager {
     pub logger: Logger,
     pub runtimes: Mutex<HashMap<String, Arc<Runtime>>>,
     pub monitors: Mutex<HashMap<String, Arc<Mutex<crate::monitor::MonitorState>>>>,
+    pub perf: Mutex<HashMap<String, Arc<Mutex<crate::perf::PerfState>>>>,
     pub player_stats: Mutex<HashMap<String, crate::player_stats::Store>>,
     pub tunnels: AsyncMutex<HashMap<String, crate::tunnel::Runtime>>,
     pub shutting_down: AtomicBool,
@@ -127,6 +128,7 @@ impl Manager {
             logger,
             runtimes: Mutex::new(HashMap::new()),
             monitors: Mutex::new(HashMap::new()),
+            perf: Mutex::new(HashMap::new()),
             player_stats: Mutex::new(HashMap::new()),
             tunnels: AsyncMutex::new(HashMap::new()),
             shutting_down: AtomicBool::new(false),
@@ -565,6 +567,7 @@ impl Manager {
         fs::rename(&dir, &trash)?;
         self.runtimes.lock().unwrap().remove(id);
         self.monitors.lock().unwrap().remove(id);
+        self.perf.lock().unwrap().remove(id);
         self.player_stats.lock().unwrap().remove(id);
         self.tunnels.lock().await.remove(id);
         fs::remove_dir_all(trash)?;

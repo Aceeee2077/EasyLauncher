@@ -42,6 +42,12 @@ import type {
   MetricsSample,
   ServerAlert,
   AlertRules,
+  PerfReport,
+  PerfConfig,
+  PerfSample,
+  JfrTools,
+  ActiveRecording,
+  HeapInfo,
   WebConsoleInfo,
   NetworkReport,
   NetworkCheck,
@@ -303,6 +309,20 @@ type Contract = {
   clear_monitor_alerts: [{ id: string }, void];
   monitor_rules: [{ id: string }, AlertRules];
   save_monitor_rules: [{ id: string; rules: AlertRules }, AlertRules];
+  perf_report: [{ id: string }, PerfReport];
+  perf_save_config: [
+    { id: string; config: PerfConfig },
+    PerfConfig,
+  ];
+  perf_sample_now: [{ id: string }, PerfSample];
+  perf_jfr_tools: [{ id: string }, JfrTools];
+  perf_jfr_start: [
+    { id: string; durationSecs: number; settings?: string },
+    ActiveRecording,
+  ];
+  perf_jfr_stop: [{ id: string; name: string }, void];
+  perf_delete_profile: [{ id: string; name: string }, void];
+  perf_heap_info: [{ id: string }, HeapInfo];
   web_console_info: [undefined, WebConsoleInfo | null];
   start_web_console: [undefined, WebConsoleInfo];
   stop_web_console: [undefined, void];

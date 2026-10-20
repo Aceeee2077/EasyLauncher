@@ -17,6 +17,7 @@ pub mod models;
 pub mod modrinth;
 pub mod monitor;
 pub mod network;
+pub mod perf;
 pub mod player_stats;
 pub mod rcon;
 pub mod remote;
@@ -52,6 +53,7 @@ pub fn run() {
             let manager = server::manager::Manager::new(root, app.handle().clone())?;
             schedule::spawn(manager.clone());
             monitor::spawn(manager.clone());
+            perf::spawn(manager.clone());
             player_stats::spawn(manager.clone());
             app.manage(remote::WebConsole::new(manager.clone()));
             app.manage(manager);
@@ -171,6 +173,14 @@ pub fn run() {
             commands::clear_monitor_alerts,
             commands::monitor_rules,
             commands::save_monitor_rules,
+            commands::perf_report,
+            commands::perf_save_config,
+            commands::perf_sample_now,
+            commands::perf_jfr_tools,
+            commands::perf_jfr_start,
+            commands::perf_jfr_stop,
+            commands::perf_delete_profile,
+            commands::perf_heap_info,
             commands::web_console_info,
             commands::start_web_console,
             commands::stop_web_console,
