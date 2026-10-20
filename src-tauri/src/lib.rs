@@ -22,6 +22,7 @@ pub mod player_stats;
 pub mod rcon;
 pub mod remote;
 pub mod remote_backup;
+pub mod resources;
 pub mod retention;
 pub mod schedule;
 pub mod secrets;
@@ -181,6 +182,12 @@ pub fn run() {
             commands::perf_jfr_stop,
             commands::perf_delete_profile,
             commands::perf_heap_info,
+            commands::resources_report,
+            commands::resources_plan,
+            commands::resources_start_queue,
+            commands::resources_queue_state,
+            commands::resources_cancel_queue,
+            commands::resources_apply_port,
             commands::web_console_info,
             commands::start_web_console,
             commands::stop_web_console,

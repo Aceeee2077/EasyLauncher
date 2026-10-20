@@ -5014,6 +5014,211 @@ progress::-webkit-progress-value {
   color: var(--muted);
   font-size: 9px;
 }
+.resource-memory {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.resource-bar {
+  display: flex;
+  height: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface2);
+}
+.resource-bar.over {
+  border-color: #e0b86a;
+}
+.resource-bar span {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  transition: width 240ms ease;
+}
+.resource-bar .running {
+  background: #58b98a;
+}
+.resource-bar .idle {
+  background: #e0b86a;
+}
+.resource-bar .free {
+  background: var(--fill);
+}
+.resource-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.resource-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.resource-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.resource-legend i.running {
+  background: #58b98a;
+}
+.resource-legend i.idle {
+  background: #e0b86a;
+}
+.resource-legend i.free {
+  border: 1px solid var(--border);
+  background: var(--surface2);
+}
+.resource-status {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.resource-status.bad {
+  color: #e0b86a;
+}
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.resource-section {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.resource-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.resource-port-list,
+.resource-plan-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.resource-port-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--fill);
+}
+.resource-port-list li > svg {
+  flex: none;
+  color: #e0b86a;
+}
+.resource-port-list li > div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+.resource-port-list strong {
+  font-size: 11px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.resource-port-list small {
+  color: var(--muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+.resource-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+.resource-options label {
+  display: grid;
+  gap: 5px;
+  font-size: 9px;
+  color: var(--muted);
+}
+.resource-options input[type="number"] {
+  width: 92px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface2);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.resource-options .overview-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--text);
+}
+.resource-plan,
+.resource-queue-state {
+  display: grid;
+  gap: 7px;
+}
+.resource-plan-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 10px;
+}
+.resource-plan-list strong {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.resource-plan-list small {
+  color: var(--muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.resource-plan-list em {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 9px;
+  font-style: normal;
+  white-space: nowrap;
+}
+.resource-plan-list li.skipped {
+  opacity: 0.62;
+}
+.resource-plan-list li.skipped em {
+  text-align: right;
+}
+.resource-plan-list .resource-step {
+  color: var(--muted);
+  font-size: 9px;
+}
+.resource-plan-list li.step-failed,
+.resource-plan-list li.step-skipped {
+  border-color: color-mix(in srgb, #e0b86a 35%, var(--border));
+}
+.resource-plan-list li.step-started .resource-step {
+  color: #58b98a;
+}
+.resource-plan-list li.step-failed .resource-step {
+  color: #e0b86a;
+}
 @media (max-width: 720px) {
   .overview-row {
     flex-wrap: wrap;

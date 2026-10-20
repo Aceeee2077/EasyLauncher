@@ -1354,6 +1354,62 @@ pub async fn perf_heap_info(m: Managed<'_>, id: String) -> Result<crate::perf::H
     let manager = m.inner().clone();
     crate::perf::heap_info(&manager, &id).await
 }
+#[tauri::command]
+pub async fn resources_report(m: Managed<'_>) -> Result<crate::resources::ResourceReport> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::resources::report(&manager))
+        .await
+        .map_err(|e| AppError::new("Could not inspect workspace resources.", e))?
+}
+#[tauri::command]
+pub async fn resources_plan(
+    m: Managed<'_>,
+    ids: Vec<String>,
+    options: crate::resources::StartOptions,
+) -> Result<crate::resources::StartPlan> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::resources::plan(&manager, &ids, options))
+        .await
+        .map_err(|e| AppError::new("Could not build the start plan.", e))?
+}
+#[tauri::command]
+pub async fn resources_start_queue(
+    m: Managed<'_>,
+    ids: Vec<String>,
+    options: crate::resources::StartOptions,
+) -> Result<crate::resources::QueueState> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    let count = ids.len();
+    let state =
+        tokio::task::spawn_blocking(move || crate::resources::start(&manager, ids, options))
+            .await
+            .map_err(|e| AppError::new("Could not start the server queue.", e))??;
+    crate::audit::record(
+        &m,
+        "resources.startQueue",
+        None,
+        None,
+        format!("{count} server(s) queued"),
+    );
+    Ok(state)
+}
+#[tauri::command]
+pub fn resources_queue_state(m: Managed<'_>) -> Option<crate::resources::QueueState> {
+    crate::resources::state(&m)
+}
+#[tauri::command]
+pub fn resources_cancel_queue(m: Managed<'_>) -> Result<crate::resources::QueueState> {
+    crate::resources::cancel(&m)
+}
+#[tauri::command]
+pub async fn resources_apply_port(m: Managed<'_>, id: String, port: u16) -> Result<()> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    crate::resources::apply_port(&manager, &id, port).await?;
+    audit(&m, "server.changePort", &id, port);
+    Ok(())
+}
 type Remote<'a> = State<'a, Arc<crate::remote::WebConsole>>;
 #[tauri::command]
 pub fn web_console_info(r: Remote<'_>) -> Option<crate::remote::WebConsoleInfo> {

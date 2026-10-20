@@ -48,6 +48,10 @@ import type {
   JfrTools,
   ActiveRecording,
   HeapInfo,
+  ResourceReport,
+  StartPlan,
+  StartQueue,
+  StartOptions,
   WebConsoleInfo,
   NetworkReport,
   NetworkCheck,
@@ -323,6 +327,15 @@ type Contract = {
   perf_jfr_stop: [{ id: string; name: string }, void];
   perf_delete_profile: [{ id: string; name: string }, void];
   perf_heap_info: [{ id: string }, HeapInfo];
+  resources_report: [undefined, ResourceReport];
+  resources_plan: [{ ids: string[]; options: StartOptions }, StartPlan];
+  resources_start_queue: [
+    { ids: string[]; options: StartOptions },
+    StartQueue,
+  ];
+  resources_queue_state: [undefined, StartQueue | null];
+  resources_cancel_queue: [undefined, StartQueue];
+  resources_apply_port: [{ id: string; port: number }, void];
   web_console_info: [undefined, WebConsoleInfo | null];
   start_web_console: [undefined, WebConsoleInfo];
   stop_web_console: [undefined, void];

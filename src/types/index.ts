@@ -805,6 +805,92 @@ export interface HeapInfo {
   collector: string | null;
   unparsed: boolean;
 }
+export interface StartOptions {
+  staggerSecs: number;
+  waitReadySecs: number;
+  force: boolean;
+}
+export type PortIssueKind = "duplicate" | "occupied";
+export interface PortIssue {
+  id: string;
+  name: string;
+  port: number;
+  kind: PortIssueKind;
+  suggestion: number | null;
+}
+export interface ResourceServer {
+  id: string;
+  name: string;
+  status: Status;
+  installed: boolean;
+  active: boolean;
+  memoryMb: number;
+  port: number;
+}
+export type StartStep =
+  | "queued"
+  | "waiting"
+  | "starting"
+  | "started"
+  | "failed"
+  | "skipped"
+  | "cancelled";
+export interface QueueEntry {
+  id: string;
+  name: string;
+  memoryMb: number;
+  port: number;
+  step: StartStep;
+  detail: string | null;
+  startedAt: string | null;
+}
+export interface StartQueue {
+  running: boolean;
+  cancelled: boolean;
+  startedAt: string;
+  finishedAt: string | null;
+  staggerSecs: number;
+  waitReadySecs: number;
+  memoryMb: number;
+  budgetMb: number;
+  entries: QueueEntry[];
+}
+export interface PlanEntry {
+  id: string;
+  name: string;
+  memoryMb: number;
+  port: number;
+  ready: boolean;
+  reason: string | null;
+  startAfterSecs: number;
+}
+export interface StartPlan {
+  entries: PlanEntry[];
+  startable: number;
+  requestedMb: number;
+  runningMb: number;
+  projectedMb: number;
+  budgetMb: number;
+  budgetOk: boolean;
+  staggerSecs: number;
+  waitReadySecs: number;
+  force: boolean;
+}
+export interface ResourceReport {
+  totalMb: number;
+  availableMb: number;
+  recommendedMb: number;
+  budgetMb: number;
+  runningMb: number;
+  idleMb: number;
+  projectedMb: number;
+  headroomMb: number;
+  budgetOk: boolean;
+  tight: boolean;
+  servers: ResourceServer[];
+  ports: PortIssue[];
+  queue: StartQueue | null;
+}
 export interface WebConsoleInfo {
   running: boolean;
   url: string;

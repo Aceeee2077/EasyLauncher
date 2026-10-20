@@ -80,6 +80,8 @@ pub struct Manager {
     pub monitors: Mutex<HashMap<String, Arc<Mutex<crate::monitor::MonitorState>>>>,
     pub perf: Mutex<HashMap<String, Arc<Mutex<crate::perf::PerfState>>>>,
     pub player_stats: Mutex<HashMap<String, crate::player_stats::Store>>,
+    /// Last start queue, kept after it finishes so the UI can show results.
+    pub queue: Mutex<Option<Arc<crate::resources::QueueHandle>>>,
     pub tunnels: AsyncMutex<HashMap<String, crate::tunnel::Runtime>>,
     pub shutting_down: AtomicBool,
     pub settings_gate: AsyncMutex<()>,
@@ -130,6 +132,7 @@ impl Manager {
             monitors: Mutex::new(HashMap::new()),
             perf: Mutex::new(HashMap::new()),
             player_stats: Mutex::new(HashMap::new()),
+            queue: Mutex::new(None),
             tunnels: AsyncMutex::new(HashMap::new()),
             shutting_down: AtomicBool::new(false),
             settings_gate: AsyncMutex::new(()),

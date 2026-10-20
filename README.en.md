@@ -38,6 +38,7 @@ The interface uses **Shan Shui Glass**: frosted layers, azurite blue, malachite 
 - World preview and save health: the backup page reads Anvil MCA/NBT data without modifying the world. It renders a 2D map per region with player markers and local online tracks, counts chunks, entities and block entities by type, lists region-header, chunk-compression and NBT damage, and compares two backups by region-file SHA-256. Maps support 1/2/4/8-block detail; worlds and backups stay untouched.
 - Crash attribution 2.0: the ops page uses the `CrashAnalyzer` contract and a deterministic signature library to identify out-of-memory failures, mod conflicts or missing dependencies, chunk corruption, Java and JVM-option problems, port conflicts, disk exhaustion and file permissions. It picks the first root cause in log order and lists later errors and watchdog dumps as related symptoms, with the matching line, occurrence count, port, required Java version, mods or plugin. A one-click, never-persisted sanitized Markdown report redacts paths, URLs, IP addresses and credential-bearing lines.
 - Performance profiling: the monitor page can sample TPS and MSPT over local RCON (`tick query`, Paper `tps`, or `spark tps` when Spark is installed), keep up to 720 samples at a 5–60 second interval in the server folder, and chart TPS, MSPT and process-memory trends. The JFR panel starts a local recording through the `jcmd` beside the configured Java executable, writes only to the server's `profiles/` folder, and supports manual stop and delete; it can also read one `GC.heap_info` heap snapshot. Managed runtimes are JREs without `jcmd`, and the UI states that a full JDK is required instead. Sampling and recording are opt-in, never start the game and upload nothing.
+- Multi-server resource scheduling: the overview page sums maximum heaps into running, stopped and projected totals, uses 90% of system RAM as the start budget, and checks for duplicate or externally occupied ports. Selecting servers previews the start order, skipped reasons and stagger, then starts them one at a time with a default 10-second gap, re-checking free memory before each launch. A readiness timeout is reported without killing the process, and cancelling only prevents servers that have not started. Port issues offer a suggested free port that is written to that server's `server.properties`.
 
 ## Screenshots
 
@@ -156,6 +157,7 @@ src-tauri/src/
   modrinth.rs          Modrinth content install, modpack install/update/rollback and checks
   rcon.rs              Optional local RCON client, password generation and player-list parsing
   perf.rs              Local TPS/MSPT sampling and history, JFR recordings and heap snapshots
+  resources.rs         Memory budget, port planning and the staggered start queue
   network.rs           Local bind checks and LAN address detection
   logger.rs            Separate timestamped logs; 2 MB rotation with two retained files
   extensions.rs        Content-provider contracts and the CrashAnalyzer root-cause interface
