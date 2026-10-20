@@ -891,6 +891,33 @@ export interface ResourceReport {
   ports: PortIssue[];
   queue: StartQueue | null;
 }
+export type ServiceKind = "systemd" | "launchd";
+export type SupervisorReason =
+  | "windows"
+  | "noSystemd"
+  | "noHome"
+  | "unsupportedOs";
+export interface SupervisorSupport {
+  platform: string;
+  kind: ServiceKind | null;
+  available: boolean;
+  directory: string | null;
+  reason: SupervisorReason | null;
+}
+export interface ServicePreview {
+  platform: string;
+  kind: ServiceKind;
+  fileName: string;
+  path: string;
+  contents: string;
+  commands: string[];
+  installed: boolean;
+  active: boolean;
+  memoryMb: number;
+  logPath: string;
+  javaPath: string;
+  absoluteJava: boolean;
+}
 export interface WebConsoleInfo {
   running: boolean;
   url: string;

@@ -3188,6 +3188,115 @@ progress::-webkit-progress-value {
     grid-column: 1 / -1;
   }
 }
+.service-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.service-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  font-size: 10px;
+  line-height: 1.65;
+  color: var(--text);
+}
+.service-warning svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--gold);
+}
+.service-paths {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0;
+}
+.service-paths p {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+.service-paths small {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.service-paths code {
+  font-size: 10px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+.service-note {
+  margin: 6px 0 12px;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.service-block {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--fill);
+}
+.service-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.service-block-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 11px;
+}
+.service-code {
+  margin: 0;
+  padding: 14px;
+  max-height: 320px;
+  overflow: auto;
+  font-size: 9.5px;
+  line-height: 1.6;
+  white-space: pre;
+  color: var(--text);
+}
+.service-commands {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+}
+.service-commands code {
+  padding: 7px 9px;
+  border-radius: 7px;
+  background: var(--surface2);
+  font-size: 9.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.service-block .service-note {
+  margin: 0;
+  padding: 0 12px 12px;
+}
+.service-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 16px;
+}
 .content-stack {
   display: grid;
   gap: 23px;

@@ -28,6 +28,7 @@ pub mod schedule;
 pub mod secrets;
 pub mod server;
 pub mod storage;
+pub mod supervision;
 pub mod tunnel;
 pub mod upgrade;
 pub mod upnp;
@@ -188,6 +189,10 @@ pub fn run() {
             commands::resources_queue_state,
             commands::resources_cancel_queue,
             commands::resources_apply_port,
+            commands::supervision_info,
+            commands::supervision_preview,
+            commands::supervision_install,
+            commands::supervision_remove,
             commands::web_console_info,
             commands::start_web_console,
             commands::stop_web_console,

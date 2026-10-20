@@ -1410,6 +1410,52 @@ pub async fn resources_apply_port(m: Managed<'_>, id: String, port: u16) -> Resu
     audit(&m, "server.changePort", &id, port);
     Ok(())
 }
+#[tauri::command]
+pub fn supervision_info() -> crate::supervision::Support {
+    crate::supervision::support()
+}
+#[tauri::command]
+pub async fn supervision_preview(
+    m: Managed<'_>,
+    id: String,
+) -> Result<crate::supervision::ServicePreview> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::supervision::preview(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not render the production service.", e))?
+}
+#[tauri::command]
+pub async fn supervision_install(
+    m: Managed<'_>,
+    id: String,
+    confirmed: bool,
+) -> Result<crate::supervision::ServicePreview> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    let server_id = id.clone();
+    let preview =
+        tokio::task::spawn_blocking(move || crate::supervision::install(&manager, &id, confirmed))
+            .await
+            .map_err(|e| AppError::new("Could not install the production service.", e))??;
+    audit(&m, "supervision.install", &server_id, &preview.file_name);
+    Ok(preview)
+}
+#[tauri::command]
+pub async fn supervision_remove(
+    m: Managed<'_>,
+    id: String,
+    confirmed: bool,
+) -> Result<crate::supervision::ServicePreview> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    let server_id = id.clone();
+    let preview =
+        tokio::task::spawn_blocking(move || crate::supervision::remove(&manager, &id, confirmed))
+            .await
+            .map_err(|e| AppError::new("Could not remove the production service.", e))??;
+    audit(&m, "supervision.remove", &server_id, &preview.file_name);
+    Ok(preview)
+}
 type Remote<'a> = State<'a, Arc<crate::remote::WebConsole>>;
 #[tauri::command]
 pub fn web_console_info(r: Remote<'_>) -> Option<crate::remote::WebConsoleInfo> {

@@ -15,6 +15,7 @@ import {
 import { Button } from "../components/ui";
 import { LogAssistant } from "../components/LogAssistant";
 import { DiskUsage } from "../components/DiskUsage";
+import { ProductionService } from "../components/ProductionService";
 import { call } from "../services/api";
 import { useI18n, type MessageKey } from "../i18n";
 import type {
@@ -316,6 +317,7 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
         )}
       </section>
       <DiskUsage id={server.id} run={run} busy={busy} />
+      <ProductionService id={server.id} run={run} busy={busy} />
     </div>
   );
 }

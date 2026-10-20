@@ -102,6 +102,12 @@ export const zh = {
   "errors.resources.busy": "服务器正在启动、停止或安装，暂时不能加入队列。",
   "errors.resources.portConflict": "与其他服务器或正在运行的服务端口冲突。",
   "errors.resources.portOccupied": "端口已被其他程序占用。",
+  "errors.supervision.unsupported":
+    "当前系统不支持生产服务。只有 Linux systemd 和 macOS launchd 可以安装。",
+  "errors.supervision.notConfirmed": "请先确认服务器已停止或服务已停用。",
+  "errors.supervision.notInstalled":
+    "请先安装服务器文件，再创建生产服务。",
+  "errors.supervision.noFile": "这个服务器没有已安装的服务文件。",
   "errors.backup.noWorld":
     "还没有世界数据。先启动一次服务器，停止后再创建备份。",
   "errors.backup.notRunning":
@@ -1337,6 +1343,55 @@ export const zh = {
   "ops.level.warning": "注意",
   "ops.level.critical": "问题",
   "ops.level.info": "提示",
+  "service.title": "生产环境服务",
+  "service.desc":
+    "为 Linux（systemd 用户服务）或 macOS（launchd LaunchAgent）生成服务定义，让操作系统在 EasyLauncher 关闭后继续托管服务器。",
+  "service.unsupportedTitle": "当前系统不能安装生产服务",
+  "service.reason.windows":
+    "Windows 不需要这个功能：应用已经把服务器进程绑定到任务对象，退出时会先清理子进程。请在应用内启动服务器。",
+  "service.reason.noSystemd":
+    "没有检测到 systemd（/run/systemd/system 不存在）。请确认系统使用 systemd 启动后再试。",
+  "service.reason.noHome":
+    "无法确定当前用户的主目录，因此找不到用户服务目录。",
+  "service.reason.unsupportedOs":
+    "生产服务只支持 Linux systemd 用户服务和 macOS launchd LaunchAgent。",
+  "service.kind.systemd": "systemd 用户服务",
+  "service.kind.launchd": "launchd LaunchAgent",
+  "service.refresh": "重新生成",
+  "service.file": "服务文件",
+  "service.logFile": "服务日志",
+  "service.contents": "服务定义预览",
+  "service.commands": "启用命令",
+  "service.commandsHint":
+    "这些命令需要你自己在终端运行。EasyLauncher 不会启用、启动或停止系统服务。",
+  "service.copy": "复制文件内容",
+  "service.copied": "已复制",
+  "service.copyFailed": "复制失败，请手动选择文本。",
+  "service.install": "安装服务文件",
+  "service.update": "更新服务文件",
+  "service.remove": "移除服务文件",
+  "service.installed": "已安装",
+  "service.notInstalled": "未安装",
+  "service.activeWarning":
+    "这个服务器正在应用中运行。请先在应用中停止它，再启用生产服务；两边不能同时运行同一个目录。",
+  "service.invisibleWarning":
+    "服务启动后，EasyLauncher 看不到也控制不了它：控制台、健康检查、计划任务和备份协调都会暂停。需要回到应用管理时，请先停用系统服务。",
+  "service.javaWarning":
+    "服务使用的 Java 路径是 {java}，依赖服务环境的 PATH。建议在服务器设置中填写 Java 的绝对路径。",
+  "service.systemdNote":
+    "保留 {memory} 的最大堆，并设置 systemd MemoryMax；异常退出后 10 秒重启。",
+  "service.launchdNote":
+    "保留 {memory} 的最大堆；launchd 没有内存上限，异常退出后会限速重启。",
+  "service.confirmInstallTitle": "安装生产服务文件",
+  "service.confirmInstallBody":
+    "将写入 {path}，并在服务器目录创建 {log}。不会自动启用服务，也不会启动服务器。",
+  "service.confirmInstall": "写入文件",
+  "service.confirmRemoveTitle": "移除生产服务文件",
+  "service.confirmRemoveBody":
+    "只删除 {path}。如果服务已经加载，请先在终端停用并卸载它，否则 systemd 或 launchd 可能保留旧定义。",
+  "service.confirmRemove": "删除文件",
+  "service.installDone": "服务文件已写入。请检查内容后自行运行启用命令。",
+  "service.removeDone": "服务文件已移除。",
   "disk.title": "磁盘空间",
   "disk.desc":
     "统计服务器目录各部分占用，并清理可重新生成的日志与中断残留文件。",
@@ -1739,6 +1794,14 @@ export const en: Record<MessageKey, string> = {
   "errors.resources.portConflict":
     "The port conflicts with another server or a running service.",
   "errors.resources.portOccupied": "Another program is already using this port.",
+  "errors.supervision.unsupported":
+    "Production services are not supported here. Only Linux systemd and macOS launchd can install them.",
+  "errors.supervision.notConfirmed":
+    "Confirm that the server is stopped or the service is disabled first.",
+  "errors.supervision.notInstalled":
+    "Install the server files before creating a production service.",
+  "errors.supervision.noFile":
+    "No service file is installed for this server.",
   "errors.backup.noWorld":
     "No world data exists yet. Start the server once, stop it, then create a backup.",
   "errors.backup.notRunning":
@@ -3042,6 +3105,56 @@ export const en: Record<MessageKey, string> = {
   "ops.level.warning": "Attention",
   "ops.level.critical": "Problem",
   "ops.level.info": "Info",
+  "service.title": "Production service",
+  "service.desc":
+    "Generates a service definition for Linux (systemd user unit) or macOS (launchd LaunchAgent) so the operating system supervises this server after EasyLauncher closes.",
+  "service.unsupportedTitle": "Production services are unavailable here",
+  "service.reason.windows":
+    "Windows does not need this: the app binds the server process to a job object and cleans up children on exit. Start servers inside the app.",
+  "service.reason.noSystemd":
+    "systemd was not detected (/run/systemd/system is missing). Confirm the system boots with systemd and try again.",
+  "service.reason.noHome":
+    "The current user's home directory could not be determined, so there is no user service directory.",
+  "service.reason.unsupportedOs":
+    "Production services are only supported as Linux systemd user units and macOS launchd LaunchAgents.",
+  "service.kind.systemd": "systemd user unit",
+  "service.kind.launchd": "launchd LaunchAgent",
+  "service.refresh": "Regenerate",
+  "service.file": "Service file",
+  "service.logFile": "Service log",
+  "service.contents": "Definition preview",
+  "service.commands": "Enable commands",
+  "service.commandsHint":
+    "Run these commands yourself in a terminal. EasyLauncher never enables, starts or stops system services.",
+  "service.copy": "Copy file contents",
+  "service.copied": "Copied",
+  "service.copyFailed": "Copy failed; select the text manually.",
+  "service.install": "Install service file",
+  "service.update": "Update service file",
+  "service.remove": "Remove service file",
+  "service.installed": "Installed",
+  "service.notInstalled": "Not installed",
+  "service.activeWarning":
+    "This server is running in the app. Stop it in the app before enabling the service; both must never run the same folder at once.",
+  "service.invisibleWarning":
+    "Once the service runs the server, EasyLauncher cannot see or control it: console, health checks, scheduled tasks and backup coordination pause. Disable the service before returning to app-managed operation.",
+  "service.javaWarning":
+    "The service uses the Java path {java}, which relies on the service environment's PATH. Prefer an absolute Java path in the server settings.",
+  "service.systemdNote":
+    "Keeps the {memory} maximum heap and also sets systemd MemoryMax; restarts 10 seconds after an abnormal exit.",
+  "service.launchdNote":
+    "Keeps the {memory} maximum heap; launchd has no memory cap and throttles unexpected restarts.",
+  "service.confirmInstallTitle": "Install production service file",
+  "service.confirmInstallBody":
+    "Writes {path} and creates {log} inside the server folder. It does not enable the service or start the server.",
+  "service.confirmInstall": "Write file",
+  "service.confirmRemoveTitle": "Remove production service file",
+  "service.confirmRemoveBody":
+    "Deletes only {path}. If the service is loaded, disable and unload it in a terminal first, otherwise systemd or launchd may keep the old definition.",
+  "service.confirmRemove": "Delete file",
+  "service.installDone":
+    "Service file written. Review it, then run the enable commands yourself.",
+  "service.removeDone": "Service file removed.",
   "disk.title": "Disk space",
   "disk.desc":
     "Breaks down the server folder and removes regenerable logs and interrupted leftovers.",

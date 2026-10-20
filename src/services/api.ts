@@ -52,6 +52,8 @@ import type {
   StartPlan,
   StartQueue,
   StartOptions,
+  SupervisorSupport,
+  ServicePreview,
   WebConsoleInfo,
   NetworkReport,
   NetworkCheck,
@@ -336,6 +338,13 @@ type Contract = {
   resources_queue_state: [undefined, StartQueue | null];
   resources_cancel_queue: [undefined, StartQueue];
   resources_apply_port: [{ id: string; port: number }, void];
+  supervision_info: [undefined, SupervisorSupport];
+  supervision_preview: [{ id: string }, ServicePreview];
+  supervision_install: [
+    { id: string; confirmed: boolean },
+    ServicePreview,
+  ];
+  supervision_remove: [{ id: string; confirmed: boolean }, ServicePreview];
   web_console_info: [undefined, WebConsoleInfo | null];
   start_web_console: [undefined, WebConsoleInfo];
   stop_web_console: [undefined, void];
