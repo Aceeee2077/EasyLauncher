@@ -385,10 +385,55 @@ export interface ModpackReport {
   name: string;
   version: string;
   files: number;
+  reused: number;
   skipped: number;
   overrides: number;
   minecraft: string;
   loader: string;
+}
+export interface ModpackInfo {
+  projectId: string;
+  versionId: string;
+  name: string;
+  version: string;
+  minecraft: string;
+  loader: string;
+  files: number;
+  overrides: number;
+  installedAt: string;
+  canRollback: boolean;
+  rollbackVersion: string | null;
+}
+export interface ModpackUpdatePreview {
+  projectId: string;
+  name: string;
+  fromVersion: string;
+  toVersionId: string;
+  toVersion: string;
+  channel: string;
+  changelog: string;
+  added: string[];
+  removed: string[];
+  changed: string[];
+  unchanged: number;
+  overridesChanged: number;
+  truncated: boolean;
+  minecraft: string;
+  loader: string;
+}
+export interface ModpackUpdateOutcome {
+  name: string;
+  fromVersion: string;
+  toVersion: string;
+  files: number;
+  reused: number;
+  skipped: number;
+  overrides: number;
+  backup: string;
+}
+export interface ModpackRollbackOutcome {
+  name: string;
+  restoredVersion: string;
 }
 export interface AppError {
   code?: string;

@@ -968,11 +968,34 @@ export const zh = {
   "content.removeFileBody": "将直接删除 {name}，此操作无法撤销。",
   "content.clientOnly": "仅客户端",
   "content.packNote":
-    "整合包会安装模组与配置，但不会覆盖世界、日志、EULA 与 server.properties。",
+    "整合包会安装模组与配置，但不会覆盖世界、日志、EULA 与 server.properties。目前支持 Modrinth `.mrpack`；CurseForge 整合包需要 API Key，暂未支持。",
   "content.packReport":
     "版本 {version}：{files} 个文件，跳过 {skipped} 个，应用 {overrides} 个配置。",
+  "content.packInstalled": "已安装整合包：{name}",
+  "content.packInstalledMeta":
+    "版本 {version} · Minecraft {minecraft} · {loader} · {files} 个文件 · {overrides} 个配置",
+  "content.checkPackUpdate": "检查整合包更新",
+  "content.packUpToDate": "整合包已是最新版本。",
+  "content.packUpdateTitle": "更新整合包 {name}",
+  "content.packUpdateSummary":
+    "新增 {added} 个文件，修改 {changed} 个，移除 {removed} 个，保留 {unchanged} 个未变文件，{overrides} 个配置有变化。",
+  "content.packDiff.added": "新增",
+  "content.packDiff.changed": "修改",
+  "content.packDiff.removed": "移除",
+  "content.packDiff.none": "无",
+  "content.packDiffTruncated": "文件列表过长，仅显示前 500 项。",
+  "content.packUpdateNote":
+    "更新只改动整合包管理的文件；世界、日志与服务器配置不会被覆盖。更新前会备份将被替换的文件，失败时自动恢复，并支持一步回退。",
+  "content.packUpdateNow": "确认更新整合包",
+  "content.packUpdateDone": "整合包已从 {from} 更新到 {to}。",
+  "content.packRollback": "回退整合包",
+  "content.packRollbackTitle": "回退整合包 {name}",
+  "content.packRollbackBody":
+    "将删除更新新增的文件，并恢复更新前的文件和整合包记录（版本 {version}）。世界不受影响。",
+  "content.packRollbackDone": "整合包已回退到 {version}。",
   "content.progress.download": "正在下载 {file}（{done}/{total}）",
   "content.progress.overrides": "正在应用配置 {file}（{done}/{total}）",
+  "content.progress.reuse": "正在复用未变化的文件 {file}（{done}/{total}）",
   "content.progress.verify": "正在校验整合包…",
   "content.progress.done": "安装完成",
   "content.updateCheckTitle": "内容更新",
@@ -2313,11 +2336,35 @@ export const en: Record<MessageKey, string> = {
   "content.removeFileBody": "This deletes {name} and cannot be undone.",
   "content.clientOnly": "Client only",
   "content.packNote":
-    "Modpacks add mods and configs, but never overwrite worlds, logs, the EULA, or server.properties.",
+    "Modpacks add mods and configs, but never overwrite worlds, logs, the EULA, or server.properties. Modrinth `.mrpack` is supported; CurseForge packs require an API key and are not supported yet.",
   "content.packReport":
     "Version {version}: {files} files, {skipped} skipped, {overrides} config files applied.",
+  "content.packInstalled": "Installed modpack: {name}",
+  "content.packInstalledMeta":
+    "Version {version} · Minecraft {minecraft} · {loader} · {files} files · {overrides} config files",
+  "content.checkPackUpdate": "Check modpack updates",
+  "content.packUpToDate": "The modpack is already up to date.",
+  "content.packUpdateTitle": "Update modpack {name}",
+  "content.packUpdateSummary":
+    "{added} files added, {changed} changed, {removed} removed, {unchanged} unchanged, and {overrides} config files changed.",
+  "content.packDiff.added": "Added",
+  "content.packDiff.changed": "Changed",
+  "content.packDiff.removed": "Removed",
+  "content.packDiff.none": "None",
+  "content.packDiffTruncated":
+    "The file list is long; only the first 500 entries are shown.",
+  "content.packUpdateNote":
+    "Only files managed by the modpack are changed; worlds, logs and server settings are never overwritten. Files replaced by the update are backed up first, restored automatically on failure, and can be rolled back one step.",
+  "content.packUpdateNow": "Update modpack",
+  "content.packUpdateDone": "The modpack was updated from {from} to {to}.",
+  "content.packRollback": "Roll back modpack",
+  "content.packRollbackTitle": "Roll back modpack {name}",
+  "content.packRollbackBody":
+    "Files added by the update are deleted, and the files and modpack record from before the update (version {version}) are restored. Worlds are unaffected.",
+  "content.packRollbackDone": "The modpack was rolled back to {version}.",
   "content.progress.download": "Downloading {file} ({done}/{total})",
   "content.progress.overrides": "Applying {file} ({done}/{total})",
+  "content.progress.reuse": "Reusing unchanged file {file} ({done}/{total})",
   "content.progress.verify": "Verifying the modpack…",
   "content.progress.done": "Installed",
   "content.updateCheckTitle": "Content updates",

@@ -29,6 +29,10 @@ import type {
   ContentUpdateOutcome,
   ContentRollbackOutcome,
   ModpackReport,
+  ModpackInfo,
+  ModpackUpdatePreview,
+  ModpackUpdateOutcome,
+  ModpackRollbackOutcome,
   ScheduledTask,
   TaskInput,
   TaskCalendarEntry,
@@ -192,6 +196,16 @@ type Contract = {
   modpack_install: [
     { id: string; projectId: string; versionId: string },
     ModpackReport,
+  ];
+  modpack_info: [{ id: string }, ModpackInfo | null];
+  modpack_update_check: [{ id: string }, ModpackUpdatePreview | null];
+  modpack_update: [
+    { id: string; confirmed: boolean },
+    ModpackUpdateOutcome,
+  ];
+  modpack_rollback: [
+    { id: string; confirmed: boolean },
+    ModpackRollbackOutcome,
   ];
   content_list: [{ id: string }, ContentListing];
   content_remove: [{ id: string; projectId: string }, void];

@@ -24,7 +24,9 @@ import type {
   ContentRollback,
   ContentUpdateEntry,
   ContentUpdateReport,
+  ModpackInfo,
   ModpackReport,
+  ModpackUpdatePreview,
   ProjectHit,
   ProjectVersion,
   ServerView,
@@ -68,6 +70,12 @@ export function Content({
   const [versions, setVersions] = useState<ProjectVersion[] | null>(null);
   const [progress, setProgress] = useState<ContentProgress | null>(null);
   const [report, setReport] = useState<ModpackReport | null>(null);
+  const [pack, setPack] = useState<ModpackInfo | null>(null);
+  const [packPreview, setPackPreview] = useState<ModpackUpdatePreview | null>(
+    null,
+  );
+  const [packMessage, setPackMessage] = useState<string | null>(null);
+  const [packRollbackOpen, setPackRollbackOpen] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
   const [updates, setUpdates] = useState<ContentUpdateReport | null>(null);
   const [updateTarget, setUpdateTarget] = useState<ContentUpdateEntry | null>(
@@ -85,8 +93,17 @@ export function Content({
   const updateKey = `content-update-${server.id}`;
   const rollbackKey = `content-rollback-${server.id}`;
   const pinKey = `content-pin-${server.id}`;
-  const loadListing = async () =>
-    setListing(await call("content_list", { id: server.id }));
+  const packCheckKey = `modpack-check-${server.id}`;
+  const packUpdateKey = `modpack-update-${server.id}`;
+  const packRollbackKey = `modpack-rollback-${server.id}`;
+  const loadListing = async () => {
+    const [content, installedPack] = await Promise.all([
+      call("content_list", { id: server.id }),
+      call("modpack_info", { id: server.id }),
+    ]);
+    setListing(content);
+    setPack(installedPack);
+  };
   useEffect(() => {
     void run(refreshKey, loadListing);
     setListing(null);
@@ -95,6 +112,10 @@ export function Content({
     setVersions(null);
     setProgress(null);
     setReport(null);
+    setPack(null);
+    setPackPreview(null);
+    setPackMessage(null);
+    setPackRollbackOpen(false);
     setUpdates(null);
     setUpdateTarget(null);
     setRollbackTarget(null);
@@ -252,6 +273,45 @@ export function Content({
       setUpdates(null);
       await loadListing();
     });
+  const checkPackUpdate = () => {
+    setPackMessage(null);
+    void run(packCheckKey, async () => {
+      const preview = await call("modpack_update_check", { id: server.id });
+      if (preview) setPackPreview(preview);
+      else setPackMessage(t("content.packUpToDate"));
+    });
+  };
+  const applyPackUpdate = () => {
+    if (!packPreview) return;
+    void run(packUpdateKey, async () => {
+      setProgress(null);
+      const outcome = await call("modpack_update", {
+        id: server.id,
+        confirmed: true,
+      });
+      setPackPreview(null);
+      setPackMessage(
+        t("content.packUpdateDone", {
+          from: outcome.fromVersion,
+          to: outcome.toVersion,
+        }),
+      );
+      await loadListing();
+    });
+  };
+  const rollbackPack = () => {
+    void run(packRollbackKey, async () => {
+      const outcome = await call("modpack_rollback", {
+        id: server.id,
+        confirmed: true,
+      });
+      setPackRollbackOpen(false);
+      setPackMessage(
+        t("content.packRollbackDone", { version: outcome.restoredVersion }),
+      );
+      await loadListing();
+    });
+  };
   const warningText = (code: string) =>
     t(`content.warning.${code}` as MessageKey);
   const impactText = (dependency: {
@@ -275,6 +335,8 @@ export function Content({
     if (value.stage === "download") return t("content.progress.download", vars);
     if (value.stage === "overrides")
       return t("content.progress.overrides", vars);
+    if (value.stage === "reuse")
+      return t("content.progress.reuse", vars);
     if (value.stage === "verify") return t("content.progress.verify");
     if (value.stage === "done") return t("content.progress.done");
     return value.stage;
@@ -401,7 +463,11 @@ export function Content({
             {t("content.search")}
           </Button>
         </form>
-        {progress && (busy.has(installKey) || busy.has(updateKey)) && (
+        {progress &&
+          (busy.has(installKey) ||
+            busy.has(updateKey) ||
+            busy.has(packCheckKey) ||
+            busy.has(packUpdateKey)) && (
           <div className="content-progress">
             <div>
               <span>{progressText(progress)}</span>
@@ -513,6 +579,41 @@ export function Content({
             {t("content.refresh")}
           </Button>
         </div>
+        {pack && (
+          <div className="content-updates">
+            <div className="content-updates-head">
+              <div>
+                <strong>
+                  {t("content.packInstalled", { name: pack.name })}
+                </strong>
+                <small>
+                  {t("content.packInstalledMeta", {
+                    version: pack.version,
+                    minecraft: pack.minecraft,
+                    loader: pack.loader,
+                    files: pack.files,
+                    overrides: pack.overrides,
+                  })}
+                </small>
+              </div>
+              <Button busy={busy.has(packCheckKey)} onClick={checkPackUpdate}>
+                <ArrowUpCircle size={15} />
+                {t("content.checkPackUpdate")}
+              </Button>
+              {pack.canRollback && (
+                <Button
+                  variant="ghost"
+                  disabled={busy.has(packRollbackKey)}
+                  onClick={() => setPackRollbackOpen(true)}
+                >
+                  <Undo2 size={15} />
+                  {t("content.packRollback")}
+                </Button>
+              )}
+            </div>
+            {packMessage && <p className="content-note">{packMessage}</p>}
+          </div>
+        )}
         {server.serverType !== "vanilla" && (
           <div className="content-updates">
             <div className="content-updates-head">
@@ -772,6 +873,113 @@ export function Content({
             >
               <Undo2 size={15} />
               {t("content.rollback")}
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {packPreview && (
+        <Modal
+          title={t("content.packUpdateTitle", { name: packPreview.name })}
+          onClose={() => {
+            if (!busy.has(packUpdateKey)) setPackPreview(null);
+          }}
+          wide
+        >
+          <div className="content-report">
+            <strong>
+              {packPreview.fromVersion} → {packPreview.toVersion}
+              {packPreview.channel ? ` · ${packPreview.channel}` : ""}
+            </strong>
+            <p>
+              {t("content.packUpdateSummary", {
+                added: packPreview.added.length,
+                removed: packPreview.removed.length,
+                changed: packPreview.changed.length,
+                unchanged: packPreview.unchanged,
+                overrides: packPreview.overridesChanged,
+              })}
+            </p>
+          </div>
+          {packPreview.changelog ? (
+            <div className="content-changelog">
+              <strong>{t("content.changelog")}</strong>
+              <pre>{packPreview.changelog}</pre>
+            </div>
+          ) : (
+            <p className="content-note">{t("content.noChangelog")}</p>
+          )}
+          <div className="pack-diff">
+            {(
+              [
+                ["added", packPreview.added],
+                ["changed", packPreview.changed],
+                ["removed", packPreview.removed],
+              ] as const
+            ).map(([kind, paths]) => (
+              <div key={kind}>
+                <strong>
+                  {t(`content.packDiff.${kind}` as MessageKey)}
+                </strong>
+                {paths.length ? (
+                  <ul>
+                    {paths.map((path) => (
+                      <li key={path}>{path}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <small>{t("content.packDiff.none")}</small>
+                )}
+              </div>
+            ))}
+          </div>
+          {packPreview.truncated && (
+            <p className="content-note">{t("content.packDiffTruncated")}</p>
+          )}
+          <p className="content-note">{t("content.packUpdateNote")}</p>
+          <div className="modal-actions">
+            <Button
+              onClick={() => setPackPreview(null)}
+              disabled={busy.has(packUpdateKey)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              busy={busy.has(packUpdateKey)}
+              onClick={applyPackUpdate}
+            >
+              <ArrowUpCircle size={15} />
+              {t("content.packUpdateNow")}
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {packRollbackOpen && pack && (
+        <Modal
+          title={t("content.packRollbackTitle", { name: pack.name })}
+          onClose={() => {
+            if (!busy.has(packRollbackKey)) setPackRollbackOpen(false);
+          }}
+        >
+          <p>
+            {t("content.packRollbackBody", {
+              version: pack.rollbackVersion ?? pack.version,
+            })}
+          </p>
+          <div className="modal-actions">
+            <Button
+              onClick={() => setPackRollbackOpen(false)}
+              disabled={busy.has(packRollbackKey)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="danger"
+              busy={busy.has(packRollbackKey)}
+              onClick={rollbackPack}
+            >
+              <Undo2 size={15} />
+              {t("content.packRollback")}
             </Button>
           </div>
         </Modal>

@@ -802,6 +802,52 @@ pub async fn modpack_install(
     Ok(report)
 }
 #[tauri::command]
+pub fn modpack_info(m: Managed<'_>, id: String) -> Result<Option<crate::modrinth::ModpackInfo>> {
+    crate::modrinth::pack_info(m.inner().as_ref(), &id)
+}
+#[tauri::command]
+pub async fn modpack_update_check(
+    m: Managed<'_>,
+    id: String,
+) -> Result<Option<crate::modrinth::ModpackUpdatePreview>> {
+    m.ensure_writable()?;
+    crate::modrinth::preview_update(m.inner().clone(), id).await
+}
+#[tauri::command]
+pub async fn modpack_update(
+    m: Managed<'_>,
+    id: String,
+    confirmed: bool,
+) -> Result<crate::modrinth::ModpackUpdateOutcome> {
+    m.ensure_writable()?;
+    let server_id = id.clone();
+    let outcome = crate::modrinth::update_modpack(m.inner().clone(), id, confirmed).await?;
+    audit(
+        &m,
+        "modpack.update",
+        &server_id,
+        format!("{} -> {}", outcome.from_version, outcome.to_version),
+    );
+    Ok(outcome)
+}
+#[tauri::command]
+pub async fn modpack_rollback(
+    m: Managed<'_>,
+    id: String,
+    confirmed: bool,
+) -> Result<crate::modrinth::ModpackRollbackOutcome> {
+    m.ensure_writable()?;
+    let server_id = id.clone();
+    let outcome = crate::modrinth::rollback_modpack(m.inner().clone(), id, confirmed).await?;
+    audit(
+        &m,
+        "modpack.rollback",
+        &server_id,
+        format!("{} {}", outcome.name, outcome.restored_version),
+    );
+    Ok(outcome)
+}
+#[tauri::command]
 pub async fn content_list(m: Managed<'_>, id: String) -> Result<crate::modrinth::ContentListing> {
     crate::modrinth::listing(m.inner().as_ref(), &id)
 }

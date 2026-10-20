@@ -26,6 +26,12 @@ const MAX_PACK_FILE_BYTES: u64 = 256 * 1024 * 1024;
 const MAX_OVERRIDE_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_INDEX_BYTES: u64 = 8 * 1024 * 1024;
 const INDEX_FILE: &str = "content.json";
+const PACK_RECORD: &str = "modpack.json";
+const PACK_PENDING: &str = "modpack-pending.json";
+const PACK_PENDING_FILE: &str = "modpack-pending.mrpack";
+const PACK_ROLLBACK: &str = "modpack-rollback.json";
+const PACK_BACKUP_DIR: &str = "modpack-backups";
+const MAX_DIFF_ENTRIES: usize = 500;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -126,10 +132,135 @@ pub struct ModpackReport {
     pub name: String,
     pub version: String,
     pub files: u32,
+    pub reused: u32,
     pub skipped: u32,
     pub overrides: u32,
     pub minecraft: String,
     pub loader: String,
+}
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct InstalledPackFile {
+    pub path: String,
+    #[serde(default)]
+    pub sha1: Option<String>,
+    #[serde(default)]
+    pub sha512: Option<String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct InstalledPack {
+    #[serde(default)]
+    pub schema_version: u32,
+    pub project_id: String,
+    pub version_id: String,
+    pub name: String,
+    pub version: String,
+    pub minecraft: String,
+    pub loader: String,
+    #[serde(default)]
+    pub managed: Vec<InstalledPackFile>,
+    #[serde(default)]
+    pub overrides: Vec<InstalledPackFile>,
+    pub installed_at: String,
+}
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModpackInfo {
+    pub project_id: String,
+    pub version_id: String,
+    pub name: String,
+    pub version: String,
+    pub minecraft: String,
+    pub loader: String,
+    pub files: u32,
+    pub overrides: u32,
+    pub installed_at: String,
+    pub can_rollback: bool,
+    pub rollback_version: Option<String>,
+}
+impl From<&InstalledPack> for ModpackInfo {
+    fn from(pack: &InstalledPack) -> Self {
+        Self {
+            project_id: pack.project_id.clone(),
+            version_id: pack.version_id.clone(),
+            name: pack.name.clone(),
+            version: pack.version.clone(),
+            minecraft: pack.minecraft.clone(),
+            loader: pack.loader.clone(),
+            files: pack.managed.len() as u32,
+            overrides: pack.overrides.len() as u32,
+            installed_at: pack.installed_at.clone(),
+            can_rollback: false,
+            rollback_version: None,
+        }
+    }
+}
+/// A preview computed from the actual pack archive, so the file lists match
+/// what an update would change rather than guessing from version metadata.
+#[derive(Debug, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModpackUpdatePreview {
+    pub project_id: String,
+    pub name: String,
+    pub from_version: String,
+    pub to_version_id: String,
+    pub to_version: String,
+    pub channel: String,
+    pub changelog: String,
+    pub added: Vec<String>,
+    pub removed: Vec<String>,
+    pub changed: Vec<String>,
+    pub unchanged: u32,
+    pub overrides_changed: u32,
+    pub truncated: bool,
+    pub minecraft: String,
+    pub loader: String,
+}
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModpackUpdateOutcome {
+    pub name: String,
+    pub from_version: String,
+    pub to_version: String,
+    pub files: u32,
+    pub reused: u32,
+    pub skipped: u32,
+    pub overrides: u32,
+    pub backup: String,
+}
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModpackRollbackOutcome {
+    pub name: String,
+    pub restored_version: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PendingPack {
+    version_id: String,
+    version: String,
+    channel: String,
+    changelog: String,
+    sha1: Option<String>,
+    sha512: Option<String>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PackRollback {
+    backup: String,
+    from_version: String,
+    to_version: String,
+    created_at: String,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PackBackup {
+    previous: InstalledPack,
+    /// Files copied to `files/` so a rollback can put them back.
+    restore: Vec<String>,
+    /// Files introduced by the update, removed again on rollback.
+    added: Vec<String>,
 }
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -256,6 +387,19 @@ struct PackFile {
 struct PackEnv {
     #[serde(default)]
     server: Option<String>,
+}
+#[derive(Debug)]
+struct PackOverride {
+    path: String,
+    entry: String,
+    sha1: String,
+}
+#[derive(Debug)]
+struct PackLayout {
+    pack: PackIndex,
+    managed: Vec<PackFile>,
+    overrides: Vec<PackOverride>,
+    skipped: u32,
 }
 
 pub async fn search(
@@ -727,6 +871,20 @@ pub async fn install_modpack(
             "Plugin servers use plugins. Create a Fabric server to install modpacks.",
         ));
     }
+    let root = m.dir(&id)?;
+    if let Some(existing) = read_installed_pack(&root) {
+        if existing.project_id != project_id {
+            return Err(AppError::user(format!(
+                "The modpack {} is already installed. EasyLauncher manages one modpack per server; create a new server to use a different pack.",
+                existing.name
+            )));
+        }
+        if existing.version_id != version_id {
+            return Err(AppError::user(
+                "A different version of this modpack is installed. Use \"Check modpack updates\" in Installed content so files are backed up and can be rolled back.",
+            ));
+        }
+    }
     let client = m.client();
     let available = versions(&client, &project_id, None, None).await?;
     let version = available
@@ -751,7 +909,6 @@ pub async fn install_modpack(
             "This modpack is larger than the 512 MB safety limit.",
         ));
     }
-    let root = m.dir(&id)?;
     let temp = root.join(format!(".pack-{}.mrpack", uuid::Uuid::new_v4()));
     storage::no_links(&temp)?;
     progress(
@@ -779,9 +936,43 @@ pub async fn install_modpack(
         return Err(e);
     }
     progress(&m, &id, "verify", &file.filename, 1, 1, 0, Some(0));
-    let result = apply_pack(&m, &id, &server, &root, &temp, &client).await;
+    let result = install_pack(&m, &id, &server, &root, &temp, &client, &version).await;
     let _ = fs::remove_file(&temp);
     result
+}
+
+async fn install_pack(
+    m: &Manager,
+    id: &str,
+    server: &Server,
+    root: &Path,
+    temp: &Path,
+    client: &reqwest::Client,
+    project_version: &ProjectVersion,
+) -> Result<ModpackReport> {
+    let layout = pack_layout(temp)?;
+    let (loader, minecraft) = validate_pack(server, &layout.pack)?;
+    let report = apply_pack(m, id, server, root, temp, client).await?;
+    let record = installed_record(
+        &project_version.project_id,
+        &project_version.id,
+        &project_version.version_number,
+        &report.name,
+        minecraft,
+        loader,
+        &layout,
+    );
+    save_installed_pack(root, &record)?;
+    // A fresh or repair install starts a new baseline, so any rollback left
+    // over from an older update no longer applies.
+    cleanup_pending(root);
+    if let Some(marker) = read_rollback(root) {
+        remove_backup_dir(root, &marker.backup);
+    }
+    if let Ok(path) = storage::child(root, PACK_ROLLBACK) {
+        let _ = fs::remove_file(path);
+    }
+    Ok(report)
 }
 
 async fn apply_pack(
@@ -852,6 +1043,7 @@ async fn apply_pack(
         },
         version: pack.version_id.clone(),
         files: 0,
+        reused: 0,
         skipped: 0,
         overrides: 0,
         minecraft,
@@ -987,6 +1179,974 @@ async fn apply_pack(
     Ok(report)
 }
 
+/// Reads the pack index and every server override once. The resulting layout is
+/// used for install records, update diffs and extraction, so all three agree on
+/// which paths belong to the pack.
+fn pack_layout(path: &Path) -> Result<PackLayout> {
+    let handle = fs::File::open(path)?;
+    let mut archive = zip::ZipArchive::new(handle)
+        .map_err(|e| AppError::new("This file is not a valid .mrpack archive.", e))?;
+    let mut raw = Vec::new();
+    {
+        let index = archive
+            .by_name("modrinth.index.json")
+            .map_err(|_| AppError::user("This .mrpack is missing modrinth.index.json."))?;
+        index.take(MAX_INDEX_BYTES + 1).read_to_end(&mut raw)?;
+    }
+    if raw.len() as u64 > MAX_INDEX_BYTES {
+        return Err(AppError::user(
+            "The modpack index is larger than the 8 MB safety limit.",
+        ));
+    }
+    let mut pack: PackIndex = serde_json::from_slice(&raw).map_err(|e| {
+        AppError::new(
+            "The modpack index could not be parsed. The file may be corrupt.",
+            e,
+        )
+    })?;
+    if pack.format_version != 1 {
+        return Err(AppError::user(
+            "This modpack format is not supported by EasyLauncher yet.",
+        ));
+    }
+    let mut skipped = 0u32;
+    let mut overrides: BTreeMap<String, PackOverride> = BTreeMap::new();
+    let mut budget = MAX_OVERRIDE_BYTES;
+    for prefix in ["overrides/", "server-overrides/"] {
+        for index in 0..archive.len() {
+            let (name, is_dir) = {
+                let entry = archive
+                    .by_index(index)
+                    .map_err(|e| AppError::new("The modpack archive could not be read.", e))?;
+                (entry.name().to_string(), entry.is_dir())
+            };
+            let Some(relative) = name.strip_prefix(prefix) else {
+                continue;
+            };
+            if relative.is_empty() || is_dir {
+                continue;
+            }
+            if protected(relative) {
+                skipped += 1;
+                continue;
+            }
+            let relative = safe_relative(relative)?;
+            let mut entry = archive
+                .by_index(index)
+                .map_err(|e| AppError::new("The modpack archive could not be read.", e))?;
+            let mut hasher = sha1::Sha1::new();
+            let mut buffer = [0u8; 64 * 1024];
+            let mut size = 0u64;
+            loop {
+                let read = entry.read(&mut buffer)?;
+                if read == 0 {
+                    break;
+                }
+                size += read as u64;
+                if size > budget {
+                    return Err(AppError::user(
+                        "The modpack overrides are larger than the 512 MB safety limit.",
+                    ));
+                }
+                hasher.update(&buffer[..read]);
+            }
+            budget -= size;
+            overrides.insert(
+                relative.to_ascii_lowercase(),
+                PackOverride {
+                    path: relative,
+                    entry: name,
+                    sha1: format!("{:x}", hasher.finalize()),
+                },
+            );
+        }
+    }
+    let mut managed: BTreeMap<String, PackFile> = BTreeMap::new();
+    for mut file in std::mem::take(&mut pack.files) {
+        if !server_supported(&file) || protected(&file.path) || file.file_size > MAX_PACK_FILE_BYTES
+        {
+            skipped += 1;
+            continue;
+        }
+        if !file.downloads.iter().any(|url| url.starts_with("https://")) {
+            return Err(AppError::user(
+                "The modpack contains a file without a secure download.",
+            ));
+        }
+        let relative = safe_relative(&file.path)?;
+        let key = relative.to_ascii_lowercase();
+        if overrides.contains_key(&key) || managed.contains_key(&key) {
+            skipped += 1;
+            continue;
+        }
+        file.path = relative;
+        managed.insert(key, file);
+    }
+    Ok(PackLayout {
+        pack,
+        managed: managed.into_values().collect(),
+        overrides: overrides.into_values().collect(),
+        skipped,
+    })
+}
+
+/// Narrow candidates using the loader tags Modrinth publishes for packs.
+/// Empty tags are accepted because older packs may omit them, and the actual
+/// archive is validated after download.
+fn pack_version_matches_loader(version: &ProjectVersion, loader: &str) -> bool {
+    let tags: Vec<String> = version
+        .loaders
+        .iter()
+        .map(|l| l.to_ascii_lowercase())
+        .collect();
+    if loader == "fabric" {
+        tags.is_empty() || tags.iter().any(|tag| tag == "fabric")
+    } else {
+        !tags
+            .iter()
+            .any(|tag| matches!(tag.as_str(), "fabric" | "quilt" | "forge" | "neoforge"))
+    }
+}
+
+fn validate_pack(server: &Server, pack: &PackIndex) -> Result<(&'static str, String)> {
+    let loader = detect_loader(&pack.dependencies)?;
+    match (server.server_type, loader) {
+        (ServerType::Fabric, _) => {}
+        (ServerType::Vanilla, "fabric") => {
+            return Err(AppError::user(
+                "This modpack requires Fabric. Create a Fabric server with the same Minecraft version and apply it there.",
+            ))
+        }
+        (ServerType::Vanilla, _) => {}
+        (ServerType::Paper | ServerType::Purpur, _) => {
+            return Err(AppError::user(
+                "Plugin servers cannot run modpacks. Use Fabric or Vanilla.",
+            ))
+        }
+    }
+    let minecraft = pack
+        .dependencies
+        .get("minecraft")
+        .cloned()
+        .ok_or_else(|| AppError::user("This modpack does not declare a Minecraft version."))?;
+    if minecraft != server.minecraft_version {
+        return Err(AppError::user(format!(
+            "This modpack targets Minecraft {minecraft}, but this server runs {}. Create a {minecraft} server first.",
+            server.minecraft_version
+        )));
+    }
+    Ok((loader, minecraft))
+}
+
+fn read_installed_pack(root: &Path) -> Option<InstalledPack> {
+    let path = storage::child(root, PACK_RECORD).ok()?;
+    storage::no_links(&path).ok()?;
+    let pack: InstalledPack = serde_json::from_slice(&fs::read(path).ok()?).ok()?;
+    (pack.schema_version <= 1 && !pack.project_id.is_empty()).then_some(pack)
+}
+
+fn save_installed_pack(root: &Path, pack: &InstalledPack) -> Result<()> {
+    storage::write_json(&storage::child(root, PACK_RECORD)?, pack)
+}
+
+pub fn pack_info(m: &Manager, id: &str) -> Result<Option<ModpackInfo>> {
+    let root = m.dir(id)?;
+    let rollback = read_rollback(&root);
+    Ok(read_installed_pack(&root).map(|pack| {
+        let mut info = ModpackInfo::from(&pack);
+        if let Some(marker) = rollback {
+            info.can_rollback = true;
+            info.rollback_version = Some(marker.from_version);
+        }
+        info
+    }))
+}
+
+/// Compare any hash the two records share. SHA-512 is preferred, but SHA-1 is
+/// the only hash Modrinth guarantees, so either match counts.
+fn hash_pair_match(
+    a1: Option<&str>,
+    a512: Option<&str>,
+    b1: Option<&str>,
+    b512: Option<&str>,
+) -> bool {
+    let same = |a: Option<&str>, b: Option<&str>| match (a, b) {
+        (Some(a), Some(b)) => a.eq_ignore_ascii_case(b),
+        _ => false,
+    };
+    same(a512, b512) || same(a1, b1)
+}
+
+/// Hash a local file and compare it with the expected download hashes. A file
+/// without a recorded hash can never be reused, because its content is unknown.
+fn file_matches_hashes(path: &Path, sha1: Option<&str>, sha512: Option<&str>) -> bool {
+    if sha1.is_none() && sha512.is_none() {
+        return false;
+    }
+    let Ok(mut file) = fs::File::open(path) else {
+        return false;
+    };
+    let mut h1 = sha1::Sha1::new();
+    let mut h512 = Sha512::new();
+    let mut buffer = [0u8; 64 * 1024];
+    loop {
+        match file.read(&mut buffer) {
+            Ok(0) => break,
+            Ok(read) => {
+                h1.update(&buffer[..read]);
+                h512.update(&buffer[..read]);
+            }
+            Err(_) => return false,
+        }
+    }
+    let one = format!("{:x}", h1.finalize());
+    let five = format!("{:x}", h512.finalize());
+    sha1.map(|s| s.eq_ignore_ascii_case(&one)).unwrap_or(true)
+        && sha512
+            .map(|s| s.eq_ignore_ascii_case(&five))
+            .unwrap_or(true)
+}
+
+fn installed_record(
+    project_id: &str,
+    version_id: &str,
+    version: &str,
+    name: &str,
+    minecraft: String,
+    loader: &str,
+    layout: &PackLayout,
+) -> InstalledPack {
+    InstalledPack {
+        schema_version: 1,
+        project_id: project_id.into(),
+        version_id: version_id.into(),
+        name: if name.trim().is_empty() {
+            "Modpack".into()
+        } else {
+            name.into()
+        },
+        version: version.into(),
+        minecraft,
+        loader: loader.into(),
+        managed: layout
+            .managed
+            .iter()
+            .map(|file| InstalledPackFile {
+                path: file.path.clone(),
+                sha1: file.hashes.sha1.clone(),
+                sha512: file.hashes.sha512.clone(),
+            })
+            .collect(),
+        overrides: layout
+            .overrides
+            .iter()
+            .map(|file| InstalledPackFile {
+                path: file.path.clone(),
+                sha1: Some(file.sha1.clone()),
+                sha512: None,
+            })
+            .collect(),
+        installed_at: chrono::Utc::now().to_rfc3339(),
+    }
+}
+
+fn push_diff(list: &mut Vec<String>, path: &str, truncated: &mut bool) {
+    if list.len() < MAX_DIFF_ENTRIES {
+        list.push(path.into());
+    } else {
+        *truncated = true;
+    }
+}
+
+fn pack_hashes(
+    installed: &InstalledPack,
+) -> BTreeMap<String, (String, Option<String>, Option<String>)> {
+    let mut map = BTreeMap::new();
+    for file in installed.managed.iter().chain(installed.overrides.iter()) {
+        map.insert(
+            file.path.to_ascii_lowercase(),
+            (file.path.clone(), file.sha1.clone(), file.sha512.clone()),
+        );
+    }
+    map
+}
+
+fn layout_hashes(
+    layout: &PackLayout,
+) -> BTreeMap<String, (String, Option<String>, Option<String>)> {
+    let mut map = BTreeMap::new();
+    for file in &layout.managed {
+        map.insert(
+            file.path.to_ascii_lowercase(),
+            (
+                file.path.clone(),
+                file.hashes.sha1.clone(),
+                file.hashes.sha512.clone(),
+            ),
+        );
+    }
+    for file in &layout.overrides {
+        map.insert(
+            file.path.to_ascii_lowercase(),
+            (file.path.clone(), Some(file.sha1.clone()), None),
+        );
+    }
+    map
+}
+
+fn diff_pack(
+    installed: &InstalledPack,
+    layout: &PackLayout,
+    version: &ProjectVersion,
+    changelog: String,
+    minecraft: String,
+    loader: &str,
+) -> ModpackUpdatePreview {
+    let old = pack_hashes(installed);
+    let new = layout_hashes(layout);
+    let mut added = Vec::new();
+    let mut removed = Vec::new();
+    let mut changed = Vec::new();
+    let mut truncated = false;
+    let mut unchanged = 0u32;
+    for (key, (path, one, five)) in &new {
+        match old.get(key) {
+            None => push_diff(&mut added, path, &mut truncated),
+            Some((_, old_one, old_five))
+                if hash_pair_match(
+                    one.as_deref(),
+                    five.as_deref(),
+                    old_one.as_deref(),
+                    old_five.as_deref(),
+                ) =>
+            {
+                unchanged += 1;
+            }
+            Some(_) => push_diff(&mut changed, path, &mut truncated),
+        }
+    }
+    for (key, (path, _, _)) in &old {
+        if !new.contains_key(key) {
+            push_diff(&mut removed, path, &mut truncated);
+        }
+    }
+    let mut overrides_changed = 0u32;
+    for file in &layout.overrides {
+        let key = file.path.to_ascii_lowercase();
+        let same = old
+            .get(&key)
+            .map(|(_, one, five)| {
+                hash_pair_match(Some(&file.sha1), None, one.as_deref(), five.as_deref())
+            })
+            .unwrap_or(false);
+        if !same {
+            overrides_changed += 1;
+        }
+    }
+    for file in &installed.overrides {
+        if !new.contains_key(&file.path.to_ascii_lowercase()) {
+            overrides_changed += 1;
+        }
+    }
+    ModpackUpdatePreview {
+        project_id: installed.project_id.clone(),
+        name: if layout.pack.name.trim().is_empty() {
+            installed.name.clone()
+        } else {
+            layout.pack.name.clone()
+        },
+        from_version: installed.version.clone(),
+        to_version_id: version.id.clone(),
+        to_version: version.version_number.clone(),
+        channel: version.channel.clone(),
+        changelog,
+        added,
+        removed,
+        changed,
+        unchanged,
+        overrides_changed,
+        truncated,
+        minecraft,
+        loader: loader.into(),
+    }
+}
+
+fn cleanup_pending(root: &Path) {
+    for name in [PACK_PENDING, PACK_PENDING_FILE] {
+        if let Ok(path) = storage::child(root, name) {
+            let _ = fs::remove_file(path);
+        }
+    }
+}
+
+fn read_rollback(root: &Path) -> Option<PackRollback> {
+    let path = storage::child(root, PACK_ROLLBACK).ok()?;
+    storage::no_links(&path).ok()?;
+    serde_json::from_slice(&fs::read(path).ok()?).ok()
+}
+
+fn remove_backup_dir(root: &Path, relative: &str) {
+    let Ok(backups) = safe_join(root, PACK_BACKUP_DIR) else {
+        return;
+    };
+    let Ok(dir) = safe_join(root, relative) else {
+        return;
+    };
+    if dir.starts_with(&backups) && dir != backups {
+        let _ = fs::remove_dir_all(dir);
+    }
+}
+
+fn copy_atomic(src: &Path, dest: &Path) -> Result<()> {
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent)?;
+        storage::no_links(parent)?;
+    }
+    storage::no_links(dest)?;
+    let name = dest.file_name().and_then(|s| s.to_str()).unwrap_or("file");
+    let part = dest.with_file_name(format!(".{name}.{}.part", uuid::Uuid::new_v4()));
+    storage::no_links(&part)?;
+    if let Err(e) = fs::copy(src, &part) {
+        let _ = fs::remove_file(&part);
+        return Err(e.into());
+    }
+    if let Err(e) = fs::rename(&part, dest) {
+        let _ = fs::remove_file(&part);
+        return Err(e.into());
+    }
+    Ok(())
+}
+
+fn restore_backup(root: &Path, dir: &Path, backup: &PackBackup) -> Result<()> {
+    for path in &backup.added {
+        let dest = safe_join(root, path)?;
+        if dest.is_file() {
+            fs::remove_file(&dest)?;
+        }
+    }
+    let files = safe_join(dir, "files")?;
+    for path in &backup.restore {
+        let src = safe_join(&files, path)?;
+        if src.is_file() {
+            copy_atomic(&src, &safe_join(root, path)?)?;
+        }
+    }
+    save_installed_pack(root, &backup.previous)
+}
+
+fn read_pack_backup(root: &Path, marker: &PackRollback) -> Result<(PathBuf, PackBackup)> {
+    let backups = safe_join(root, PACK_BACKUP_DIR)?;
+    let dir = safe_join(root, &marker.backup)?;
+    if dir == backups || !dir.starts_with(&backups) {
+        return Err(AppError::user(
+            "The modpack rollback backup path is invalid.",
+        ));
+    }
+    storage::no_links(&dir)?;
+    let bytes = fs::read(dir.join("backup.json"))
+        .map_err(|_| AppError::user("The modpack rollback backup is missing."))?;
+    let backup: PackBackup = serde_json::from_slice(&bytes)
+        .map_err(|e| AppError::new("The modpack rollback backup is unreadable.", e))?;
+    Ok((dir, backup))
+}
+
+/// Fetch the newest compatible pack version, stage and verify its archive, and
+/// compute the file-level difference against the installed record. Nothing in
+/// the server directory is changed by a preview.
+pub async fn preview_update(m: Arc<Manager>, id: String) -> Result<Option<ModpackUpdatePreview>> {
+    m.ready()?;
+    let runtime = m.runtime(&id)?;
+    let _guard = runtime.gate.lock().await;
+    runtime.idle()?;
+    let server = m.metadata(&id)?;
+    if !server.installed {
+        return Err(AppError::user(
+            "Install the server software first, then apply a modpack.",
+        ));
+    }
+    let root = m.dir(&id)?;
+    let installed = read_installed_pack(&root)
+        .ok_or_else(|| AppError::user("Install a Modrinth modpack before checking for updates."))?;
+    cleanup_pending(&root);
+    let client = m.client();
+    let loader = (installed.loader == "fabric").then_some("fabric");
+    let available = versions(
+        &client,
+        &installed.project_id,
+        Some(&server.minecraft_version),
+        loader,
+    )
+    .await?;
+    let installed_date = version_detail(&client, &installed.version_id)
+        .await
+        .ok()
+        .map(|(_, _, date)| date)
+        .unwrap_or_default();
+    let mut candidates: Vec<ProjectVersion> = available
+        .into_iter()
+        .filter(|v| v.id != installed.version_id)
+        .filter(|v| pack_version_matches_loader(v, &installed.loader))
+        .filter(|v| installed_date.is_empty() || v.date_published > installed_date)
+        .filter(|v| {
+            v.files
+                .iter()
+                .any(|f| f.filename.to_ascii_lowercase().ends_with(".mrpack"))
+        })
+        .collect();
+    candidates.sort_by(|a, b| {
+        let a_release = a.channel == "release";
+        let b_release = b.channel == "release";
+        b_release
+            .cmp(&a_release)
+            .then_with(|| b.date_published.cmp(&a.date_published))
+    });
+    let Some(version) = candidates.into_iter().next() else {
+        return Ok(None);
+    };
+    let file = version
+        .files
+        .iter()
+        .find(|f| f.primary && f.filename.to_ascii_lowercase().ends_with(".mrpack"))
+        .or_else(|| {
+            version
+                .files
+                .iter()
+                .find(|f| f.filename.to_ascii_lowercase().ends_with(".mrpack"))
+        })
+        .ok_or_else(|| AppError::user("This modpack version has no .mrpack file."))?;
+    if file.size > MAX_PACK_BYTES {
+        return Err(AppError::user(
+            "This modpack is larger than the 512 MB safety limit.",
+        ));
+    }
+    let changelog = version_detail(&client, &version.id)
+        .await
+        .map(|(_, changelog, _)| changelog.chars().take(20_000).collect::<String>())
+        .unwrap_or_default();
+    let staged = storage::child(&root, PACK_PENDING_FILE)?;
+    storage::no_links(&staged)?;
+    let _ = fs::remove_file(&staged);
+    progress(
+        &m,
+        &id,
+        "download",
+        &file.filename,
+        0,
+        1,
+        0,
+        (file.size > 0).then_some(file.size),
+    );
+    let downloaded = download_file(
+        &client,
+        &file.url,
+        &staged,
+        file.sha512.as_deref(),
+        file.sha1.as_deref(),
+        MAX_PACK_BYTES,
+        |d, t| progress(&m, &id, "download", &file.filename, 0, 1, d, t),
+    )
+    .await;
+    if let Err(e) = downloaded {
+        let _ = fs::remove_file(&staged);
+        return Err(e);
+    }
+    let result = (|| -> Result<ModpackUpdatePreview> {
+        let layout = pack_layout(&staged)?;
+        let (pack_loader, minecraft) = validate_pack(&server, &layout.pack)?;
+        if pack_loader != installed.loader {
+            return Err(AppError::user(
+                "This modpack update changes the mod loader. Install it on a new server instead of updating in place.",
+            ));
+        }
+        let preview = diff_pack(
+            &installed,
+            &layout,
+            &version,
+            changelog,
+            minecraft,
+            pack_loader,
+        );
+        let pending = PendingPack {
+            version_id: version.id.clone(),
+            version: version.version_number.clone(),
+            channel: version.channel.clone(),
+            changelog: preview.changelog.clone(),
+            sha1: file.sha1.clone(),
+            sha512: file.sha512.clone(),
+        };
+        storage::write_json(&storage::child(&root, PACK_PENDING)?, &pending)?;
+        Ok(preview)
+    })();
+    if result.is_err() {
+        cleanup_pending(&root);
+    }
+    result.map(Some)
+}
+
+/// Download only the files a pack version actually needs. Files whose hashes
+/// match both the previous record and the bytes on disk are reused untouched.
+async fn apply_layout(
+    m: &Manager,
+    id: &str,
+    root: &Path,
+    archive_path: &Path,
+    layout: &PackLayout,
+    client: &reqwest::Client,
+    previous: Option<&InstalledPack>,
+) -> Result<(u32, u32, u32)> {
+    let total = layout.managed.len() as u32;
+    let mut completed = 0u32;
+    let mut files = 0u32;
+    let mut reused = 0u32;
+    for file in &layout.managed {
+        let url = file
+            .downloads
+            .iter()
+            .find(|u| u.starts_with("https://"))
+            .ok_or_else(|| {
+                AppError::user("The modpack contains a file without a secure download.")
+            })?;
+        let dest = safe_join(root, &file.path)?;
+        let can_reuse = previous
+            .and_then(|old| {
+                old.managed
+                    .iter()
+                    .find(|entry| entry.path.eq_ignore_ascii_case(&file.path))
+            })
+            .map(|old| {
+                hash_pair_match(
+                    file.hashes.sha1.as_deref(),
+                    file.hashes.sha512.as_deref(),
+                    old.sha1.as_deref(),
+                    old.sha512.as_deref(),
+                ) && file_matches_hashes(
+                    &dest,
+                    file.hashes.sha1.as_deref(),
+                    file.hashes.sha512.as_deref(),
+                )
+            })
+            .unwrap_or(false);
+        if can_reuse {
+            reused += 1;
+            completed += 1;
+            progress(m, id, "reuse", &file.path, completed, total, 0, Some(0));
+            continue;
+        }
+        if let Some(parent) = dest.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        progress(
+            m,
+            id,
+            "download",
+            &file.path,
+            completed,
+            total,
+            0,
+            Some(file.file_size),
+        );
+        download_file(
+            client,
+            url,
+            &dest,
+            file.hashes.sha512.as_deref(),
+            file.hashes.sha1.as_deref(),
+            MAX_PACK_FILE_BYTES,
+            |d, t| progress(m, id, "download", &file.path, completed, total, d, t),
+        )
+        .await?;
+        completed += 1;
+        files += 1;
+    }
+    let total_overrides = layout.overrides.len() as u32;
+    if total_overrides > 0 {
+        let handle = fs::File::open(archive_path)?;
+        let mut archive = zip::ZipArchive::new(handle)
+            .map_err(|e| AppError::new("This file is not a valid .mrpack archive.", e))?;
+        let mut done = 0u32;
+        for file in &layout.overrides {
+            let dest = safe_join(root, &file.path)?;
+            let can_reuse = previous
+                .and_then(|old| {
+                    old.overrides
+                        .iter()
+                        .find(|entry| entry.path.eq_ignore_ascii_case(&file.path))
+                })
+                .map(|old| {
+                    hash_pair_match(
+                        Some(&file.sha1),
+                        None,
+                        old.sha1.as_deref(),
+                        old.sha512.as_deref(),
+                    ) && file_matches_hashes(&dest, Some(&file.sha1), None)
+                })
+                .unwrap_or(false);
+            if !can_reuse {
+                if let Some(parent) = dest.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                let mut entry = archive.by_name(&file.entry).map_err(|e| {
+                    AppError::new("The staged modpack changed while it was being read.", e)
+                })?;
+                let name = dest
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("override");
+                let part = dest.with_file_name(format!(".{name}.{}.part", uuid::Uuid::new_v4()));
+                storage::no_links(&part)?;
+                let mut out = fs::File::create(&part)?;
+                let copied =
+                    std::io::copy(&mut entry.by_ref().take(MAX_OVERRIDE_BYTES + 1), &mut out)?;
+                if copied > MAX_OVERRIDE_BYTES {
+                    drop(out);
+                    let _ = fs::remove_file(&part);
+                    return Err(AppError::user(
+                        "The modpack overrides are larger than the 512 MB safety limit.",
+                    ));
+                }
+                out.sync_all()?;
+                drop(out);
+                fs::rename(&part, &dest)?;
+            }
+            done += 1;
+            progress(
+                m,
+                id,
+                "overrides",
+                &file.path,
+                done,
+                total_overrides,
+                0,
+                Some(0),
+            );
+        }
+    }
+    Ok((files, reused, total_overrides))
+}
+
+/// Apply the staged update. Files that the update replaces or removes are
+/// copied to a per-update backup first; a failure restores them immediately.
+pub async fn update_modpack(
+    m: Arc<Manager>,
+    id: String,
+    confirmed: bool,
+) -> Result<ModpackUpdateOutcome> {
+    if !confirmed {
+        return Err(AppError::user(
+            "Confirm the modpack update before applying it.",
+        ));
+    }
+    m.ready()?;
+    let runtime = m.runtime(&id)?;
+    let _guard = runtime.gate.lock().await;
+    runtime.idle()?;
+    let server = m.metadata(&id)?;
+    if !server.installed {
+        return Err(AppError::user(
+            "Install the server software first, then apply a modpack.",
+        ));
+    }
+    let root = m.dir(&id)?;
+    let installed = read_installed_pack(&root)
+        .ok_or_else(|| AppError::user("Install a Modrinth modpack before checking for updates."))?;
+    let pending_path = storage::child(&root, PACK_PENDING)?;
+    storage::no_links(&pending_path)?;
+    let pending: PendingPack = serde_json::from_slice(
+        &fs::read(&pending_path)
+            .map_err(|_| AppError::user("Check for a modpack update before applying one."))?,
+    )
+    .map_err(|e| AppError::new("The staged modpack update is unreadable. Check again.", e))?;
+    if pending.version_id == installed.version_id {
+        cleanup_pending(&root);
+        return Err(AppError::user(
+            "The staged update is the version already installed.",
+        ));
+    }
+    let staged = storage::child(&root, PACK_PENDING_FILE)?;
+    storage::no_links(&staged)?;
+    if !file_matches_hashes(&staged, pending.sha1.as_deref(), pending.sha512.as_deref()) {
+        cleanup_pending(&root);
+        return Err(AppError::user(
+            "The staged modpack download is missing or does not match its checksum. Check for updates again.",
+        ));
+    }
+    let layout = pack_layout(&staged)?;
+    let (loader, minecraft) = validate_pack(&server, &layout.pack)?;
+    if loader != installed.loader {
+        cleanup_pending(&root);
+        return Err(AppError::user(
+            "This modpack update changes the mod loader. Install it on a new server instead of updating in place.",
+        ));
+    }
+    let old = pack_hashes(&installed);
+    let new = layout_hashes(&layout);
+    let backup_rel = format!("{PACK_BACKUP_DIR}/{}", uuid::Uuid::new_v4());
+    let backup_dir = safe_join(&root, &backup_rel)?;
+    fs::create_dir_all(&backup_dir)?;
+    let prepared = (|| -> Result<PackBackup> {
+        let mut restore = Vec::new();
+        let mut added = Vec::new();
+        for (key, (path, sha1, sha512)) in &old {
+            let same = new
+                .get(key)
+                .map(|(_, one, five)| {
+                    hash_pair_match(
+                        one.as_deref(),
+                        five.as_deref(),
+                        sha1.as_deref(),
+                        sha512.as_deref(),
+                    )
+                })
+                .unwrap_or(false);
+            if same {
+                continue;
+            }
+            let src = safe_join(&root, path)?;
+            if src.is_file() {
+                copy_atomic(&src, &safe_join(&backup_dir.join("files"), path)?)?;
+                restore.push(path.clone());
+            }
+        }
+        for (key, (path, _, _)) in &new {
+            if old.contains_key(key) {
+                continue;
+            }
+            // A manually placed file can share a path with a file the update
+            // introduces. Preserve it so a rollback restores it instead of
+            // deleting it as an update-added file.
+            let dest = safe_join(&root, path)?;
+            if dest.is_file() {
+                copy_atomic(&dest, &safe_join(&backup_dir.join("files"), path)?)?;
+                restore.push(path.clone());
+            } else {
+                added.push(path.clone());
+            }
+        }
+        let backup = PackBackup {
+            previous: installed.clone(),
+            restore,
+            added,
+        };
+        storage::write_json(&backup_dir.join("backup.json"), &backup)?;
+        Ok(backup)
+    })();
+    let backup = match prepared {
+        Ok(backup) => backup,
+        Err(error) => {
+            let _ = fs::remove_dir_all(&backup_dir);
+            return Err(error);
+        }
+    };
+    let previous_marker = read_rollback(&root);
+    let client = m.client();
+    let apply = async {
+        for (key, (path, _, _)) in &old {
+            if !new.contains_key(key) {
+                let dest = safe_join(&root, path)?;
+                if dest.is_file() {
+                    fs::remove_file(&dest)?;
+                }
+            }
+        }
+        let (files, reused, overrides) =
+            apply_layout(&m, &id, &root, &staged, &layout, &client, Some(&installed)).await?;
+        let record = installed_record(
+            &installed.project_id,
+            &pending.version_id,
+            &pending.version,
+            &layout.pack.name,
+            minecraft,
+            loader,
+            &layout,
+        );
+        save_installed_pack(&root, &record)?;
+        Ok::<(u32, u32, u32), AppError>((files, reused, overrides))
+    }
+    .await;
+    let (files, reused, overrides) = match apply {
+        Ok(values) => values,
+        Err(error) => {
+            if let Err(restore_error) = restore_backup(&root, &backup_dir, &backup) {
+                return Err(AppError::user(format!(
+                    "The modpack update failed and the automatic rollback also failed. The backup is kept at {backup_rel}. Update error: {error}. Rollback error: {restore_error}"
+                )));
+            }
+            let _ = fs::remove_dir_all(&backup_dir);
+            cleanup_pending(&root);
+            return Err(error);
+        }
+    };
+    let marker = PackRollback {
+        backup: backup_rel.clone(),
+        from_version: installed.version.clone(),
+        to_version: pending.version.clone(),
+        created_at: chrono::Utc::now().to_rfc3339(),
+    };
+    if let Err(error) = storage::write_json(&storage::child(&root, PACK_ROLLBACK)?, &marker) {
+        return Err(AppError::user(format!(
+            "The modpack update was applied, but its rollback marker could not be saved. The backup is kept at {backup_rel}. {error}"
+        )));
+    }
+    if let Some(previous) = previous_marker {
+        remove_backup_dir(&root, &previous.backup);
+    }
+    cleanup_pending(&root);
+    m.logger.log(
+        "INFO",
+        &format!(
+            "Updated modpack {} {} -> {} on server {id}",
+            installed.name, installed.version, pending.version
+        ),
+    );
+    Ok(ModpackUpdateOutcome {
+        name: installed.name,
+        from_version: installed.version,
+        to_version: pending.version,
+        files,
+        reused,
+        skipped: layout.skipped,
+        overrides,
+        backup: backup_rel,
+    })
+}
+
+/// Restore the single most recent modpack update. The marker and its backup
+/// are removed afterwards, so an update is rolled back at most once.
+pub async fn rollback_modpack(
+    m: Arc<Manager>,
+    id: String,
+    confirmed: bool,
+) -> Result<ModpackRollbackOutcome> {
+    if !confirmed {
+        return Err(AppError::user(
+            "Confirm the modpack rollback before applying it.",
+        ));
+    }
+    m.ready()?;
+    let runtime = m.runtime(&id)?;
+    let _guard = runtime.gate.lock().await;
+    runtime.idle()?;
+    let root = m.dir(&id)?;
+    let marker = read_rollback(&root)
+        .ok_or_else(|| AppError::user("There is no modpack update to roll back."))?;
+    let (dir, backup) = read_pack_backup(&root, &marker)?;
+    restore_backup(&root, &dir, &backup)?;
+    let _ = fs::remove_file(storage::child(&root, PACK_ROLLBACK)?);
+    let _ = fs::remove_dir_all(&dir);
+    cleanup_pending(&root);
+    m.logger.log(
+        "INFO",
+        &format!(
+            "Rolled back modpack {} {} -> {} on server {id}",
+            backup.previous.name, marker.to_version, backup.previous.version
+        ),
+    );
+    Ok(ModpackRollbackOutcome {
+        name: backup.previous.name,
+        restored_version: backup.previous.version,
+    })
+}
+
 fn facets(project_type: &str, game_version: Option<&str>, loader: Option<&str>) -> String {
     let mut groups: Vec<Vec<String>> = vec![vec![format!("project_type:{project_type}")]];
     if let Some(game) = game_version.filter(|g| !g.is_empty()) {
@@ -1107,6 +2267,11 @@ fn protected(relative: &str) -> bool {
             | "eula.txt"
             | "server.properties"
             | "content.json"
+            | "modpack.json"
+            | "modpack-pending.json"
+            | "modpack-pending.mrpack"
+            | "modpack-rollback.json"
+            | "modpack-backups"
             | "player-stats.json"
             | "tunnel.json"
             | "minehost.json"
@@ -1134,7 +2299,7 @@ pub(crate) fn safe_component(name: &str) -> bool {
     .contains(&stem.as_str())
 }
 
-fn safe_join(root: &Path, relative: &str) -> Result<PathBuf> {
+fn safe_relative(relative: &str) -> Result<String> {
     if relative.is_empty()
         || relative.len() > 512
         || relative.starts_with('/')
@@ -1144,8 +2309,6 @@ fn safe_join(root: &Path, relative: &str) -> Result<PathBuf> {
             "The modpack contains an unsafe file path and was rejected.",
         ));
     }
-    let mut path = root.to_path_buf();
-    storage::no_links(&path)?;
     let normalized = relative.replace('\\', "/");
     let mut depth = 0;
     for part in normalized.split('/') {
@@ -1154,14 +2317,23 @@ fn safe_join(root: &Path, relative: &str) -> Result<PathBuf> {
                 "The modpack contains an unsafe file path and was rejected.",
             ));
         }
-        path.push(part);
         depth += 1;
-        storage::no_links(&path)?;
     }
     if depth == 0 {
         return Err(AppError::user(
             "The modpack contains an unsafe file path and was rejected.",
         ));
+    }
+    Ok(normalized)
+}
+
+fn safe_join(root: &Path, relative: &str) -> Result<PathBuf> {
+    let normalized = safe_relative(relative)?;
+    let mut path = root.to_path_buf();
+    storage::no_links(&path)?;
+    for part in normalized.split('/') {
+        path.push(part);
+        storage::no_links(&path)?;
     }
     Ok(path)
 }
@@ -1474,8 +2646,266 @@ mod tests {
         assert!(protected("world/level.dat"));
         assert!(protected("backups/2024.zip"));
         assert!(protected("logs/latest.log"));
+        assert!(protected("modpack.json"));
+        assert!(protected("modpack-pending.mrpack"));
+        assert!(protected("modpack-backups/abc/files/mod.jar"));
+        assert!(protected("modpack-rollback.json"));
         assert!(!protected("mods/fabric-api.jar"));
         assert!(!protected("config/settings.json"));
+    }
+
+    fn test_pack(dir: &Path, index: Value, overrides: &[(&str, &str)]) -> PathBuf {
+        use std::io::Write as _;
+        let path = dir.join("fixture.mrpack");
+        let mut zip = zip::ZipWriter::new(fs::File::create(&path).unwrap());
+        zip.start_file(
+            "modrinth.index.json",
+            zip::write::SimpleFileOptions::default(),
+        )
+        .unwrap();
+        zip.write_all(index.to_string().as_bytes()).unwrap();
+        for (name, body) in overrides {
+            zip.start_file(*name, zip::write::SimpleFileOptions::default())
+                .unwrap();
+            zip.write_all(body.as_bytes()).unwrap();
+        }
+        zip.finish().unwrap();
+        path
+    }
+
+    fn sha1_hex(body: &str) -> String {
+        let mut hash = sha1::Sha1::new();
+        hash.update(body.as_bytes());
+        format!("{:x}", hash.finalize())
+    }
+
+    #[test]
+    fn pack_layout_filters_managed_files_and_merges_overrides() {
+        let temp = tempfile::tempdir().unwrap();
+        let index = json!({
+            "formatVersion": 1,
+            "name": "Fixture Pack",
+            "versionId": "1.1.0",
+            "dependencies": {"minecraft": "1.20.1", "fabric-loader": "0.15.0"},
+            "files": [
+                {"path": "mods/a.jar", "hashes": {"sha1": "aa"}, "downloads": ["https://cdn.example/a.jar"], "fileSize": 10},
+                {"path": "mods/client.jar", "hashes": {}, "env": {"server": "unsupported"}, "downloads": ["https://cdn.example/c.jar"], "fileSize": 10},
+                {"path": "mods/override.jar", "hashes": {"sha1": "bb"}, "downloads": ["https://cdn.example/o.jar"], "fileSize": 10},
+                {"path": "config/from-managed.json", "hashes": {"sha1": "cc"}, "downloads": ["https://cdn.example/m.json"], "fileSize": 10},
+                {"path": "world/level.dat", "hashes": {"sha1": "dd"}, "downloads": ["https://cdn.example/w.dat"], "fileSize": 10}
+            ]
+        });
+        let path = test_pack(
+            temp.path(),
+            index,
+            &[
+                ("overrides/config/settings.json", "base"),
+                ("overrides/mods/override.jar", "override"),
+                ("server-overrides/config/settings.json", "server"),
+                ("server-overrides/mods/override.jar", "server-override"),
+                ("overrides/logs/latest.log", "ignored"),
+            ],
+        );
+        let layout = pack_layout(&path).unwrap();
+        assert_eq!(layout.pack.name, "Fixture Pack");
+        assert_eq!(layout.managed.len(), 2);
+        let managed: Vec<&str> = layout.managed.iter().map(|f| f.path.as_str()).collect();
+        assert_eq!(managed, vec!["config/from-managed.json", "mods/a.jar"]);
+        assert_eq!(layout.skipped, 4);
+        let overrides: BTreeMap<&str, &str> = layout
+            .overrides
+            .iter()
+            .map(|f| (f.path.as_str(), f.sha1.as_str()))
+            .collect();
+        assert_eq!(overrides.len(), 2);
+        let server = sha1_hex("server");
+        let server_override = sha1_hex("server-override");
+        assert_eq!(
+            overrides.get("config/settings.json").copied(),
+            Some(server.as_str())
+        );
+        assert_eq!(
+            overrides.get("mods/override.jar").copied(),
+            Some(server_override.as_str())
+        );
+    }
+
+    #[test]
+    fn pack_diff_classifies_paths() {
+        let installed = InstalledPack {
+            schema_version: 1,
+            project_id: "pack".into(),
+            version_id: "old".into(),
+            name: "Pack".into(),
+            version: "1.0".into(),
+            minecraft: "1.20.1".into(),
+            loader: "fabric".into(),
+            managed: vec![
+                InstalledPackFile {
+                    path: "mods/a.jar".into(),
+                    sha1: Some("aa".into()),
+                    sha512: None,
+                },
+                InstalledPackFile {
+                    path: "mods/b.jar".into(),
+                    sha1: Some("bb".into()),
+                    sha512: None,
+                },
+                InstalledPackFile {
+                    path: "mods/old.jar".into(),
+                    sha1: Some("oo".into()),
+                    sha512: None,
+                },
+            ],
+            overrides: vec![InstalledPackFile {
+                path: "config/settings.json".into(),
+                sha1: Some("x".into()),
+                sha512: None,
+            }],
+            installed_at: "2026-01-01T00:00:00Z".into(),
+        };
+        let version = ProjectVersion {
+            id: "new".into(),
+            project_id: "pack".into(),
+            name: "1.1".into(),
+            version_number: "1.1".into(),
+            channel: "release".into(),
+            game_versions: vec!["1.20.1".into()],
+            loaders: vec!["fabric".into()],
+            downloads: 0,
+            date_published: "2026-02-01T00:00:00Z".into(),
+            files: vec![],
+            dependencies: vec![],
+        };
+        let layout = PackLayout {
+            pack: serde_json::from_value(json!({
+                "formatVersion": 1,
+                "name": "Pack",
+                "versionId": "1.1",
+                "dependencies": {"minecraft": "1.20.1", "fabric-loader": "0.15.0"}
+            }))
+            .unwrap(),
+            managed: vec![
+                serde_json::from_value(json!({"path": "mods/a.jar", "hashes": {"sha1": "aa"}, "downloads": ["https://cdn.example/a.jar"]})).unwrap(),
+                serde_json::from_value(json!({"path": "mods/b.jar", "hashes": {"sha1": "bb-new"}, "downloads": ["https://cdn.example/b.jar"]})).unwrap(),
+                serde_json::from_value(json!({"path": "mods/c.jar", "hashes": {"sha1": "cc"}, "downloads": ["https://cdn.example/c.jar"]})).unwrap(),
+            ],
+            overrides: vec![
+                PackOverride {
+                    path: "config/settings.json".into(),
+                    entry: "server-overrides/config/settings.json".into(),
+                    sha1: "y".into(),
+                },
+                PackOverride {
+                    path: "config/new.json".into(),
+                    entry: "server-overrides/config/new.json".into(),
+                    sha1: "z".into(),
+                },
+            ],
+            skipped: 0,
+        };
+        let preview = diff_pack(
+            &installed,
+            &layout,
+            &version,
+            String::new(),
+            "1.20.1".into(),
+            "fabric",
+        );
+        assert_eq!(preview.added, vec!["config/new.json", "mods/c.jar"]);
+        assert_eq!(preview.removed, vec!["mods/old.jar"]);
+        assert_eq!(preview.changed, vec!["config/settings.json", "mods/b.jar"]);
+        assert_eq!(preview.unchanged, 1);
+        assert_eq!(preview.overrides_changed, 2);
+        assert!(!preview.truncated);
+        assert_eq!(preview.from_version, "1.0");
+        assert_eq!(preview.to_version, "1.1");
+    }
+
+    #[test]
+    fn rollback_restores_files_and_record() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        fs::create_dir_all(root.join("mods")).unwrap();
+        fs::write(root.join("mods/a.jar"), b"new").unwrap();
+        fs::write(root.join("mods/added.jar"), b"added").unwrap();
+        fs::create_dir_all(root.join("modpack-backups/one/files/mods")).unwrap();
+        fs::write(root.join("modpack-backups/one/files/mods/a.jar"), b"old").unwrap();
+        let previous = InstalledPack {
+            schema_version: 1,
+            project_id: "pack".into(),
+            version_id: "old".into(),
+            name: "Pack".into(),
+            version: "1.0".into(),
+            minecraft: "1.20.1".into(),
+            loader: "fabric".into(),
+            managed: vec![],
+            overrides: vec![],
+            installed_at: "2026-01-01T00:00:00Z".into(),
+        };
+        let backup = PackBackup {
+            previous,
+            restore: vec!["mods/a.jar".into()],
+            added: vec!["mods/added.jar".into()],
+        };
+        restore_backup(root, &root.join("modpack-backups/one"), &backup).unwrap();
+        assert_eq!(fs::read(root.join("mods/a.jar")).unwrap(), b"old");
+        assert!(!root.join("mods/added.jar").exists());
+        let record = read_installed_pack(root).unwrap();
+        assert_eq!(record.version, "1.0");
+    }
+
+    #[test]
+    fn pack_candidates_follow_the_installed_loader() {
+        let version = |loaders: Vec<&str>| ProjectVersion {
+            id: "v".into(),
+            project_id: "pack".into(),
+            name: "v".into(),
+            version_number: "v".into(),
+            channel: "release".into(),
+            game_versions: vec!["1.20.1".into()],
+            loaders: loaders.into_iter().map(Into::into).collect(),
+            downloads: 0,
+            date_published: String::new(),
+            files: vec![],
+            dependencies: vec![],
+        };
+        assert!(pack_version_matches_loader(
+            &version(vec!["fabric"]),
+            "fabric"
+        ));
+        assert!(pack_version_matches_loader(&version(vec![]), "fabric"));
+        assert!(!pack_version_matches_loader(
+            &version(vec!["forge"]),
+            "fabric"
+        ));
+        assert!(pack_version_matches_loader(
+            &version(vec!["minecraft"]),
+            "vanilla"
+        ));
+        assert!(pack_version_matches_loader(&version(vec![]), "vanilla"));
+        assert!(!pack_version_matches_loader(
+            &version(vec!["neoforge"]),
+            "vanilla"
+        ));
+    }
+
+    #[test]
+    fn local_file_hash_matching_is_strict() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("mod.jar");
+        fs::write(&path, b"payload").unwrap();
+        let one = sha1_hex("payload");
+        assert!(file_matches_hashes(&path, Some(&one), None));
+        assert!(!file_matches_hashes(&path, None, None));
+        assert!(!file_matches_hashes(&path, Some("deadbeef"), None));
+        assert!(hash_pair_match(
+            Some(&one),
+            None,
+            Some(&one.to_uppercase()),
+            None
+        ));
+        assert!(!hash_pair_match(None, None, Some(&one), None));
     }
 
     #[test]
