@@ -19,6 +19,8 @@ import type {
   PropertyChange,
   PropertyTemplate,
   DiagnosisReport,
+  DiskReport,
+  DiskCleanupResult,
   ProjectPage,
   ProjectVersion,
   ContentEntry,
@@ -129,6 +131,11 @@ type Contract = {
   open_folder: [{ id?: string; kind: string }, void];
   server_health: [{ id: string }, HealthReport];
   server_diagnosis: [{ id: string }, DiagnosisReport];
+  disk_report: [{ id: string }, DiskReport];
+  clean_disk: [
+    { id: string; targets: string[]; confirmed: boolean },
+    DiskCleanupResult,
+  ];
   open_guide: [{ kind: string }, void];
   modrinth_search: [
     {

@@ -29,6 +29,7 @@ The interface uses **Shan Shui Glass**: frosted layers, azurite blue, malachite 
 - Command palette: press `Ctrl/Cmd+K` or click the topbar search field to find servers, pages and actions. Arrow keys move, Enter runs and Esc closes; typing also reveals per-server shortcuts such as console, settings and backups.
 - Notification center: the topbar bell collects server-ready, unexpected-exit, backup-complete and scheduled-task-failure events. Unread count, clear and mute live in the dropdown; clicking an entry opens that server's console.
 - Online player panel: expand a running server on the overview page to see who is online, then kick, op or message a player directly. Actions reuse the existing player commands and the console `tell` command, with the same server-side name validation.
+- Disk space and cleanup: the ops page breaks the server folder down by worlds, backups, logs, mods and more, alongside the free space on that disk. You can select old logs (`latest.log` is kept), crash reports and interrupted leftovers, confirm, then see how much was actually freed. Worlds, backups and configuration are never cleaned.
 
 ## Screenshots
 

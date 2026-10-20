@@ -66,6 +66,25 @@ pub async fn save_share_card(m: Managed<'_>, bytes: Vec<u8>) -> Result<String> {
     .map_err(|e| AppError::new("Could not save the share card.", e))?
 }
 #[tauri::command]
+pub async fn disk_report(m: Managed<'_>, id: String) -> Result<crate::disk::DiskReport> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::disk::report(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not inspect disk usage.", e))?
+}
+#[tauri::command]
+pub async fn clean_disk(
+    m: Managed<'_>,
+    id: String,
+    targets: Vec<String>,
+    confirmed: bool,
+) -> Result<crate::disk::DiskCleanupResult> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::disk::clean(&manager, &id, targets, confirmed))
+        .await
+        .map_err(|e| AppError::new("Could not clean the selected files.", e))?
+}
+#[tauri::command]
 pub fn open_share_cards(m: Managed<'_>) -> Result<()> {
     let dir = crate::storage::child(&m.root, "share-cards")?;
     std::fs::create_dir_all(&dir)?;

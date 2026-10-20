@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui";
 import { LogAssistant } from "../components/LogAssistant";
+import { DiskUsage } from "../components/DiskUsage";
 import { call } from "../services/api";
 import { useI18n, type MessageKey } from "../i18n";
 import type {
@@ -212,6 +213,7 @@ export function Ops({ server, run, busy }: TaskProps & { server: ServerView }) {
           <p className="mini-empty">{t("common.loading")}</p>
         )}
       </section>
+      <DiskUsage id={server.id} run={run} busy={busy} />
     </div>
   );
 }

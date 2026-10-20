@@ -183,6 +183,31 @@ export interface DiagnosisReport {
   generatedAt: string;
   findings: DiagnosisFinding[];
 }
+export interface DiskCategory {
+  id: string;
+  bytes: number;
+  files: number;
+}
+export interface DiskCleanup {
+  id: string;
+  bytes: number;
+  files: number;
+  sample: string[];
+}
+export interface DiskReport {
+  serverId: string;
+  totalBytes: number;
+  freeBytes: number | null;
+  locked: boolean;
+  categories: DiskCategory[];
+  cleanups: DiskCleanup[];
+  generatedAt: string;
+}
+export interface DiskCleanupResult {
+  freedBytes: number;
+  removedFiles: number;
+  failures: string[];
+}
 export interface ProjectHit {
   id: string;
   slug: string;
