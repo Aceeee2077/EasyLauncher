@@ -1364,8 +1364,10 @@ main {
   color: var(--muted);
   font-size: 10px;
 }
-.notice {
+.notice-center {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 .notice-trigger {
   position: relative;

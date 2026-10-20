@@ -96,7 +96,7 @@ export function NotificationCenter({ notices, onOpen, onClear }: Props) {
   };
 
   return (
-    <div className="notice" ref={box}>
+    <div className="notice-center" ref={box}>
       <button
         className={`notice-trigger${open ? " active" : ""}`}
         onClick={toggle}
