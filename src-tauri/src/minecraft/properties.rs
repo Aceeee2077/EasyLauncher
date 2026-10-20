@@ -257,12 +257,47 @@ impl Properties {
         if let Some(n) = self.values.get("level-name") {
             validate_world(n)?;
         }
-        // Keep control channels local and avoid references to paths outside managed storage.
-        for key in ["enable-rcon", "enable-query", "enable-management-server"] {
+        // Query and the management server stay disabled; RCON is available only
+        // with an explicit port and a strong password configured by the app.
+        for key in ["enable-query", "enable-management-server"] {
             if self.values.get(key).map(|s| s == "true").unwrap_or(false) {
                 return Err(AppError::user(format!(
-                    "{key} is not supported in V0.1. Use the local console."
+                    "{key} is not supported. Use the local console or RCON."
                 )));
+            }
+        }
+        if self
+            .values
+            .get("enable-rcon")
+            .map(|s| s == "true")
+            .unwrap_or(false)
+        {
+            let port = self
+                .values
+                .get("rcon.port")
+                .and_then(|v| v.parse::<u32>().ok())
+                .filter(|p| (1024..=65535).contains(p))
+                .ok_or_else(|| AppError::user("RCON needs a port between 1024 and 65535."))?;
+            if let Some(server_port) = self
+                .values
+                .get("server-port")
+                .and_then(|v| v.parse::<u32>().ok())
+            {
+                if server_port == port {
+                    return Err(AppError::user(
+                        "The RCON port must differ from the Minecraft server port.",
+                    ));
+                }
+            }
+            let password = self
+                .values
+                .get("rcon.password")
+                .map(|v| v.trim())
+                .unwrap_or("");
+            if password.chars().count() < 12 {
+                return Err(AppError::user(
+                    "RCON requires a password of at least 12 characters.",
+                ));
             }
         }
         if self
@@ -337,6 +372,26 @@ mod tests {
         for world in ["backups", "logs", "CON", "world.", "restore-recovery"] {
             assert!(validate_world(world).is_err());
         }
+    }
+    #[test]
+    fn rcon_requires_a_safe_port_and_password() {
+        let mut p = Properties::parse("server-port=25565\n");
+        assert!(p.validate().is_ok());
+        p.set("enable-rcon", "true");
+        assert!(p.validate().is_err()); // no port/password yet
+        p.set("rcon.port", "25575");
+        assert!(p.validate().is_err()); // no password
+        p.set("rcon.password", "short");
+        assert!(p.validate().is_err());
+        p.set("rcon.password", "long-enough-password");
+        assert!(p.validate().is_ok());
+        p.set("rcon.port", "25565");
+        assert!(p.validate().is_err()); // collides with server-port
+        p.set("rcon.port", "80");
+        assert!(p.validate().is_err());
+        p.set("rcon.port", "25575");
+        p.set("enable-rcon", "false");
+        assert!(p.validate().is_ok()); // disabled config is always allowed
     }
     #[test]
     fn duplicate_keys_last_value_wins() {

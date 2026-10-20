@@ -9,6 +9,7 @@ import {
   Cpu,
   Layers,
   ArrowRight,
+  Radio,
 } from "lucide-react";
 import { Button, Field, Modal } from "../components/ui";
 import { call } from "../services/api";
@@ -18,6 +19,7 @@ import {
   type LaunchInfo,
   type PropertyChange,
   type PropertyTemplate,
+  type RconInfo,
   type ServerView,
 } from "../types";
 import type { TaskProps } from "../utils/task";
@@ -50,6 +52,9 @@ export function ServerSettings({
   const [jvmSaved, setJvmSaved] = useState(false);
   const [launch, setLaunch] = useState<LaunchInfo | null>(null);
   const [copied, setCopied] = useState(false);
+  const [rcon, setRcon] = useState<RconInfo | null>(null);
+  const [rconPort, setRconPort] = useState(25575);
+  const [rconCopied, setRconCopied] = useState(false);
   const [preview, setPreview] = useState<{
     template: PropertyTemplate;
     changes: PropertyChange[];
@@ -93,6 +98,19 @@ export function ServerSettings({
     server.jvmFlags,
     server.javaPath,
   ]);
+  useEffect(() => {
+    let live = true;
+    void run(`rcon-${server.id}-${crypto.randomUUID()}`, async () => {
+      const info = await call("rcon_info", { id: server.id });
+      if (live) {
+        setRcon(info);
+        setRconPort(info.port);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [server.id, server.runtime.status]);
   const copyCommand = () => {
     if (!launch) return;
     void run("copyLaunchCommand", async () => {
@@ -272,6 +290,109 @@ export function ServerSettings({
             ))}
           </fieldset>
         )}
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <Radio size={18} />
+              {t("serverSettings.rcon.title")}
+            </h2>
+            <p>{t("serverSettings.rcon.desc")}</p>
+          </div>
+          {rcon?.enabled ? (
+            <Button
+              disabled={!editable}
+              busy={busy.has("rcon")}
+              onClick={() =>
+                void run("rcon", async () => {
+                  const info = await call("rcon_disable", {
+                    id: server.id,
+                  });
+                  setRcon(info);
+                  setRconPort(info.port);
+                  setRconCopied(false);
+                })
+              }
+            >
+              {t("serverSettings.rcon.disable")}
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              disabled={!editable}
+              busy={busy.has("rcon")}
+              onClick={() =>
+                void run("rcon", async () => {
+                  const info = await call("rcon_enable", {
+                    id: server.id,
+                    port: rconPort,
+                  });
+                  setRcon(info);
+                  setRconPort(info.port);
+                  setRconCopied(false);
+                })
+              }
+            >
+              {t("serverSettings.rcon.enable")}
+            </Button>
+          )}
+        </div>
+        {!rcon ? (
+          <p className="muted">{t("serverSettings.loading")}</p>
+        ) : rcon.enabled ? (
+          <>
+            <div className="info-strip success-text">
+              {t("serverSettings.rcon.enabled", { port: rcon.port })}
+            </div>
+            {rcon.password ? (
+              <Field label={t("serverSettings.rcon.password")}>
+                <div className="row">
+                  <input readOnly value={rcon.password} />
+                  <Button
+                    busy={busy.has("rcon-copy")}
+                    onClick={() =>
+                      void run("rcon-copy", async () => {
+                        await navigator.clipboard.writeText(
+                          rcon.password || "",
+                        );
+                        setRconCopied(true);
+                        window.setTimeout(() => setRconCopied(false), 1600);
+                      })
+                    }
+                  >
+                    {rconCopied ? <Check size={16} /> : <Copy size={16} />}
+                    {t(
+                      rconCopied
+                        ? "serverSettings.rcon.copied"
+                        : "serverSettings.rcon.copy",
+                    )}
+                  </Button>
+                </div>
+              </Field>
+            ) : (
+              <p className="muted small">
+                {t("serverSettings.rcon.passwordMissing")}
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <Field label={t("serverSettings.rcon.port")}>
+              <input
+                type="number"
+                min={1024}
+                max={65535}
+                disabled={!editable}
+                value={rconPort}
+                onChange={(e) => setRconPort(+e.target.value)}
+              />
+            </Field>
+            <p className="small muted">{t("serverSettings.rcon.hint")}</p>
+          </>
+        )}
+        <p className="small muted">{t("serverSettings.rcon.warning")}</p>
+        <p className="small muted">{t("serverSettings.rcon.restart")}</p>
       </section>
       <section className="panel">
         <div className="section-title">

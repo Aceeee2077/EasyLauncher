@@ -1051,6 +1051,41 @@ export const zh = {
   "diagnosis.generic.title": "未分类的启动异常",
   "diagnosis.generic.advice":
     "展开证据查看完整堆栈，或到控制台查看启动前后的日志。",
+  "serverSettings.rcon.title": "RCON 控制通道",
+  "serverSettings.rcon.desc":
+    "可选的本地 RCON，用于权威玩家列表和一致性操作。连接始终发往 127.0.0.1。",
+  "serverSettings.rcon.enable": "启用 RCON",
+  "serverSettings.rcon.disable": "停用 RCON",
+  "serverSettings.rcon.port": "RCON 端口",
+  "serverSettings.rcon.enabled": "RCON 已启用，端口 {port}。",
+  "serverSettings.rcon.disabled": "RCON 当前已停用。",
+  "serverSettings.rcon.password": "RCON 密码（保存在 server.properties）",
+  "serverSettings.rcon.copy": "复制密码",
+  "serverSettings.rcon.copied": "已复制",
+  "serverSettings.rcon.warning":
+    "启用后 Minecraft 会在所有网络接口上监听此端口。请只在可信网络中使用，并保持强密码。",
+  "serverSettings.rcon.restart":
+    "更改会在下次启动服务器时生效。启用或停用前请先停止服务器。",
+  "serverSettings.rcon.hint":
+    "启用并启动服务器后，可在总览页用 RCON 刷新权威在线玩家列表。",
+  "serverSettings.rcon.passwordMissing":
+    "尚未生成密码。停用后再启用即可重新生成。",
+  "overview.rconRefresh": "RCON 刷新",
+  "overview.rconNote":
+    "RCON 刷新会用服务器返回的权威列表替换日志观察到的在线玩家。",
+  "errors.rcon.disabled": "这台服务器尚未启用 RCON。",
+  "errors.rcon.notRunning": "请先启动服务器并等待就绪后再使用 RCON。",
+  "errors.rcon.authFailed": "RCON 认证失败，请停用后重新启用以轮换密码。",
+  "errors.rcon.unreachable":
+    "无法连接本地 RCON 端口。确认已启用 RCON 并重启过服务器。",
+  "errors.rcon.timeout": "RCON 没有及时响应，请稍后重试。",
+  "errors.rcon.portInUse": "RCON 端口已被占用，请换一个端口。",
+  "errors.rcon.invalidPort": "请选择 1024–65535 之间的 RCON 端口，且不能与服务器端口相同。",
+  "errors.rcon.invalidCommand": "请只输入一条 RCON 命令，最多 4096 个字符。",
+  "errors.rcon.noPassword": "没有保存 RCON 密码，请停用后重新启用。",
+  "errors.rcon.playerList": "无法识别服务器返回的玩家列表。",
+  "errors.rcon.protocol": "RCON 返回了无法识别的数据包。",
+  "errors.rcon.io": "RCON 连接中断，请稍后重试。",
 } as const;
 
 export type MessageKey = keyof typeof zh;
@@ -2191,6 +2226,41 @@ export const en: Record<MessageKey, string> = {
   "diagnosis.generic.title": "Unclassified startup error",
   "diagnosis.generic.advice":
     "Expand the evidence to see the full stack trace, or review the console around startup.",
+  "serverSettings.rcon.title": "RCON control channel",
+  "serverSettings.rcon.desc":
+    "Optional local RCON for an authoritative player list and consistent operations. Connections always go to 127.0.0.1.",
+  "serverSettings.rcon.enable": "Enable RCON",
+  "serverSettings.rcon.disable": "Disable RCON",
+  "serverSettings.rcon.port": "RCON port",
+  "serverSettings.rcon.enabled": "RCON is enabled on port {port}.",
+  "serverSettings.rcon.disabled": "RCON is currently disabled.",
+  "serverSettings.rcon.password": "RCON password (stored in server.properties)",
+  "serverSettings.rcon.copy": "Copy password",
+  "serverSettings.rcon.copied": "Copied",
+  "serverSettings.rcon.warning":
+    "Once enabled, Minecraft listens on this port on every network interface. Use it only on trusted networks and keep the strong password.",
+  "serverSettings.rcon.restart":
+    "Changes take effect the next time the server starts. Stop the server before enabling or disabling RCON.",
+  "serverSettings.rcon.hint":
+    "After enabling RCON and starting the server, refresh the authoritative player list from the overview page.",
+  "serverSettings.rcon.passwordMissing":
+    "No password has been generated yet. Disable and re-enable RCON to create one.",
+  "overview.rconRefresh": "RCON refresh",
+  "overview.rconNote":
+    "An RCON refresh replaces the log-observed player list with the server's authoritative list.",
+  "errors.rcon.disabled": "RCON is not enabled for this server.",
+  "errors.rcon.notRunning": "Start the server and wait until it is ready before using RCON.",
+  "errors.rcon.authFailed": "RCON authentication failed. Disable and re-enable RCON to rotate the password.",
+  "errors.rcon.unreachable":
+    "Could not connect to the local RCON port. Confirm RCON is enabled and the server has restarted.",
+  "errors.rcon.timeout": "RCON did not respond in time. Try again shortly.",
+  "errors.rcon.portInUse": "The RCON port is already in use. Choose another port.",
+  "errors.rcon.invalidPort": "Choose an RCON port between 1024 and 65535 that differs from the server port.",
+  "errors.rcon.invalidCommand": "Enter one RCON command, up to 4096 characters.",
+  "errors.rcon.noPassword": "No RCON password is stored. Disable and re-enable RCON.",
+  "errors.rcon.playerList": "The server returned an unrecognized player list.",
+  "errors.rcon.protocol": "The RCON endpoint returned an unrecognized packet.",
+  "errors.rcon.io": "The RCON connection was interrupted. Try again shortly.",
 };
 
 export const messages = { "zh-CN": zh, en } as const;

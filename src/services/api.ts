@@ -42,6 +42,7 @@ import type {
   BackupDiff,
   TunnelConfig,
   TunnelInfo,
+  RconInfo,
 } from "../types";
 type Contract = {
   tunnel_info: [{ id: string }, TunnelInfo];
@@ -126,6 +127,11 @@ type Contract = {
   ];
   delete_backup: [{ id: string; backupId: string; confirmed: boolean }, void];
   player_action: [{ id: string; player: string; action: string }, void];
+  rcon_info: [{ id: string }, RconInfo];
+  rcon_enable: [{ id: string; port?: number }, RconInfo];
+  rcon_disable: [{ id: string }, RconInfo];
+  rcon_execute: [{ id: string; command: string }, string];
+  rcon_players: [{ id: string }, string[]];
   latest_log: [{ id: string }, string];
   list_content: [{ id: string }, string[]];
   open_folder: [{ id?: string; kind: string }, void];

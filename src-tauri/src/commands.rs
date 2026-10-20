@@ -378,6 +378,30 @@ pub async fn player_action(
     m.send(&id, &format!("{prefix} {player}")).await
 }
 #[tauri::command]
+pub async fn rcon_info(m: Managed<'_>, id: String) -> Result<crate::rcon::RconInfo> {
+    crate::rcon::info(m.inner().as_ref(), &id)
+}
+#[tauri::command]
+pub async fn rcon_enable(
+    m: Managed<'_>,
+    id: String,
+    port: Option<u16>,
+) -> Result<crate::rcon::RconInfo> {
+    crate::rcon::enable(m.inner(), &id, port).await
+}
+#[tauri::command]
+pub async fn rcon_disable(m: Managed<'_>, id: String) -> Result<crate::rcon::RconInfo> {
+    crate::rcon::disable(m.inner(), &id).await
+}
+#[tauri::command]
+pub async fn rcon_execute(m: Managed<'_>, id: String, command: String) -> Result<String> {
+    crate::rcon::execute(m.inner(), &id, &command).await
+}
+#[tauri::command]
+pub async fn rcon_players(m: Managed<'_>, id: String) -> Result<Vec<String>> {
+    crate::rcon::players(m.inner(), &id).await
+}
+#[tauri::command]
 pub async fn latest_log(m: Managed<'_>, id: String) -> Result<String> {
     read_limited(&crate::storage::child(
         &crate::storage::child(&m.dir(&id)?, "logs")?,

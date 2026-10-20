@@ -29,6 +29,7 @@ The interface uses **Shan Shui Glass**: frosted layers, azurite blue, malachite 
 - Command palette: press `Ctrl/Cmd+K` or click the topbar search field to find servers, pages and actions. Arrow keys move, Enter runs and Esc closes; typing also reveals per-server shortcuts such as console, settings and backups.
 - Notification center: the topbar bell collects server-ready, unexpected-exit, backup-complete and scheduled-task-failure events. Unread count, clear and mute live in the dropdown; clicking an entry opens that server's console.
 - Online player panel: expand a running server on the overview page to see who is online, then kick, op or message a player directly. Actions reuse the existing player commands and the console `tell` command, with the same server-side name validation.
+- Local RCON (optional): explicitly enable it in server settings to generate a strong password, then refresh the authoritative online player list after restarting. EasyLauncher always connects to `127.0.0.1`; enabling RCON makes Minecraft listen on the port on every interface, and the UI says so.
 - Disk space and cleanup: the ops page breaks the server folder down by worlds, backups, logs, mods and more, alongside the free space on that disk. You can select old logs (`latest.log` is kept), crash reports and interrupted leftovers, confirm, then see how much was actually freed. Worlds, backups and configuration are never cleaned.
 
 ## Screenshots
@@ -126,6 +127,7 @@ src-tauri/src/
   server/process.rs    Java lifecycle, pipe reading, stdin and readiness/crash observation
   server/job.rs        Windows kill-on-close child process containment
   backup.rs            Consistent snapshots, restore staging and rollback
+  rcon.rs              Optional local RCON client, password generation and player-list parsing
   network.rs           Local bind checks and LAN address detection
   logger.rs            Separate timestamped logs; 2 MB rotation with two retained files
   extensions.rs        Contracts for future content providers and crash analysis
@@ -169,7 +171,7 @@ Backups contain world data only, not server configuration, mods or plugins. They
 - Commands use process arguments, never an OS shell string. Console input is limited to one line and goes only to Minecraft stdin.
 - Start and restart revalidate Java, memory, EULA, managed paths and local port availability. RAM leaves at least 1 GB and 20% of total memory for the system, plus a check against currently available memory.
 - Stop sends `stop`, waits up to 45 seconds, then warns in the console before force termination. Normal application close waits for shutdown; repeated close requests do not bypass it.
-- Managed UUIDs, world names, symbolic links, Windows reparse points, reserved names, linked folders and unsafe raw properties are validated. Remote RCON/query/management endpoints are disabled in V0.1.
+- Managed UUIDs, world names, symbolic links, Windows reparse points, reserved names, linked folders and unsafe raw properties are validated. RCON can only be enabled explicitly in server settings; it requires a password of at least 12 characters and a port that differs from the game port, and the app always connects to `127.0.0.1`. Query and the management endpoint remain disabled.
 - Restore requires a stopped server and explicit confirmation. It first saves existing worlds, stages new data, then renames folders. Failed rollback preserves recovery data in a `restore-*` folder. Startup refuses such a server until recovery is resolved; use its safety backup and preserved files before removing that folder.
 - Invalid metadata is skipped and logged instead of crashing the catalogue. Application appearance corruption can be repaired by saving preferences again. Closing and reopening never blindly trusts a persisted Running flag.
 
@@ -180,7 +182,8 @@ Backups contain world data only, not server configuration, mods or plugins. They
 - Java selection requires a compatible major version. Managed Adoptium installations are pinned per server and can be removed from Settings. Minecraft 26.x requirements follow upstream metadata, with a Java 25 fallback; version rules live in one module.
 - Fabric supplies a launcher without an upstream artifact hash. EasyLauncher validates HTTPS transport, JAR signature and reported length; Vanilla uses SHA-1 and Paper uses SHA-256. Fabric and Paper may download libraries on first server start; those upstream Java bootstrap downloads do not report per-byte progress to EasyLauncher.
 - Backups require stopped servers. Scheduled backups are available; live save synchronization, compression and remote copies are deferred. Restore rejects a different `level-name` until the original name is configured.
-- Connected-player observation relies on English upstream join/leave log messages; plugins can change these. Player insights persist observed events without backfilling older logs; this is not an authoritative RCON player directory.
+- Connected-player observation relies on English upstream join/leave log messages by default; plugins can change these. With RCON enabled, the overview page can refresh the authoritative list, but player insights still persist only observed events and never backfill older logs.
+- Minecraft itself binds RCON on every network interface; `server.properties` has no bind-address option. Enable it only on trusted networks and keep the generated strong password. EasyLauncher does not create router port mappings automatically.
 - Normal close gracefully stops children on all supported platforms. Windows additionally uses Job Objects for abrupt exit cleanup. Abrupt parent termination cleanup on Linux/macOS is not yet guaranteed; inspect remaining Java processes before relaunching there.
 - LAN address detection is a routing hint; VPNs/multiple adapters can affect it. Local or LAN availability does not imply public access. Users can explicitly request UPnP mappings or Windows firewall rules. frp requires their own provider and configuration.
 - Mod/plugin management includes Modrinth content and dependency declarations; local JAR metadata inspection currently supports Fabric. Minecraft's own logs remain under the server's upstream logging policy; EasyLauncher application logs and console buffers have independent limits.

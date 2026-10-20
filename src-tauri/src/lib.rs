@@ -15,6 +15,7 @@ pub mod modrinth;
 pub mod monitor;
 pub mod network;
 pub mod player_stats;
+pub mod rcon;
 pub mod remote;
 pub mod schedule;
 pub mod server;
@@ -92,6 +93,11 @@ pub fn run() {
             commands::set_backup_label,
             commands::delete_backup,
             commands::player_action,
+            commands::rcon_info,
+            commands::rcon_enable,
+            commands::rcon_disable,
+            commands::rcon_execute,
+            commands::rcon_players,
             commands::latest_log,
             commands::list_content,
             commands::open_folder,

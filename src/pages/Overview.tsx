@@ -7,6 +7,7 @@ import {
   CirclePause,
   MessageSquare,
   Play,
+  RefreshCw,
   RotateCw,
   Server as ServerIcon,
   ShieldCheck,
@@ -301,6 +302,21 @@ export function Overview({
                   </div>
                   {online && s.runtime.status === "running" && (
                     <div className="overview-players">
+                      <div className="row">
+                        <button
+                          className="player-action"
+                          disabled={busy.has(`${busyKey}-rcon`)}
+                          onClick={() =>
+                            void run(`${busyKey}-rcon`, async () => {
+                              await call("rcon_players", { id: s.id });
+                              await reload();
+                            })
+                          }
+                        >
+                          <RefreshCw size={13} />
+                          {t("overview.rconRefresh")}
+                        </button>
+                      </div>
                       {s.runtime.players.length ? (
                         s.runtime.players.map((player) => {
                           const chatting =
@@ -391,6 +407,9 @@ export function Overview({
                       )}
                       <p className="overview-players-note">
                         {t("overview.playerNote")}
+                      </p>
+                      <p className="overview-players-note">
+                        {t("overview.rconNote")}
                       </p>
                       {sent[s.id] && (
                         <p className="success-text small" role="status">

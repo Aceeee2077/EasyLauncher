@@ -435,6 +435,12 @@ export interface TunnelInfo {
   pid: number | null;
   exitCode: number | null;
 }
+export interface RconInfo {
+  enabled: boolean;
+  port: number;
+  password: string | null;
+  reachable: boolean;
+}
 export interface NetworkReport {
   lanIp: string | null;
   publicIp: string | null;
