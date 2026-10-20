@@ -119,6 +119,7 @@ export interface Notice {
   at: string;
 }
 export type BackupReason = "manual" | "safety" | "scheduled";
+export type BackupFormat = "directory" | "chunked";
 export interface Backup {
   id: string;
   createdAt: string;
@@ -129,6 +130,37 @@ export interface Backup {
   label: string | null;
   minecraftVersion: string | null;
   serverType: ServerType | null;
+  format: BackupFormat;
+  storedBytes: number;
+  chunkCount: number;
+  fileCount: number;
+}
+export interface BackupStoreInfo {
+  backups: number;
+  chunkedBackups: number;
+  legacyBackups: number;
+  logicalBytes: number;
+  storedBytes: number;
+  chunkCount: number;
+  chunkBytes: number;
+  dedupeSavedBytes: number;
+}
+export interface RetentionPolicy {
+  enabled: boolean;
+  daily: number;
+  weekly: number;
+  monthly: number;
+  keepLabeled: boolean;
+}
+export interface RetentionPreview {
+  total: number;
+  keep: number;
+  candidates: Backup[];
+  reclaimableBytes: number;
+}
+export interface RetentionOutcome {
+  deleted: number;
+  reclaimedBytes: number;
 }
 export interface RestoreOutcome {
   backupId: string;

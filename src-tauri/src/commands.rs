@@ -596,6 +596,68 @@ pub async fn delete_backup(
     Ok(())
 }
 #[tauri::command]
+pub async fn backup_store_info(
+    m: Managed<'_>,
+    id: String,
+) -> Result<crate::backup_store::StoreInfo> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || {
+        let root = crate::backup::backup_root(&manager, &id)?;
+        crate::backup_store::store_info(&root)
+    })
+    .await
+    .map_err(|e| AppError::new("Could not inspect backup storage.", e))?
+}
+#[tauri::command]
+pub fn backup_retention(m: Managed<'_>, id: String) -> Result<crate::retention::RetentionPolicy> {
+    crate::retention::policy(m.inner(), &id)
+}
+#[tauri::command]
+pub fn set_backup_retention(
+    m: Managed<'_>,
+    id: String,
+    policy: crate::retention::RetentionPolicy,
+) -> Result<crate::retention::RetentionPolicy> {
+    m.ensure_writable()?;
+    let saved = crate::retention::set_policy(m.inner(), &id, &policy)?;
+    audit(
+        &m,
+        "backup.retention",
+        &id,
+        format!(
+            "enabled={} daily={} weekly={} monthly={} keepLabeled={}",
+            saved.enabled, saved.daily, saved.weekly, saved.monthly, saved.keep_labeled
+        ),
+    );
+    Ok(saved)
+}
+#[tauri::command]
+pub async fn preview_backup_cleanup(
+    m: Managed<'_>,
+    id: String,
+) -> Result<crate::retention::RetentionPreview> {
+    crate::retention::preview(m.inner().clone(), id).await
+}
+#[tauri::command]
+pub async fn apply_backup_cleanup(
+    m: Managed<'_>,
+    id: String,
+    confirmed: bool,
+) -> Result<crate::retention::RetentionOutcome> {
+    m.ensure_writable()?;
+    let outcome = crate::retention::apply(m.inner().clone(), id.clone(), confirmed).await?;
+    audit(
+        &m,
+        "backup.cleanup",
+        &id,
+        format!(
+            "deleted={} reclaimed={}",
+            outcome.deleted, outcome.reclaimed_bytes
+        ),
+    );
+    Ok(outcome)
+}
+#[tauri::command]
 pub async fn player_action(
     m: Managed<'_>,
     id: String,

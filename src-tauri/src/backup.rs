@@ -1,6 +1,7 @@
 use crate::{
+    backup_store,
     error::{AppError, Result},
-    models::{Backup, BackupReason, RestoreOutcome, Status},
+    models::{Backup, BackupFormat, BackupReason, RestoreOutcome, Status},
     server::manager::Manager,
     storage,
 };
@@ -25,7 +26,7 @@ pub(crate) fn world_names(m: &Manager, id: &str) -> Result<Vec<String>> {
     }
     Ok(names)
 }
-fn backup_root(m: &Manager, id: &str) -> Result<std::path::PathBuf> {
+pub(crate) fn backup_root(m: &Manager, id: &str) -> Result<std::path::PathBuf> {
     m.metadata(id)?;
     let p = storage::child(&m.dir(id)?, "backups")?;
     fs::create_dir_all(&p)?;
@@ -41,35 +42,38 @@ pub(crate) fn create(m: &Manager, id: &str, reason: BackupReason) -> Result<Back
     fs::create_dir(&temp)?;
     let result = (|| {
         let mut worlds = Vec::new();
-        let mut size = 0;
         for name in names {
-            let p = storage::child(&dir, &name)?;
-            if p.is_dir() {
-                size += storage::copy_tree(&p, &storage::child(&temp, &name)?)?;
+            if storage::child(&dir, &name)?.is_dir() {
                 worlds.push(name);
             }
         }
         if worlds.is_empty() {
             return Err(AppError::user("No world data exists yet. Start the server once, then stop it before creating a backup.").with_code("backup.noWorld"));
         }
+        let stats = backup_store::create(&root, &temp, &dir, &worlds)?;
         let backup = Backup {
             id: bid.clone(),
             created_at: chrono::Utc::now().to_rfc3339(),
-            size_bytes: size,
+            size_bytes: stats.logical_bytes,
             worlds,
             safety: reason == BackupReason::Safety,
             reason,
             label: None,
             minecraft_version: Some(meta.minecraft_version),
             server_type: Some(meta.server_type),
+            format: BackupFormat::Chunked,
+            stored_bytes: stats.stored_bytes,
+            chunk_count: stats.chunk_count,
+            file_count: stats.file_count,
         };
-        crate::backup_diff::create_index(&temp, &backup.worlds)?;
         storage::write_json(&storage::child(&temp, "backup.json")?, &backup)?;
         fs::rename(&temp, storage::managed(&root, &bid)?)?;
         Ok(backup)
     })();
     if result.is_err() {
         let _ = fs::remove_dir_all(temp);
+        // Do not leave chunks that no manifest can reach.
+        let _ = backup_store::garbage_collect(&root);
     }
     result
 }
@@ -118,8 +122,24 @@ fn read(dir: &Path) -> Result<Backup> {
     if dir.file_name().and_then(|s| s.to_str()) != Some(&b.id) {
         return Err(AppError::user("Backup metadata does not match its folder."));
     }
+    if b.worlds.is_empty() {
+        return Err(AppError::user("This backup has no recorded worlds."));
+    }
     for name in &b.worlds {
         storage::child(dir, name)?;
+    }
+    if b.format == BackupFormat::Directory {
+        // Legacy snapshots store a full directory tree.
+        for name in &b.worlds {
+            if !storage::child(dir, name)?.is_dir() {
+                return Err(AppError::user("A legacy backup folder is incomplete."));
+            }
+        }
+        if b.stored_bytes == 0 {
+            b.stored_bytes = b.size_bytes;
+        }
+    } else if !storage::child(dir, backup_store::MANIFEST)?.is_file() {
+        return Err(AppError::user("This backup manifest is missing."));
     }
     Ok(b)
 }
@@ -204,6 +224,21 @@ pub async fn create_backup(m: Arc<Manager>, id: String, reason: BackupReason) ->
         "backup-progress",
         serde_json::json!({"id":id,"complete":result.is_ok()}),
     );
+    if result.is_ok() && reason == BackupReason::Scheduled {
+        match crate::retention::apply_if_enabled(&m, &id) {
+            Ok(Some(outcome)) if outcome.deleted > 0 => m.logger.log(
+                "INFO",
+                &format!(
+                    "Retention removed {} scheduled backups ({}).",
+                    outcome.deleted, outcome.reclaimed_bytes
+                ),
+            ),
+            Ok(_) => {}
+            Err(e) => m
+                .logger
+                .log("WARN", &format!("Retention cleanup failed for {id}: {e}")),
+        }
+    }
     if result.is_ok() && reason != BackupReason::Safety {
         m.notice(
             "backupComplete",
@@ -254,14 +289,21 @@ fn restore(m: &Manager, id: &str, backup_id: &str) -> Result<RestoreOutcome> {
         let old = storage::child(&stage, "old")?;
         fs::create_dir(&new)?;
         fs::create_dir(&old)?;
-        for name in &backup.worlds {
-            let from = storage::child(&source, name)?;
-            if !from.is_dir() {
-                return Err(AppError::user(
-                    "The backup is incomplete. No world was replaced.",
-                ));
+        match backup.format {
+            BackupFormat::Chunked => {
+                backup_store::restore(&backup_root(m, id)?, &source, &new)?;
             }
-            storage::copy_tree(&from, &storage::child(&new, name)?)?;
+            BackupFormat::Directory => {
+                for name in &backup.worlds {
+                    let from = storage::child(&source, name)?;
+                    if !from.is_dir() {
+                        return Err(AppError::user(
+                            "The backup is incomplete. No world was replaced.",
+                        ));
+                    }
+                    storage::copy_tree(&from, &storage::child(&new, name)?)?;
+                }
+            }
         }
         let mut moved = Vec::new();
         let mut installed = Vec::new();
@@ -330,6 +372,13 @@ pub fn set_label(m: &Manager, id: &str, backup_id: &str, label: Option<String>) 
     storage::write_json(&storage::child(&dir, "backup.json")?, &backup)?;
     Ok(backup)
 }
+pub(crate) fn delete_dir(root: &Path, backup_id: &str) -> Result<()> {
+    let p = storage::managed(root, backup_id)?;
+    read(&p)?;
+    storage::validate_tree(&p)?;
+    fs::remove_dir_all(p)?;
+    Ok(())
+}
 pub async fn delete_backup(
     m: Arc<Manager>,
     id: String,
@@ -343,10 +392,10 @@ pub async fn delete_backup(
     let r = m.runtime(&id)?;
     let _g = r.gate.lock().await;
     r.idle()?;
-    let p = storage::managed(&backup_root(&m, &id)?, &backup_id)?;
-    read(&p)?;
-    storage::validate_tree(&p)?;
-    fs::remove_dir_all(p)?;
+    let root = backup_root(&m, &id)?;
+    delete_dir(&root, &backup_id)?;
+    // Orphaned chunks no longer belong to any remaining backup.
+    let _ = backup_store::garbage_collect(&root);
     Ok(())
 }
 
@@ -375,6 +424,10 @@ mod tests {
             label: None,
             minecraft_version: None,
             server_type: None,
+            format: BackupFormat::Directory,
+            stored_bytes: 10,
+            chunk_count: 0,
+            file_count: 1,
         };
         storage::write_json(&d.path().join("backup.json"), &b).unwrap();
         assert!(read(d.path()).is_err());

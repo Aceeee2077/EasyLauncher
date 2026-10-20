@@ -253,6 +253,15 @@ pub enum BackupReason {
     Safety,
     Scheduled,
 }
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum BackupFormat {
+    /// A full copy of the world directories, used before chunked backups.
+    #[default]
+    Directory,
+    /// Zstandard-compressed, content-addressed chunks shared by all backups.
+    Chunked,
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Backup {
@@ -270,6 +279,15 @@ pub struct Backup {
     pub minecraft_version: Option<String>,
     #[serde(default)]
     pub server_type: Option<ServerType>,
+    #[serde(default)]
+    pub format: BackupFormat,
+    /// Sum of the compressed chunk sizes this backup references.
+    #[serde(default)]
+    pub stored_bytes: u64,
+    #[serde(default)]
+    pub chunk_count: u32,
+    #[serde(default)]
+    pub file_count: u32,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

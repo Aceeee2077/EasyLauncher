@@ -109,10 +109,41 @@ fn build(dir: &Path, worlds: &[String]) -> Result<Index> {
 pub fn create_index(dir: &Path, worlds: &[String]) -> Result<()> {
     storage::write_json(&storage::child(dir, "files.json")?, &build(dir, worlds)?)
 }
+/// Write a file index directly, used by chunked backups whose files are not
+/// stored as a directory tree.
+pub fn write_index(dir: &Path, files: BTreeMap<String, Fingerprint>) -> Result<()> {
+    if files.len() > 250_000 {
+        return Err(AppError::user(
+            "Backup file index exceeds the inspection limit.",
+        ));
+    }
+    storage::write_json(
+        &storage::child(dir, "files.json")?,
+        &Index { version: 1, files },
+    )
+}
 fn load(dir: &Path, worlds: &[String]) -> Result<Index> {
     let path = storage::child(dir, "files.json")?;
     if !path.exists() {
-        create_index(dir, worlds)?;
+        if storage::child(dir, crate::backup_store::MANIFEST)?.is_file() {
+            let manifest = crate::backup_store::load_manifest(dir)?;
+            let files = manifest
+                .files
+                .into_iter()
+                .map(|(path, file)| {
+                    (
+                        path,
+                        Fingerprint {
+                            bytes: file.bytes,
+                            sha256: file.sha256,
+                        },
+                    )
+                })
+                .collect();
+            write_index(dir, files)?;
+        } else {
+            create_index(dir, worlds)?;
+        }
     }
     if fs::metadata(&path)?.len() > 64 * 1024 * 1024 {
         return Err(AppError::user("Backup index is too large."));

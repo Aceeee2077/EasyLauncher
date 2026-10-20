@@ -795,7 +795,7 @@ mod integration_tests {
     }
     #[tokio::test]
     async fn backup_restore_properties_and_reopen() {
-        let (_temp, m, id) = setup("unused-in-this-test".into());
+        let (temp, m, id) = setup("unused-in-this-test".into());
         let dir = m.dir(&id).unwrap();
         let backup = crate::backup::create_backup(
             m.clone(),
@@ -820,15 +820,18 @@ mod integration_tests {
         let snapshots = crate::backup::list(&m, &id).unwrap();
         assert_eq!(snapshots.len(), 2);
         let safety = snapshots.iter().find(|b| b.safety).unwrap();
+        let recovered = temp.path().join("safety-restore");
+        crate::backup_store::restore(
+            &dir.join("backups"),
+            &dir.join("backups").join(&safety.id),
+            &recovered,
+        )
+        .unwrap();
         assert_eq!(
-            fs::read(
-                dir.join("backups")
-                    .join(&safety.id)
-                    .join("world/region/data")
-            )
-            .unwrap(),
+            fs::read(recovered.join("world/region/data")).unwrap(),
             b"changed world"
         );
+        fs::remove_dir_all(recovered).unwrap();
         let mut changes = std::collections::BTreeMap::new();
         changes.insert("max-players".into(), "12".into());
         m.save_properties(&id, Some(changes), None).await.unwrap();

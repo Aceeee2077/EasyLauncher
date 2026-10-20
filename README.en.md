@@ -18,7 +18,7 @@ The interface uses **Shan Shui Glass**: frosted layers, azurite blue, malachite 
 - Live stdout/stderr console, bounded 1,500-line history, Minecraft stdin commands, command history, follow-output toggle and clear.
 - Common and raw `server.properties` editors, unknown-key preservation, comments, escaped values and Unicode support. Runtime and memory changes are per-server.
 - Real OP, de-OP, kick, ban, pardon and whitelist commands with player-name validation. Observed online players come from join/leave output.
-- Manual stopped-server world backups, plus consistent live backups while the server runs when RCON is enabled. Listing, confirmed restore/delete, automatic safety snapshots and restore rollback are included.
+- Manual stopped-server world backups, plus consistent live backups while the server runs when RCON is enabled. Backups use 1 MiB chunks, zstd compression and SHA-256 content addressing, with a previewed daily/weekly/monthly retention policy. Listing, confirmed restore/delete, automatic safety snapshots and restore rollback are included.
 - Version upgrade wizard for installed, stopped servers: pick a supported stable release, get an automatic world safety backup, then download and verify the new server JAR while keeping the previous one for a one-step rollback. Downgrades require explicit confirmation; mod and plugin compatibility is reported, never changed automatically.
 - Content update checks for mods and plugins installed through EasyLauncher: find newer Modrinth versions for this Minecraft release, review the changelog, dependency changes and incompatibility warnings, and pin a version to skip checks. A confirmed update saves the old JAR first, then downloads, verifies and replaces it; a single package can be rolled back without touching worlds or configuration.
 - Modpack install and update: parse a Modrinth `.mrpack` manifest, `overrides/` and `server-overrides/`, filter client-only, protected and oversized entries, and record managed files in `modpack.json`. Update checks download and verify the candidate pack, then show a hash-based list of added, changed, removed and unchanged files with its changelog. A confirmed update downloads only changed files, backs up the files it replaces, restores automatically on failure, and keeps a one-step rollback. One modpack is managed per server.
@@ -142,6 +142,8 @@ src-tauri/src/
   server/process.rs    Java lifecycle, pipe reading, stdin and readiness/crash observation
   server/job.rs        Windows kill-on-close child process containment
   backup.rs            Consistent snapshots, restore staging and rollback
+  backup_store.rs      zstd chunk storage, content-addressed dedupe, verified restore and GC
+  retention.rs         Daily/weekly/monthly retention, preview and cleanup
   upgrade.rs           Staged server JAR upgrades and single-step rollback
   content_update.rs    Content update checks, per-package snapshots and rollback
   modrinth.rs          Modrinth content install, modpack install/update/rollback and checks
@@ -175,13 +177,17 @@ The Tauri application data directory (`app_data_dir`) supplies the root. There a
     mods/
     plugins/
     logs/latest.log
-    backups/<uuid>/
-      backup.json
-      world/
-      ...
+    backups/
+      chunks/<prefix>/<sha256>.zst   # Compressed chunks shared by all backups
+      retention.json                 # Optional retention policy
+      <uuid>/
+        backup.json
+        manifest.json                # Paths, file hashes and chunk references
+        files.json                   # File index used by comparisons
+    backups/<legacy uuid>/world/      # Old directory snapshots still restore/compare
 ```
 
-Backups contain world data only, not server configuration, mods or plugins. They are uncompressed directory snapshots. Save copies outside managed storage if you need protection from disk loss or server deletion. The managed server deletion dialog explicitly includes its local backups.
+Backups contain world data only, not server configuration, mods or plugins. Each world is read in 1 MiB chunks, every chunk is compressed with zstd and addressed by the SHA-256 of its uncompressed content, so identical chunks are stored once. `manifest.json` records file and chunk references, while `files.json` keeps the compatible file-level index. Restore verifies every chunk's length and hash and refuses to replace worlds on any mismatch. Legacy directory snapshots keep their original layout and remain restorable and comparable, but are not converted automatically. Chunks under `backups/chunks` that no manifest references are reclaimed when backups are deleted or cleanup runs. Save copies outside managed storage if you need protection from disk loss or server deletion. The managed server deletion dialog explicitly includes its local backups.
 
 ## Safety and operational behavior
 
@@ -200,7 +206,7 @@ Backups contain world data only, not server configuration, mods or plugins. They
 - Version lists cover **releases and snapshots back to 1.7** in Mojang's manifest: Vanilla and Fabric can opt into snapshots, while Paper and Purpur list only releases with an upstream stable build. Older releases still use the standard `-jar server.jar nogui` launch format. Snapshots may be unstable, and the upgrade wizard remains release-only. Folder imports support recognized Vanilla, Paper, Purpur and Fabric servers. Spigot has no official artifact API; Forge, NeoForge and Quilt require running official installers and a non-`-jar` launch model and are not supported yet, so the wizard does not offer them.
 - Java selection requires a compatible major version. Managed Adoptium installations are pinned per server and can be removed from Settings. Minecraft 26.x requirements follow upstream metadata, with a Java 25 fallback; version rules live in one module.
 - Fabric supplies a launcher without an upstream artifact hash, and Purpur's API publishes only MD5 (currently unused). EasyLauncher validates HTTPS transport, the ZIP/JAR header and reported length; Vanilla uses SHA-1 and Paper uses SHA-256. Fabric, Paper and Purpur may download libraries on first server start; those upstream Java bootstrap downloads do not report per-byte progress to EasyLauncher.
-- Normal backups and restores require stopped servers. With RCON enabled and the server ready, a live backup pauses autosave (`save-off`), flushes (`save-all flush`), copies the world directories, then resumes autosave (`save-on`); if autosave cannot be re-enabled, the action reports a stable error and asks you to restart or run `save-on`. Minecraft has no filesystem snapshot API, so this lowers the risk of writes during the copy but is not an atomic snapshot; chunk unloads can still write. If RCON is unavailable the app never pretends a live backup is consistent. Compression and remote copies are deferred. Restore rejects a different `level-name` until the original name is configured.
+- Normal backups and restores require stopped servers. With RCON enabled and the server ready, a live backup pauses autosave (`save-off`), flushes (`save-all flush`), copies the world directories, then resumes autosave (`save-on`); if autosave cannot be re-enabled, the action reports a stable error and asks you to restart or run `save-on`. Minecraft has no filesystem snapshot API, so this lowers the risk of writes during the copy but is not an atomic snapshot; chunk unloads can still write. If RCON is unavailable the app never pretends a live backup is consistent. Local backups now use zstd chunk compression and content-addressed deduplication; remote copies (WebDAV / S3 / rclone) are still deferred. The retention policy only considers non-safety backups without a label in its time buckets, always keeps the newest backup and labelled backups, runs automatically only after successful scheduled backups, and requires a preview plus confirmation for manual cleanup. Restore rejects a different `level-name` until the original name is configured.
 - Version upgrades replace `server.jar` only and keep one `server.jar.previous` for a single-step rollback; mods, plugins, configuration and worlds are not migrated. The pre-upgrade safety backup contains world data only. The server must be installed and stopped, and a missing required Java major blocks the upgrade while offering to install it. Downgrades need an extra confirmation, and even then an older version may not read a world generated by the newer one. Rolling back replaces the JAR only, never the world; the UI shows the pre-upgrade safety backup ID.
 - Content update checks cover only Modrinth projects installed and recorded in `content.json`; manually copied JARs are not updated. Checks read upstream metadata, so availability depends on Modrinth. The replaced JAR is saved under `content-backups/` in the server folder for a one-step, per-package rollback; dependent packages are not upgraded automatically, and missing, changed or newly required dependencies are reported without being installed. An update replaces that JAR only, leaves configuration and worlds alone, and requires a stopped server.
 - Modpacks currently support Modrinth `.mrpack`. CurseForge pack downloads require a CurseForge API key and use a different `manifest.json`/`overrides` layout, so they are not supported yet; the application does not present an unverified CurseForge path as working. Each server records one modpack: installing another pack or another version of the same pack is refused; use "Check modpack updates", the one-step rollback, or create a new server. An update check stages the candidate archive as `modpack-pending.mrpack`, cleaned up when it is applied or checked again; `modpack-backups/` keeps only the latest update backup and removes it after a rollback. Updates touch only files recorded for the pack, never migrate worlds, and do not check for a newly required Java runtime.

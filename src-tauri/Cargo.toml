@@ -46,6 +46,7 @@ sha2 = "0.10"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 sysinfo = "0.33"
 open = "5"
+zstd = { version = "0.13", default-features = false }
 
 [dev-dependencies]
 tempfile = "3"

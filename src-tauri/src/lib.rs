@@ -1,6 +1,7 @@
 pub mod audit;
 pub mod backup;
 pub mod backup_diff;
+pub mod backup_store;
 mod commands;
 pub mod content_update;
 pub mod dependencies;
@@ -19,6 +20,7 @@ pub mod network;
 pub mod player_stats;
 pub mod rcon;
 pub mod remote;
+pub mod retention;
 pub mod schedule;
 pub mod secrets;
 pub mod server;
@@ -102,6 +104,11 @@ pub fn run() {
             commands::create_live_backup,
             commands::list_backups,
             commands::compare_backups,
+            commands::backup_store_info,
+            commands::backup_retention,
+            commands::set_backup_retention,
+            commands::preview_backup_cleanup,
+            commands::apply_backup_cleanup,
             commands::check_dependencies,
             commands::player_stats,
             commands::restore_backup,

@@ -49,6 +49,10 @@ import type {
   DependencyReport,
   PlayerStats,
   BackupDiff,
+  BackupStoreInfo,
+  RetentionPolicy,
+  RetentionPreview,
+  RetentionOutcome,
   TunnelConfig,
   TunnelInfo,
   RconInfo,
@@ -158,6 +162,17 @@ type Contract = {
     Backup,
   ];
   delete_backup: [{ id: string; backupId: string; confirmed: boolean }, void];
+  backup_store_info: [{ id: string }, BackupStoreInfo];
+  backup_retention: [{ id: string }, RetentionPolicy];
+  set_backup_retention: [
+    { id: string; policy: RetentionPolicy },
+    RetentionPolicy,
+  ];
+  preview_backup_cleanup: [{ id: string }, RetentionPreview];
+  apply_backup_cleanup: [
+    { id: string; confirmed: boolean },
+    RetentionOutcome,
+  ];
   player_action: [{ id: string; player: string; action: string }, void];
   rcon_info: [{ id: string }, RconInfo];
   rcon_enable: [{ id: string; port?: number }, RconInfo];
