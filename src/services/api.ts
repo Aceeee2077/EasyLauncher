@@ -25,6 +25,9 @@ import type {
   ProjectVersion,
   ContentEntry,
   ContentListing,
+  ContentUpdateReport,
+  ContentUpdateOutcome,
+  ContentRollbackOutcome,
   ModpackReport,
   ScheduledTask,
   TaskInput,
@@ -188,6 +191,19 @@ type Contract = {
   content_list: [{ id: string }, ContentListing];
   content_remove: [{ id: string; projectId: string }, void];
   content_remove_file: [{ id: string; kind: string; name: string }, void];
+  content_check_updates: [{ id: string }, ContentUpdateReport];
+  content_update: [
+    { id: string; projectId: string; versionId: string; confirmed: boolean },
+    ContentUpdateOutcome,
+  ];
+  content_rollback: [
+    { id: string; projectId: string; confirmed: boolean },
+    ContentRollbackOutcome,
+  ];
+  content_set_pinned: [
+    { id: string; projectId: string; pinned: boolean },
+    void,
+  ];
   list_tasks: [{ id: string }, ScheduledTask[]];
   create_task: [{ id: string; input: TaskInput }, ScheduledTask];
   update_task: [

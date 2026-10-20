@@ -935,6 +935,43 @@ export const zh = {
   "content.progress.overrides": "正在应用配置 {file}（{done}/{total}）",
   "content.progress.verify": "正在校验整合包…",
   "content.progress.done": "安装完成",
+  "content.updateCheckTitle": "内容更新",
+  "content.updateCheckDesc":
+    "检查已安装内容在 Modrinth 上是否有适配当前 Minecraft 版本的新版本；检查只读取元数据，不下载文件。",
+  "content.checkUpdates": "检查更新",
+  "content.reviewUpdate": "查看并更新",
+  "content.upToDate": "没有可用更新，或可更新项都已钉住。",
+  "content.updateCheckPartial": "部分项目未能检查：",
+  "content.updateUnavailableHint":
+    "部分项目没有与当前 Minecraft 版本匹配的新版本，暂时无法检查更新。",
+  "content.updateTitle": "更新 {name}",
+  "content.updateReview":
+    "当前 {current}，目标 {latest}。更新只替换该 JAR，旧文件会保留以便单步回退。",
+  "content.changelog": "更新日志",
+  "content.noChangelog": "此版本没有提供更新日志。",
+  "content.dependencyImpact": "依赖影响",
+  "content.updateNote":
+    "服务器必须处于停止状态。世界与配置不会被修改；若更新后出现问题，可在已安装列表中回退到旧版本。",
+  "content.updateNow": "确认更新",
+  "content.updateDone": "{name} 已从 {from} 更新到 {to}。",
+  "content.rollback": "回退版本",
+  "content.rollbackTitle": "回退 {name}",
+  "content.rollbackBody":
+    "将删除当前文件并恢复保存的 {version} JAR。世界与其他内容不受影响。",
+  "content.rollbackDone": "{name} 已回退到 {version}。",
+  "content.pin": "钉住版本（跳过更新检查）",
+  "content.unpin": "取消钉住",
+  "content.warning.prerelease": "预发布版本",
+  "content.warning.noCompatible": "没有适配当前版本",
+  "content.warning.missingDependency": "缺少必需前置",
+  "content.warning.incompatibleDependency": "声明不兼容",
+  "content.warning.olderThanInstalled": "比已安装版本更旧",
+  "content.warning.currentUnavailable": "无法读取当前版本信息",
+  "content.impact.added": "{name}：新增依赖",
+  "content.impact.changed": "{name}：依赖版本变化",
+  "content.impact.removed": "{name}：不再要求",
+  "content.impact.missing": "{name}：缺少必需前置",
+  "content.impact.incompatible": "{name}：声明不兼容",
 
   "ops.healthTitle": "开服体检",
   "ops.healthDesc":
@@ -1175,6 +1212,22 @@ export const zh = {
   "errors.upgrade.noRollback": "没有可回退的上一个服务端 JAR。",
   "errors.upgrade.noJar": "服务器 JAR 缺失，请重新安装后再升级。",
   "errors.app.readOnly": "只读模式已开启。请在应用设置中关闭后再修改。",
+  "errors.contentUpdate.notConfirmed": "请先查看更新日志与依赖影响，再确认更新。",
+  "errors.contentUpdate.rollbackNotConfirmed": "请确认后再回退该内容。",
+  "errors.contentUpdate.notManaged": "只能更新由 EasyLauncher 安装并记录的内容。",
+  "errors.contentUpdate.tooMany": "一次最多检查 128 个项目。",
+  "errors.contentUpdate.fileMissing": "已安装文件缺失，请刷新列表后再更新。",
+  "errors.contentUpdate.versionGone":
+    "该版本已不再对当前 Minecraft 版本提供，请刷新后重试。",
+  "errors.contentUpdate.incompatible": "该版本与当前服务器类型不兼容。",
+  "errors.contentUpdate.sameVersion": "该项目已是这个版本。",
+  "errors.contentUpdate.tooLarge": "该文件超过 128 MB 内容上限。",
+  "errors.contentUpdate.unsafeName":
+    "Modrinth 返回了不安全的文件名，请换一个版本。",
+  "errors.contentUpdate.nameTaken": "内容目录中已有同名文件，请先移除以避免覆盖。",
+  "errors.contentUpdate.noRollback": "该项目没有可回退的已保存版本。",
+  "errors.contentUpdate.targetExists":
+    "旧文件名已被其他文件占用，请手动处理后再回退。",
   "errors.secrets.name":
     "密钥名称只能包含小写字母、数字、点、下划线和连字符，1–64 个字符。",
   "errors.secrets.value": "密钥内容为空或超过 16 KiB，无法保存。",
@@ -2187,6 +2240,43 @@ export const en: Record<MessageKey, string> = {
   "content.progress.overrides": "Applying {file} ({done}/{total})",
   "content.progress.verify": "Verifying the modpack…",
   "content.progress.done": "Installed",
+  "content.updateCheckTitle": "Content updates",
+  "content.updateCheckDesc":
+    "Check Modrinth for newer versions of installed content that match this Minecraft version. The check only reads metadata and downloads nothing.",
+  "content.checkUpdates": "Check for updates",
+  "content.reviewUpdate": "Review update",
+  "content.upToDate": "No updates are available, or the candidates are pinned.",
+  "content.updateCheckPartial": "Some projects could not be checked: ",
+  "content.updateUnavailableHint":
+    "Some projects have no newer version for this Minecraft version yet.",
+  "content.updateTitle": "Update {name}",
+  "content.updateReview":
+    "Currently {current}; target {latest}. Only this JAR is replaced, and the old file is kept for a one-step rollback.",
+  "content.changelog": "Changelog",
+  "content.noChangelog": "This version has no changelog.",
+  "content.dependencyImpact": "Dependency impact",
+  "content.updateNote":
+    "The server must be stopped. Worlds and configuration are untouched; if something breaks, roll the package back from the installed list.",
+  "content.updateNow": "Update now",
+  "content.updateDone": "{name} was updated from {from} to {to}.",
+  "content.rollback": "Roll back",
+  "content.rollbackTitle": "Roll back {name}",
+  "content.rollbackBody":
+    "The current file will be removed and the saved {version} JAR restored. Worlds and other content are unaffected.",
+  "content.rollbackDone": "{name} was rolled back to {version}.",
+  "content.pin": "Pin this version (skip update checks)",
+  "content.unpin": "Unpin this version",
+  "content.warning.prerelease": "Pre-release version",
+  "content.warning.noCompatible": "No version matches this server",
+  "content.warning.missingDependency": "Required dependency missing",
+  "content.warning.incompatibleDependency": "Declared incompatible",
+  "content.warning.olderThanInstalled": "Older than the installed version",
+  "content.warning.currentUnavailable": "Current version details unavailable",
+  "content.impact.added": "{name}: new dependency",
+  "content.impact.changed": "{name}: dependency version changed",
+  "content.impact.removed": "{name}: no longer required",
+  "content.impact.missing": "{name}: required dependency missing",
+  "content.impact.incompatible": "{name}: declared incompatible",
 
   "ops.healthTitle": "Pre-flight health check",
   "ops.healthDesc":
@@ -2457,6 +2547,32 @@ export const en: Record<MessageKey, string> = {
     "The server JAR is missing. Reinstall the server before upgrading.",
   "errors.app.readOnly":
     "Read-only mode is on. Turn it off in app settings to make changes.",
+  "errors.contentUpdate.notConfirmed":
+    "Review the changelog and dependency impact, then confirm the update.",
+  "errors.contentUpdate.rollbackNotConfirmed":
+    "Confirm before rolling back this content.",
+  "errors.contentUpdate.notManaged":
+    "Only content installed and tracked by EasyLauncher can be updated.",
+  "errors.contentUpdate.tooMany":
+    "Check at most 128 managed projects at a time.",
+  "errors.contentUpdate.fileMissing":
+    "The installed file is missing. Refresh the list before updating.",
+  "errors.contentUpdate.versionGone":
+    "This version is no longer offered for your Minecraft version. Refresh and retry.",
+  "errors.contentUpdate.incompatible":
+    "This version is not compatible with this server type.",
+  "errors.contentUpdate.sameVersion":
+    "This project is already at this version.",
+  "errors.contentUpdate.tooLarge":
+    "This file is larger than the 128 MB content limit.",
+  "errors.contentUpdate.unsafeName":
+    "Modrinth returned an unsafe file name. Try another version.",
+  "errors.contentUpdate.nameTaken":
+    "A different file with this name already exists in the content folder. Remove it first.",
+  "errors.contentUpdate.noRollback":
+    "There is no saved version to roll back to for this project.",
+  "errors.contentUpdate.targetExists":
+    "Another file already uses the previous name. Resolve that manually, then retry.",
   "errors.secrets.name":
     "Secret names may contain lowercase letters, digits, dots, underscores and hyphens, 1–64 characters.",
   "errors.secrets.value":

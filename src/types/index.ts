@@ -322,9 +322,55 @@ export interface ContentEntry {
   kind: string;
   installedAt: string;
 }
+export interface ContentRollback {
+  projectId: string;
+  versionNumber: string;
+  updatedAt: string;
+}
 export interface ContentListing {
   entries: ContentEntry[];
   unmanaged: string[];
+  pinned: string[];
+  rollbacks: ContentRollback[];
+}
+export interface DependencyImpact {
+  projectId: string;
+  title: string | null;
+  dependencyType: string;
+  status: string;
+  installed: boolean;
+}
+export interface ContentUpdateEntry {
+  projectId: string;
+  title: string;
+  file: string;
+  kind: string;
+  currentVersionId: string;
+  currentVersion: string;
+  latestVersionId: string | null;
+  latestVersion: string | null;
+  status: string;
+  channel: string | null;
+  changelog: string | null;
+  warnings: string[];
+  dependencies: DependencyImpact[];
+}
+export interface ContentUpdateReport {
+  entries: ContentUpdateEntry[];
+  complete: boolean;
+  errors: string[];
+}
+export interface ContentUpdateOutcome {
+  projectId: string;
+  title: string;
+  fromVersion: string;
+  toVersion: string;
+  file: string;
+}
+export interface ContentRollbackOutcome {
+  projectId: string;
+  title: string;
+  version: string;
 }
 export interface ContentProgress {
   id: string;

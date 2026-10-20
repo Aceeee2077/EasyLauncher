@@ -48,3 +48,10 @@ Live backups (`create_live_backup`) pause autosave, flush, copy and resume autos
 ## Version upgrade wizard (2026-10-20)
 
 The upgrade flow stages a verified `server.upgrade.jar`, swaps it with `server.jar`, keeps `server.jar.previous` plus an `upgrade.json` marker, and can roll the JAR back once. Validation stayed offline: 92 library tests and one storage integration test pass. New tests cover numeric release ordering (`1.21.10` after `1.21.9`), the JAR swap/rollback file transitions in a temporary directory, marker serialization, and rejection of unconfirmed, same-version and unconfirmed-downgrade requests before any upstream request. TypeScript checking, the Vite production build and Rust formatting pass. No server JAR was downloaded, no upstream metadata was requested by the new tests, and no Java process or Minecraft server was started. The successful download/verify/apply path and the wizard UI still need an explicitly requested acceptance run.
+
+
+## Content update checks (2026-10-20)
+
+Installed Modrinth packages can be checked for newer versions that match the server's Minecraft release and loader, with changelog, dependency impact (added, changed, removed, missing required, incompatible), pre-release and older-than-installed warnings, and per-project version pinning. A confirmed update copies the current JAR into `content-backups/`, records it in `content-rollback.json`, downloads and verifies the new file, swaps it in, and updates `content.json`; the UI offers a one-step, per-package rollback.
+
+Validation stayed offline: 99 library tests and one storage integration test pass. New tests cover newest-release selection over newer betas, dependency-impact classification and warnings, changelog bounding, the renamed-file swap in a temporary directory, pin normalisation, and rollback-store filtering. TypeScript checking, the Vite production build and Rust formatting pass. No Modrinth request was made by these tests, no content was downloaded, and no Java process or server was started. The live check, download and rollback paths plus the new UI still need an explicitly requested acceptance run.

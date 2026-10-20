@@ -2,6 +2,7 @@ pub mod audit;
 pub mod backup;
 pub mod backup_diff;
 mod commands;
+pub mod content_update;
 pub mod dependencies;
 pub mod disk;
 pub mod error;
@@ -129,6 +130,10 @@ pub fn run() {
             commands::content_list,
             commands::content_remove,
             commands::content_remove_file,
+            commands::content_check_updates,
+            commands::content_update,
+            commands::content_rollback,
+            commands::content_set_pinned,
             commands::list_tasks,
             commands::create_task,
             commands::update_task,

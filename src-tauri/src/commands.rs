@@ -824,6 +824,75 @@ pub async fn content_remove_file(
     Ok(())
 }
 #[tauri::command]
+pub async fn content_check_updates(
+    m: Managed<'_>,
+    id: String,
+) -> Result<crate::content_update::UpdateReport> {
+    crate::content_update::check(m.inner().clone(), id).await
+}
+#[tauri::command]
+pub async fn content_update(
+    m: Managed<'_>,
+    id: String,
+    project_id: String,
+    version_id: String,
+    confirmed: bool,
+) -> Result<crate::content_update::UpdateOutcome> {
+    m.ensure_writable()?;
+    let result = crate::content_update::apply(
+        m.inner().clone(),
+        id.clone(),
+        project_id,
+        version_id,
+        confirmed,
+    )
+    .await;
+    match &result {
+        Ok(outcome) => audit(
+            &m,
+            "content.update",
+            &id,
+            format!(
+                "{} {} -> {}",
+                outcome.title, outcome.from_version, outcome.to_version
+            ),
+        ),
+        Err(error) => audit(&m, "content.update.failed", &id, &error.code),
+    }
+    result
+}
+#[tauri::command]
+pub async fn content_rollback(
+    m: Managed<'_>,
+    id: String,
+    project_id: String,
+    confirmed: bool,
+) -> Result<crate::content_update::RollbackOutcome> {
+    m.ensure_writable()?;
+    let result =
+        crate::content_update::rollback(m.inner().clone(), id.clone(), project_id, confirmed).await;
+    match &result {
+        Ok(outcome) => audit(
+            &m,
+            "content.rollback",
+            &id,
+            format!("{} {}", outcome.title, outcome.version),
+        ),
+        Err(error) => audit(&m, "content.rollback.failed", &id, &error.code),
+    }
+    result
+}
+#[tauri::command]
+pub fn content_set_pinned(
+    m: Managed<'_>,
+    id: String,
+    project_id: String,
+    pinned: bool,
+) -> Result<()> {
+    m.ensure_writable()?;
+    crate::content_update::set_pinned(m.inner(), &id, &project_id, pinned)
+}
+#[tauri::command]
 pub async fn list_tasks(m: Managed<'_>, id: String) -> Result<Vec<crate::schedule::Task>> {
     let manager = m.inner().clone();
     tokio::task::spawn_blocking(move || crate::schedule::list(&manager, &id))

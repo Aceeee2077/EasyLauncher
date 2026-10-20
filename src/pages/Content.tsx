@@ -1,23 +1,29 @@
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import {
+  ArrowUpCircle,
   Boxes,
   Download,
   FolderOpen,
   Package,
+  Pin,
   Puzzle,
   RefreshCw,
   Search,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import { Button, Modal, bytes } from "../components/ui";
 import { DependencyCheck } from "../components/DependencyCheck";
 import { call } from "../services/api";
-import { useI18n } from "../i18n";
+import { useI18n, type MessageKey } from "../i18n";
 import type {
   ContentEntry,
   ContentListing,
   ContentProgress,
+  ContentRollback,
+  ContentUpdateEntry,
+  ContentUpdateReport,
   ModpackReport,
   ProjectHit,
   ProjectVersion,
@@ -62,9 +68,22 @@ export function Content({
   const [progress, setProgress] = useState<ContentProgress | null>(null);
   const [report, setReport] = useState<ModpackReport | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [updates, setUpdates] = useState<ContentUpdateReport | null>(null);
+  const [updateTarget, setUpdateTarget] = useState<ContentUpdateEntry | null>(
+    null,
+  );
+  const [rollbackTarget, setRollbackTarget] = useState<{
+    entry: ContentEntry;
+    version: string;
+  } | null>(null);
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const refreshKey = `content-list-${server.id}`;
   const searchKey = `content-search-${server.id}`;
   const installKey = `content-install-${server.id}`;
+  const checkKey = `content-check-${server.id}`;
+  const updateKey = `content-update-${server.id}`;
+  const rollbackKey = `content-rollback-${server.id}`;
+  const pinKey = `content-pin-${server.id}`;
   const loadListing = async () =>
     setListing(await call("content_list", { id: server.id }));
   useEffect(() => {
@@ -75,6 +94,10 @@ export function Content({
     setVersions(null);
     setProgress(null);
     setReport(null);
+    setUpdates(null);
+    setUpdateTarget(null);
+    setRollbackTarget(null);
+    setUpdateMessage(null);
     setMode(modes[0]);
   }, [server.id]);
   useEffect(() => {
@@ -171,6 +194,77 @@ export function Content({
         await loadListing();
       },
     });
+  const checkUpdates = () => {
+    setUpdateMessage(null);
+    void run(checkKey, async () => {
+      setUpdates(await call("content_check_updates", { id: server.id }));
+    });
+  };
+  const applyUpdate = (entry: ContentUpdateEntry) => {
+    if (!entry.latestVersionId) return;
+    void run(updateKey, async () => {
+      setProgress(null);
+      const outcome = await call("content_update", {
+        id: server.id,
+        projectId: entry.projectId,
+        versionId: entry.latestVersionId!,
+        confirmed: true,
+      });
+      setUpdateTarget(null);
+      setUpdates(null);
+      setUpdateMessage(
+        t("content.updateDone", {
+          name: outcome.title,
+          from: outcome.fromVersion,
+          to: outcome.toVersion,
+        }),
+      );
+      await loadListing();
+    });
+  };
+  const rollbackUpdate = () => {
+    if (!rollbackTarget) return;
+    void run(rollbackKey, async () => {
+      const outcome = await call("content_rollback", {
+        id: server.id,
+        projectId: rollbackTarget.entry.projectId,
+        confirmed: true,
+      });
+      setRollbackTarget(null);
+      setUpdates(null);
+      setUpdateMessage(
+        t("content.rollbackDone", {
+          name: outcome.title,
+          version: outcome.version,
+        }),
+      );
+      await loadListing();
+    });
+  };
+  const togglePin = (entry: ContentEntry, pinned: boolean) =>
+    void run(pinKey, async () => {
+      await call("content_set_pinned", {
+        id: server.id,
+        projectId: entry.projectId,
+        pinned,
+      });
+      setUpdates(null);
+      await loadListing();
+    });
+  const warningText = (code: string) =>
+    t(`content.warning.${code}` as MessageKey);
+  const impactText = (dependency: {
+    title: string | null;
+    projectId: string;
+    status: string;
+  }) => {
+    const name = dependency.title ?? dependency.projectId;
+    return t(`content.impact.${dependency.status}` as MessageKey, { name });
+  };
+  const rollbackFor = (projectId: string): ContentRollback | undefined =>
+    listing?.rollbacks.find((rollback) => rollback.projectId === projectId);
+  const isPinned = (projectId: string) =>
+    Boolean(listing?.pinned.includes(projectId));
   const progressText = (value: ContentProgress) => {
     const vars = {
       file: value.file,
@@ -308,7 +402,7 @@ export function Content({
             {t("content.search")}
           </Button>
         </form>
-        {progress && busy.has(installKey) && (
+        {progress && (busy.has(installKey) || busy.has(updateKey)) && (
           <div className="content-progress">
             <div>
               <span>{progressText(progress)}</span>
@@ -420,6 +514,77 @@ export function Content({
             {t("content.refresh")}
           </Button>
         </div>
+        {server.serverType !== "vanilla" && (
+          <div className="content-updates">
+            <div className="content-updates-head">
+              <div>
+                <strong>{t("content.updateCheckTitle")}</strong>
+                <small>{t("content.updateCheckDesc")}</small>
+              </div>
+              <Button busy={busy.has(checkKey)} onClick={checkUpdates}>
+                <ArrowUpCircle size={15} />
+                {t("content.checkUpdates")}
+              </Button>
+            </div>
+            {updates && (
+              <>
+                {updates.entries.some((entry) => entry.status === "update") ? (
+                  <div className="content-update-list">
+                    {updates.entries
+                      .filter((entry) => entry.status === "update")
+                      .map((entry) => (
+                        <div className="content-update-row" key={entry.projectId}>
+                          <div>
+                            <strong>{entry.title}</strong>
+                            <small>
+                              {entry.currentVersion} → {entry.latestVersion}
+                              {entry.channel ? ` · ${entry.channel}` : ""}
+                            </small>
+                            {entry.warnings.length > 0 && (
+                              <div className="content-warnings">
+                                {entry.warnings.map((warning) => (
+                                  <span className="tag warning" key={warning}>
+                                    {warningText(warning)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {entry.dependencies.length > 0 && (
+                              <small className="content-impact">
+                                {entry.dependencies.map(impactText).join(" · ")}
+                              </small>
+                            )}
+                          </div>
+                          <Button
+                            variant="primary"
+                            onClick={() => setUpdateTarget(entry)}
+                          >
+                            {t("content.reviewUpdate")}
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="mini-empty">{t("content.upToDate")}</p>
+                )}
+                {!updates.complete && (
+                  <p className="content-note">
+                    {t("content.updateCheckPartial")}
+                    {updates.errors.join(" · ")}
+                  </p>
+                )}
+                {updates.entries.some(
+                  (entry) => entry.status === "unavailable",
+                ) && (
+                  <p className="content-note">
+                    {t("content.updateUnavailableHint")}
+                  </p>
+                )}
+              </>
+            )}
+            {updateMessage && <p className="content-note">{updateMessage}</p>}
+          </div>
+        )}
         {listing === null ? (
           <p className="mini-empty">{t("common.loading")}</p>
         ) : listing.entries.length || listing.unmanaged.length ? (
@@ -437,6 +602,40 @@ export function Content({
                   </small>
                 </div>
                 <span className="tag">{entry.kind}</span>
+                <Button
+                  variant="ghost"
+                  aria-label={
+                    isPinned(entry.projectId)
+                      ? t("content.unpin")
+                      : t("content.pin")
+                  }
+                  title={
+                    isPinned(entry.projectId)
+                      ? t("content.unpin")
+                      : t("content.pin")
+                  }
+                  busy={busy.has(pinKey)}
+                  onClick={() =>
+                    togglePin(entry, !isPinned(entry.projectId))
+                  }
+                >
+                  <Pin size={15} />
+                </Button>
+                {rollbackFor(entry.projectId) && (
+                  <Button
+                    variant="ghost"
+                    aria-label={t("content.rollback")}
+                    title={t("content.rollback")}
+                    onClick={() =>
+                      setRollbackTarget({
+                        entry,
+                        version: rollbackFor(entry.projectId)!.versionNumber,
+                      })
+                    }
+                  >
+                    <Undo2 size={15} />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   aria-label={t("content.remove")}
@@ -476,6 +675,108 @@ export function Content({
         busy={busy}
       />
       {installModal}
+      {updateTarget && (
+        <Modal
+          title={t("content.updateTitle", { name: updateTarget.title })}
+          onClose={() => {
+            if (!busy.has(updateKey)) setUpdateTarget(null);
+          }}
+          wide
+        >
+          <div className="content-report">
+            <strong>
+              {updateTarget.currentVersion} → {updateTarget.latestVersion}
+            </strong>
+            <p>
+              {t("content.updateReview", {
+                current: updateTarget.currentVersion,
+                latest: updateTarget.latestVersion ?? "",
+              })}
+            </p>
+          </div>
+          {updateTarget.warnings.length > 0 && (
+            <div className="content-warnings">
+              {updateTarget.warnings.map((warning) => (
+                <span className="tag warning" key={warning}>
+                  {warningText(warning)}
+                </span>
+              ))}
+            </div>
+          )}
+          {updateTarget.changelog ? (
+            <div className="content-changelog">
+              <strong>{t("content.changelog")}</strong>
+              <pre>{updateTarget.changelog}</pre>
+            </div>
+          ) : (
+            <p className="content-note">{t("content.noChangelog")}</p>
+          )}
+          {updateTarget.dependencies.length > 0 && (
+            <div className="content-changelog">
+              <strong>{t("content.dependencyImpact")}</strong>
+              <ul>
+                {updateTarget.dependencies.map((dependency) => (
+                  <li key={dependency.projectId}>
+                    <span
+                      className={`tag ${dependency.status === "missing" || dependency.status === "incompatible" ? "warning" : ""}`}
+                    >
+                      {dependency.dependencyType}
+                    </span>
+                    {impactText(dependency)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="content-note">{t("content.updateNote")}</p>
+          <div className="modal-actions">
+            <Button
+              onClick={() => setUpdateTarget(null)}
+              disabled={busy.has(updateKey)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              busy={busy.has(updateKey)}
+              onClick={() => applyUpdate(updateTarget)}
+            >
+              <ArrowUpCircle size={15} />
+              {t("content.updateNow")}
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {rollbackTarget && (
+        <Modal
+          title={t("content.rollbackTitle", {
+            name: rollbackTarget.entry.title,
+          })}
+          onClose={() => {
+            if (!busy.has(rollbackKey)) setRollbackTarget(null);
+          }}
+        >
+          <p>
+            {t("content.rollbackBody", { version: rollbackTarget.version })}
+          </p>
+          <div className="modal-actions">
+            <Button
+              onClick={() => setRollbackTarget(null)}
+              disabled={busy.has(rollbackKey)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="danger"
+              busy={busy.has(rollbackKey)}
+              onClick={rollbackUpdate}
+            >
+              <Undo2 size={15} />
+              {t("content.rollback")}
+            </Button>
+          </div>
+        </Modal>
+      )}
       {pending && (
         <Modal title={pending.title} onClose={() => setPending(null)}>
           <p>{pending.body}</p>

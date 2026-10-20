@@ -20,7 +20,7 @@ use tokio::io::AsyncWriteExt;
 
 const API_BASE: &str = "https://api.modrinth.com/v2";
 const PAGE_SIZE: u64 = 20;
-const MAX_CONTENT_BYTES: u64 = 128 * 1024 * 1024;
+pub(crate) const MAX_CONTENT_BYTES: u64 = 128 * 1024 * 1024;
 const MAX_PACK_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_PACK_FILE_BYTES: u64 = 256 * 1024 * 1024;
 const MAX_OVERRIDE_BYTES: u64 = 512 * 1024 * 1024;
@@ -96,9 +96,18 @@ pub struct ContentEntry {
 }
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ContentRollback {
+    pub project_id: String,
+    pub version_number: String,
+    pub updated_at: String,
+}
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ContentListing {
     pub entries: Vec<ContentEntry>,
     pub unmanaged: Vec<String>,
+    pub pinned: Vec<String>,
+    pub rollbacks: Vec<ContentRollback>,
 }
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -124,9 +133,9 @@ pub struct ModpackReport {
 }
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ContentIndex {
+pub(crate) struct ContentIndex {
     #[serde(default)]
-    entries: Vec<ContentEntry>,
+    pub(crate) entries: Vec<ContentEntry>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -209,6 +218,8 @@ struct RawVersion {
     downloads: u64,
     #[serde(default)]
     date_published: String,
+    #[serde(default)]
+    changelog: String,
     #[serde(default)]
     files: Vec<RawFile>,
 }
@@ -364,6 +375,63 @@ pub async fn version_dependencies(
         .json()
         .await?;
     Ok(raw.dependencies)
+}
+/// Full version metadata needed by update checks: declared dependencies, the
+/// author's changelog and the publication date.
+pub async fn version_detail(
+    client: &reqwest::Client,
+    id: &str,
+) -> Result<(Vec<ProjectDependency>, String, String)> {
+    validate_project_id(id)?;
+    let raw: RawVersion = client
+        .get(format!("{API_BASE}/version/{id}"))
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+    Ok((
+        raw.dependencies,
+        raw.changelog.trim().to_string(),
+        raw.date_published,
+    ))
+}
+#[derive(Debug, Default, Deserialize)]
+struct RawProject {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    title: String,
+}
+/// Resolve display names for dependency project identifiers in one request.
+/// Missing or unknown projects are simply absent from the map.
+pub async fn project_titles(
+    client: &reqwest::Client,
+    ids: &[String],
+) -> Result<BTreeMap<String, String>> {
+    let mut titles = BTreeMap::new();
+    if ids.is_empty() {
+        return Ok(titles);
+    }
+    if ids.len() > 128 {
+        return Err(AppError::user("Resolve at most 128 projects at a time."));
+    }
+    for id in ids {
+        validate_project_id(id)?;
+    }
+    let response = client
+        .get(format!("{API_BASE}/projects"))
+        .query(&[("ids", serde_json::to_string(ids)?)])
+        .send()
+        .await?
+        .error_for_status()?;
+    let raw: Vec<RawProject> = response.json().await?;
+    for project in raw {
+        if !project.id.is_empty() && !project.title.trim().is_empty() {
+            titles.insert(project.id, project.title);
+        }
+    }
+    Ok(titles)
 }
 
 /// Map a locally installed JAR to its Modrinth version using its SHA-1 hash.
@@ -521,6 +589,8 @@ pub fn listing(m: &Manager, id: &str) -> Result<ContentListing> {
             return Ok(ContentListing {
                 entries: Vec::new(),
                 unmanaged: Vec::new(),
+                pinned: Vec::new(),
+                rollbacks: Vec::new(),
             })
         }
         ServerType::Paper => "plugins",
@@ -551,9 +621,25 @@ pub fn listing(m: &Manager, id: &str) -> Result<ContentListing> {
     }
     managed.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
     unmanaged.sort_by_key(|n| n.to_lowercase());
+    let pinned = crate::content_update::pins(&root);
+    let rollbacks = crate::content_update::rollbacks(&root)
+        .into_iter()
+        .filter(|record| {
+            managed
+                .iter()
+                .any(|entry| entry.project_id == record.project_id)
+        })
+        .map(|record| ContentRollback {
+            project_id: record.project_id,
+            version_number: record.previous_version_number,
+            updated_at: record.updated_at,
+        })
+        .collect();
     Ok(ContentListing {
         entries: managed,
         unmanaged,
+        pinned,
+        rollbacks,
     })
 }
 
@@ -922,7 +1008,7 @@ fn facets(project_type: &str, game_version: Option<&str>, loader: Option<&str>) 
     serde_json::to_string(&groups).unwrap_or_else(|_| "[]".into())
 }
 
-fn validate_project_id(project_id: &str) -> Result<()> {
+pub(crate) fn validate_project_id(project_id: &str) -> Result<()> {
     if project_id.is_empty()
         || project_id.len() > 64
         || !project_id
@@ -942,7 +1028,7 @@ fn server_name(software: ServerType) -> &'static str {
     }
 }
 
-fn folder_for(server: &Server) -> Result<&'static str> {
+pub(crate) fn folder_for(server: &Server) -> Result<&'static str> {
     match server.server_type {
         ServerType::Paper => Ok("plugins"),
         ServerType::Fabric => Ok("mods"),
@@ -973,7 +1059,7 @@ fn folder_for_loader(software: ServerType) -> &'static str {
     }
 }
 
-fn compatible(version: &ProjectVersion, loader: &str) -> bool {
+pub(crate) fn compatible(version: &ProjectVersion, loader: &str) -> bool {
     match loader {
         "paper" => version.loaders.iter().any(|l| {
             l.eq_ignore_ascii_case("paper")
@@ -1041,7 +1127,7 @@ fn protected(relative: &str) -> bool {
     )
 }
 
-fn safe_component(name: &str) -> bool {
+pub(crate) fn safe_component(name: &str) -> bool {
     if name.is_empty() || name == "." || name == ".." || name.len() > 255 {
         return false;
     }
@@ -1093,7 +1179,7 @@ fn safe_join(root: &Path, relative: &str) -> Result<PathBuf> {
     Ok(path)
 }
 
-fn load_index(root: &Path) -> ContentIndex {
+pub(crate) fn load_index(root: &Path) -> ContentIndex {
     let Ok(path) = storage::child(root, INDEX_FILE) else {
         return ContentIndex::default();
     };
@@ -1103,12 +1189,12 @@ fn load_index(root: &Path) -> ContentIndex {
         .unwrap_or_default()
 }
 
-fn save_index(root: &Path, index: &ContentIndex) -> Result<()> {
+pub(crate) fn save_index(root: &Path, index: &ContentIndex) -> Result<()> {
     storage::write_json(&storage::child(root, INDEX_FILE)?, index)
 }
 
 #[allow(clippy::too_many_arguments)]
-fn progress(
+pub(crate) fn progress(
     m: &Manager,
     id: &str,
     stage: &str,
@@ -1132,7 +1218,7 @@ fn progress(
     );
 }
 
-async fn download_file(
+pub(crate) async fn download_file(
     client: &reqwest::Client,
     url: &str,
     dest: &Path,
