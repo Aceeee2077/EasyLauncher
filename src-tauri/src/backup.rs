@@ -6,7 +6,7 @@ use crate::{
 };
 use std::{fs, path::Path, sync::Arc, time::Duration};
 
-fn world_names(m: &Manager, id: &str) -> Result<Vec<String>> {
+pub(crate) fn world_names(m: &Manager, id: &str) -> Result<Vec<String>> {
     let p = m.properties(id)?;
     let base = p
         .values
@@ -31,7 +31,7 @@ fn backup_root(m: &Manager, id: &str) -> Result<std::path::PathBuf> {
     fs::create_dir_all(&p)?;
     Ok(p)
 }
-fn create(m: &Manager, id: &str, reason: BackupReason) -> Result<Backup> {
+pub(crate) fn create(m: &Manager, id: &str, reason: BackupReason) -> Result<Backup> {
     let dir = m.dir(id)?;
     let meta = m.metadata(id)?;
     let names = world_names(m, id)?;

@@ -10,8 +10,10 @@ import {
   Layers,
   ArrowRight,
   Radio,
+  ArrowUpCircle,
+  Undo2,
 } from "lucide-react";
-import { Button, Field, Modal } from "../components/ui";
+import { Button, Field, Modal, date } from "../components/ui";
 import { call } from "../services/api";
 import {
   idle,
@@ -21,6 +23,9 @@ import {
   type PropertyTemplate,
   type RconInfo,
   type ServerView,
+  type UpgradeInfo,
+  type UpgradePreview,
+  type Version,
 } from "../types";
 import type { TaskProps } from "../utils/task";
 import { useI18n, type MessageKey } from "../i18n";
@@ -59,6 +64,16 @@ export function ServerSettings({
     template: PropertyTemplate;
     changes: PropertyChange[];
   } | null>(null);
+  const [upgrade, setUpgrade] = useState<UpgradeInfo | null>(null);
+  const [upgradeMessage, setUpgradeMessage] = useState("");
+  const [upgradeWizard, setUpgradeWizard] = useState<{
+    target: string;
+    versions: Version[];
+    preview: UpgradePreview | null;
+    allowDowngrade: boolean;
+    confirmed: boolean;
+  } | null>(null);
+  const [rollbackOpen, setRollbackOpen] = useState(false);
   useEffect(() => {
     let live = true;
     void run(`properties-${server.id}-${crypto.randomUUID()}`, async () => {
@@ -111,6 +126,91 @@ export function ServerSettings({
       live = false;
     };
   }, [server.id, server.runtime.status]);
+  useEffect(() => {
+    let live = true;
+    void run(`upgrade-${server.id}-${crypto.randomUUID()}`, async () => {
+      const info = await call("upgrade_info", { id: server.id });
+      if (live) setUpgrade(info);
+    });
+    return () => {
+      live = false;
+    };
+  }, [server.id, server.minecraftVersion, server.runtime.status]);
+  const openUpgrade = () =>
+    void run("upgradeVersions", async () => {
+      const versions = await call("list_versions", {
+        software: server.serverType,
+      });
+      const options = versions.filter((v) => v.id !== server.minecraftVersion);
+      setUpgradeWizard({
+        target: options[0]?.id ?? "",
+        versions: options,
+        preview: null,
+        allowDowngrade: false,
+        confirmed: false,
+      });
+    });
+  const checkUpgrade = () => {
+    if (!upgradeWizard) return;
+    const target = upgradeWizard.target;
+    void run("upgradePreview", async () => {
+      const result = await call("upgrade_preview", {
+        id: server.id,
+        target,
+      });
+      setUpgradeWizard((w) =>
+        w ? { ...w, preview: result, allowDowngrade: false, confirmed: false } : w,
+      );
+    });
+  };
+  const installUpgradeJava = () => {
+    const current = upgradeWizard?.preview;
+    if (!current) return;
+    void run("upgradeJava", async () => {
+      await call("install_java", { major: current.requiredJava });
+      const result = await call("upgrade_preview", {
+        id: server.id,
+        target: current.targetVersion,
+      });
+      setUpgradeWizard((w) =>
+        w ? { ...w, preview: result, allowDowngrade: false, confirmed: false } : w,
+      );
+    });
+  };
+  const applyUpgrade = () => {
+    if (!upgradeWizard?.preview) return;
+    const { target, allowDowngrade } = upgradeWizard;
+    void run("upgrade", async () => {
+      const outcome = await call("upgrade_apply", {
+        id: server.id,
+        target,
+        confirmed: true,
+        allowDowngrade,
+      });
+      setUpgradeMessage(
+        t("serverSettings.upgrade.done", {
+          from: outcome.fromVersion,
+          to: outcome.toVersion,
+        }),
+      );
+      setUpgradeWizard(null);
+      setUpgrade(await call("upgrade_info", { id: server.id }));
+      await onSaved();
+    });
+  };
+  const rollbackVersion = () =>
+    void run("upgradeRollback", async () => {
+      const outcome = await call("upgrade_rollback", {
+        id: server.id,
+        confirmed: true,
+      });
+      setUpgradeMessage(
+        t("serverSettings.upgrade.rolledBack", { version: outcome.version }),
+      );
+      setRollbackOpen(false);
+      setUpgrade(await call("upgrade_info", { id: server.id }));
+      await onSaved();
+    });
   const copyCommand = () => {
     if (!launch) return;
     void run("copyLaunchCommand", async () => {
@@ -393,6 +493,62 @@ export function ServerSettings({
         )}
         <p className="small muted">{t("serverSettings.rcon.warning")}</p>
         <p className="small muted">{t("serverSettings.rcon.restart")}</p>
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <ArrowUpCircle size={18} />
+              {t("serverSettings.upgrade.title")}
+            </h2>
+            <p>
+              {t("serverSettings.upgrade.desc", {
+                version: server.minecraftVersion,
+                artifact: server.artifact || "—",
+              })}
+            </p>
+          </div>
+          <Button
+            disabled={!editable || !server.installed}
+            busy={busy.has("upgradeVersions")}
+            onClick={openUpgrade}
+          >
+            {t("serverSettings.upgrade.action")}
+          </Button>
+        </div>
+        {!server.installed && (
+          <p className="small muted">
+            {t("serverSettings.upgrade.notInstalledHint")}
+          </p>
+        )}
+        {server.installed && !editable && (
+          <p className="small muted">{t("serverSettings.upgrade.stopHint")}</p>
+        )}
+        {upgrade?.rollback && (
+          <div className="rollback-banner">
+            <div>
+              <strong>
+                {t("serverSettings.upgrade.rollbackAvailable", {
+                  version: upgrade.rollback.version,
+                  date: date(upgrade.rollback.upgradedAt),
+                })}
+              </strong>
+              <small>{t("serverSettings.upgrade.rollbackHint")}</small>
+            </div>
+            <Button
+              disabled={!editable || busy.has("upgradeRollback")}
+              onClick={() => setRollbackOpen(true)}
+            >
+              <Undo2 size={15} />
+              {t("serverSettings.upgrade.rollback")}
+            </Button>
+          </div>
+        )}
+        {upgradeMessage && (
+          <p className="success-text" role="status">
+            {upgradeMessage}
+          </p>
+        )}
       </section>
       <section className="panel">
         <div className="section-title">
@@ -768,6 +924,224 @@ export function ServerSettings({
               }}
             >
               {t("serverSettings.template.apply")}
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {upgradeWizard && (
+        <Modal
+          title={t("serverSettings.upgrade.wizardTitle")}
+          onClose={() => {
+            if (!busy.has("upgrade") && !busy.has("upgradePreview")) {
+              setUpgradeWizard(null);
+            }
+          }}
+        >
+          {upgradeWizard.preview ? (
+            <>
+              <p className="small muted">
+                {t("serverSettings.upgrade.reviewHint")}
+              </p>
+              <div className="form-grid">
+                <Field label={t("serverSettings.upgrade.from")}>
+                  <input
+                    value={upgradeWizard.preview.currentVersion}
+                    readOnly
+                  />
+                </Field>
+                <Field label={t("serverSettings.upgrade.to")}>
+                  <input
+                    value={upgradeWizard.preview.targetVersion}
+                    readOnly
+                  />
+                </Field>
+              </div>
+              <p className="small muted">{upgradeWizard.preview.artifact}</p>
+              <p className="small muted">
+                {upgradeWizard.preview.javaAvailable
+                  ? t("serverSettings.upgrade.javaOk", {
+                      major: upgradeWizard.preview.requiredJava,
+                    })
+                  : t("serverSettings.upgrade.javaMissing", {
+                      major: upgradeWizard.preview.requiredJava,
+                    })}
+              </p>
+              {!upgradeWizard.preview.javaAvailable && (
+                <Button
+                  busy={busy.has("upgradeJava")}
+                  onClick={installUpgradeJava}
+                >
+                  {t("serverSettings.upgrade.installJava", {
+                    major: upgradeWizard.preview.requiredJava,
+                  })}
+                </Button>
+              )}
+              <p className="small muted">
+                {upgradeWizard.preview.worldExists
+                  ? t("serverSettings.upgrade.worldBackup")
+                  : t("serverSettings.upgrade.noWorld")}
+              </p>
+              {upgradeWizard.preview.contentJars > 0 && (
+                <p className="small muted">
+                  {t("serverSettings.upgrade.content", {
+                    count: upgradeWizard.preview.contentJars,
+                  })}
+                </p>
+              )}
+              {upgradeWizard.preview.downgrade && (
+                <>
+                  <p className="small muted">
+                    {t("serverSettings.upgrade.downgrade")}
+                  </p>
+                  <label className="check-row">
+                    <input
+                      type="checkbox"
+                      checked={upgradeWizard.allowDowngrade}
+                      onChange={(e) =>
+                        setUpgradeWizard((w) =>
+                          w
+                            ? {
+                                ...w,
+                                allowDowngrade: e.target.checked,
+                                confirmed: e.target.checked ? w.confirmed : false,
+                              }
+                            : w,
+                        )
+                      }
+                    />
+                    <span>{t("serverSettings.upgrade.allowDowngrade")}</span>
+                  </label>
+                </>
+              )}
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={upgradeWizard.confirmed}
+                  disabled={
+                    upgradeWizard.preview.downgrade &&
+                    !upgradeWizard.allowDowngrade
+                  }
+                  onChange={(e) =>
+                    setUpgradeWizard((w) =>
+                      w ? { ...w, confirmed: e.target.checked } : w,
+                    )
+                  }
+                />
+                <span>{t("serverSettings.upgrade.confirm")}</span>
+              </label>
+              <div className="modal-actions">
+                <Button
+                  disabled={busy.has("upgrade")}
+                  onClick={() =>
+                    setUpgradeWizard((w) =>
+                      w ? { ...w, preview: null, confirmed: false } : w,
+                    )
+                  }
+                >
+                  {t("serverSettings.upgrade.changeTarget")}
+                </Button>
+                <Button
+                  variant="primary"
+                  busy={busy.has("upgrade")}
+                  disabled={
+                    !upgradeWizard.confirmed ||
+                    !upgradeWizard.preview.javaAvailable ||
+                    (upgradeWizard.preview.downgrade &&
+                      !upgradeWizard.allowDowngrade)
+                  }
+                  onClick={applyUpgrade}
+                >
+                  {t("serverSettings.upgrade.apply")}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Field
+                label={t("serverSettings.upgrade.choose")}
+                hint={t("serverSettings.upgrade.chooseHint")}
+              >
+                <select
+                  value={upgradeWizard.target}
+                  disabled={busy.has("upgradePreview")}
+                  onChange={(e) =>
+                    setUpgradeWizard((w) =>
+                      w
+                        ? {
+                            ...w,
+                            target: e.target.value,
+                            preview: null,
+                            allowDowngrade: false,
+                            confirmed: false,
+                          }
+                        : w,
+                    )
+                  }
+                >
+                  {upgradeWizard.versions.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.id}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {!upgradeWizard.versions.length && (
+                <p className="small muted">
+                  {t("serverSettings.upgrade.noVersions")}
+                </p>
+              )}
+              <div className="modal-actions">
+                <Button
+                  disabled={busy.has("upgradePreview")}
+                  onClick={() => setUpgradeWizard(null)}
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  variant="primary"
+                  disabled={!upgradeWizard.target}
+                  busy={busy.has("upgradePreview")}
+                  onClick={checkUpgrade}
+                >
+                  {t("serverSettings.upgrade.check")}
+                </Button>
+              </div>
+            </>
+          )}
+        </Modal>
+      )}
+      {rollbackOpen && upgrade?.rollback && (
+        <Modal
+          title={t("serverSettings.upgrade.rollbackTitle")}
+          onClose={() => {
+            if (!busy.has("upgradeRollback")) setRollbackOpen(false);
+          }}
+        >
+          <p>
+            {t("serverSettings.upgrade.rollbackBody", {
+              version: upgrade.rollback.version,
+            })}
+          </p>
+          <p className="small muted">
+            {upgrade.rollback.safetyBackupId
+              ? t("serverSettings.upgrade.rollbackSafety", {
+                  id: upgrade.rollback.safetyBackupId,
+                })
+              : t("serverSettings.upgrade.rollbackNoSafety")}
+          </p>
+          <div className="modal-actions">
+            <Button
+              disabled={busy.has("upgradeRollback")}
+              onClick={() => setRollbackOpen(false)}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="danger"
+              busy={busy.has("upgradeRollback")}
+              onClick={rollbackVersion}
+            >
+              {t("serverSettings.upgrade.rollbackConfirm")}
             </Button>
           </div>
         </Modal>

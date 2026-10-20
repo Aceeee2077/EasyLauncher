@@ -456,6 +456,39 @@ export interface RconInfo {
   password: string | null;
   reachable: boolean;
 }
+export interface UpgradeRollbackPoint {
+  version: string;
+  artifact: string | null;
+  upgradedAt: string;
+  safetyBackupId: string | null;
+}
+export interface UpgradeInfo {
+  currentVersion: string;
+  installed: boolean;
+  rollback: UpgradeRollbackPoint | null;
+}
+export interface UpgradePreview {
+  currentVersion: string;
+  targetVersion: string;
+  requiredJava: number;
+  javaAvailable: boolean;
+  javaPath: string | null;
+  downgrade: boolean;
+  artifact: string;
+  contentJars: number;
+  worldExists: boolean;
+}
+export interface UpgradeOutcome {
+  fromVersion: string;
+  toVersion: string;
+  safetyBackupId: string | null;
+  artifact: string;
+}
+export interface UpgradeRollbackOutcome {
+  version: string;
+  artifact: string | null;
+  safetyBackupId: string | null;
+}
 export interface NetworkReport {
   lanIp: string | null;
   publicIp: string | null;

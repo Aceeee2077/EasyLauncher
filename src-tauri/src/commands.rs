@@ -190,6 +190,60 @@ pub async fn cancel_install(m: Managed<'_>, id: String) -> Result<()> {
     audit(&m, "server.cancelInstall", &id, "");
     Ok(())
 }
+#[tauri::command]
+pub fn upgrade_info(m: Managed<'_>, id: String) -> Result<crate::upgrade::Info> {
+    crate::upgrade::info(m.inner(), &id)
+}
+#[tauri::command]
+pub async fn upgrade_preview(
+    m: Managed<'_>,
+    id: String,
+    target: String,
+) -> Result<crate::upgrade::Preview> {
+    crate::upgrade::preview(m.inner().clone(), id, target).await
+}
+#[tauri::command]
+pub async fn upgrade_apply(
+    m: Managed<'_>,
+    id: String,
+    target: String,
+    confirmed: bool,
+    allow_downgrade: bool,
+) -> Result<crate::upgrade::Outcome> {
+    m.ensure_writable()?;
+    let result = crate::upgrade::apply(
+        m.inner().clone(),
+        id.clone(),
+        target,
+        confirmed,
+        allow_downgrade,
+    )
+    .await;
+    match &result {
+        Ok(outcome) => audit(
+            &m,
+            "server.upgrade",
+            &id,
+            format!("{} -> {}", outcome.from_version, outcome.to_version),
+        ),
+        Err(error) => audit(&m, "server.upgrade.failed", &id, &error.code),
+    }
+    result
+}
+#[tauri::command]
+pub async fn upgrade_rollback(
+    m: Managed<'_>,
+    id: String,
+    confirmed: bool,
+) -> Result<crate::upgrade::RollbackOutcome> {
+    m.ensure_writable()?;
+    let result = crate::upgrade::rollback(m.inner().clone(), id.clone(), confirmed).await;
+    match &result {
+        Ok(outcome) => audit(&m, "server.upgrade.rollback", &id, &outcome.version),
+        Err(error) => audit(&m, "server.upgrade.rollbackFailed", &id, &error.code),
+    }
+    result
+}
 /// Critical pre-flight findings that should stop a start attempt before Java launches.
 #[tauri::command]
 pub async fn start_preflight(

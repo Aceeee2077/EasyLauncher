@@ -863,6 +863,22 @@ mod integration_tests {
         assert_eq!(err.code, "backup.rconRequired");
     }
     #[tokio::test]
+    async fn upgrade_rejects_unconfirmed_same_version_and_downgrade() {
+        let (_temp, m, id) = setup("unused-in-this-test".into());
+        let err = crate::upgrade::apply(m.clone(), id.clone(), "1.21.5".into(), false, false)
+            .await
+            .unwrap_err();
+        assert_eq!(err.code, "upgrade.notConfirmed");
+        let err = crate::upgrade::apply(m.clone(), id.clone(), "1.21.4".into(), true, true)
+            .await
+            .unwrap_err();
+        assert_eq!(err.code, "upgrade.sameVersion");
+        let err = crate::upgrade::apply(m.clone(), id.clone(), "1.20.1".into(), true, false)
+            .await
+            .unwrap_err();
+        assert_eq!(err.code, "upgrade.downgradeUnconfirmed");
+    }
+    #[tokio::test]
     async fn insights_dependencies_diff_and_jvm_persist() {
         use std::io::Write;
         let (_temp, m, id) = setup("unused-in-this-test".into());

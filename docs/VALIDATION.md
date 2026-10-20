@@ -43,3 +43,8 @@ After that request, the workflow was reduced to `workflow_dispatch` only (no sch
 ## Consistent live backups (2026-10-20)
 
 Live backups (`create_live_backup`) pause autosave, flush, copy and resume autosave over the existing local RCON channel. The change was validated without starting Minecraft: 88 library tests and one storage integration test pass, including new checks that a stopped server and a running server with RCON disabled are rejected with the stable codes `backup.notRunning` and `backup.rconRequired`. TypeScript checking, the Vite production build and Rust formatting pass. No Java process, RCON connection or real world copy was exercised here, so the successful running-server path and the `save-on` recovery behaviour still need an explicitly requested acceptance run.
+
+
+## Version upgrade wizard (2026-10-20)
+
+The upgrade flow stages a verified `server.upgrade.jar`, swaps it with `server.jar`, keeps `server.jar.previous` plus an `upgrade.json` marker, and can roll the JAR back once. Validation stayed offline: 92 library tests and one storage integration test pass. New tests cover numeric release ordering (`1.21.10` after `1.21.9`), the JAR swap/rollback file transitions in a temporary directory, marker serialization, and rejection of unconfirmed, same-version and unconfirmed-downgrade requests before any upstream request. TypeScript checking, the Vite production build and Rust formatting pass. No server JAR was downloaded, no upstream metadata was requested by the new tests, and no Java process or Minecraft server was started. The successful download/verify/apply path and the wizard UI still need an explicitly requested acceptance run.

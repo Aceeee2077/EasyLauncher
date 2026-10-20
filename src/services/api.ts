@@ -45,6 +45,10 @@ import type {
   RconInfo,
   AuditEntry,
   SecretStatus,
+  UpgradeInfo,
+  UpgradePreview,
+  UpgradeOutcome,
+  UpgradeRollbackOutcome,
 } from "../types";
 type Contract = {
   tunnel_info: [{ id: string }, TunnelInfo];
@@ -110,6 +114,13 @@ type Contract = {
   detect_java: [{ custom?: string }, JavaRuntime[]];
   list_managed_java: [undefined, ManagedJava[]];
   install_java: [{ major: number }, ManagedJava];
+  upgrade_info: [{ id: string }, UpgradeInfo];
+  upgrade_preview: [{ id: string; target: string }, UpgradePreview];
+  upgrade_apply: [
+    { id: string; target: string; confirmed: boolean; allowDowngrade: boolean },
+    UpgradeOutcome,
+  ];
+  upgrade_rollback: [{ id: string; confirmed: boolean }, UpgradeRollbackOutcome];
   delete_java: [{ id: string; confirmed: boolean }, void];
   validate_java: [{ path: string; required: number }, JavaRuntime];
   java_requirement: [{ version: string; software: ServerType }, number];

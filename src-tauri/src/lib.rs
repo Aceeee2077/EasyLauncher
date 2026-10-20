@@ -23,6 +23,7 @@ pub mod secrets;
 pub mod server;
 pub mod storage;
 pub mod tunnel;
+pub mod upgrade;
 pub mod upnp;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -58,6 +59,10 @@ pub fn run() {
             commands::create_server,
             commands::delete_server,
             commands::install_server,
+            commands::upgrade_info,
+            commands::upgrade_preview,
+            commands::upgrade_apply,
+            commands::upgrade_rollback,
             commands::cancel_install,
             commands::start_preflight,
             commands::start_server,
