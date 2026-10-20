@@ -29,6 +29,7 @@ const MANIFEST_VERSION: u32 = 1;
 const MAX_MANIFEST_BYTES: u64 = 128 * 1024 * 1024;
 const MAX_FILES: usize = 250_000;
 const MAX_CHUNK_BYTES: usize = 16 * 1024 * 1024;
+const MAX_READ_FILE_BYTES: u64 = 256 * 1024 * 1024;
 const MAX_DEPTH: u16 = 64;
 const RESERVED: [&str; 22] = [
     "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
@@ -143,6 +144,29 @@ fn read_chunk(root: &Path, chunk: &ChunkRef) -> Result<Vec<u8>> {
     }
     Ok(bytes)
 }
+/// Rebuild one file from a chunked backup after verifying every chunk and the
+/// final file hash. Used by read-only world inspection.
+pub fn read_file(root: &Path, backup_dir: &Path, relative: &str) -> Result<Vec<u8>> {
+    let manifest = load_manifest(backup_dir)?;
+    let file = manifest
+        .files
+        .get(relative)
+        .ok_or_else(|| corrupt("The backup does not contain the requested file."))?;
+    if file.bytes > MAX_READ_FILE_BYTES {
+        return Err(AppError::user("That backup file is too large to inspect."));
+    }
+    let mut bytes = Vec::with_capacity(file.bytes as usize);
+    for chunk in &file.chunks {
+        bytes.extend_from_slice(&read_chunk(root, chunk)?);
+    }
+    if bytes.len() as u64 != file.bytes || hex(&Sha256::digest(&bytes)) != file.sha256 {
+        return Err(corrupt(
+            "A reconstructed backup file failed its integrity check.",
+        ));
+    }
+    Ok(bytes)
+}
+
 fn collect(
     world_root: &Path,
     path: &Path,

@@ -147,6 +147,13 @@ pub async fn execute(m: &Arc<Manager>, id: &str, command: &str) -> Result<String
     Ok(output)
 }
 
+/// Run a command without echoing it to the server console. Used for internal
+/// read-only queries such as `data get entity` when sampling map positions.
+pub async fn query(m: &Arc<Manager>, id: &str, command: &str) -> Result<String> {
+    let command = validate_command(command)?;
+    run(m, id, command).await
+}
+
 /// Authoritative online player list, replacing log-observed state on success.
 pub async fn players(m: &Arc<Manager>, id: &str) -> Result<Vec<String>> {
     let output = run(m, id, "list").await?;

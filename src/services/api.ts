@@ -57,6 +57,10 @@ import type {
   RemoteInfo,
   RemoteSecretsInput,
   RemoteUploadOutcome,
+  WorldPreview,
+  WorldMap,
+  WorldDiff,
+  WorldTrack,
   TunnelConfig,
   TunnelInfo,
   RconInfo,
@@ -187,6 +191,25 @@ type Contract = {
     { id: string; backupId: string; confirmed: boolean },
     RemoteUploadOutcome,
   ];
+  world_preview: [{ id: string; backupId: string }, WorldPreview];
+  world_map: [
+    {
+      id: string;
+      backupId: string;
+      world: string;
+      dimension: string;
+      regionX: number;
+      regionZ: number;
+      scale: number;
+    },
+    WorldMap,
+  ];
+  world_diff: [
+    { id: string; beforeId: string; afterId: string },
+    WorldDiff,
+  ];
+  world_tracks: [{ id: string }, WorldTrack[]];
+  sample_world_tracks: [{ id: string }, WorldTrack[]];
   player_action: [{ id: string; player: string; action: string }, void];
   rcon_info: [{ id: string }, RconInfo];
   rcon_enable: [{ id: string; port?: number }, RconInfo];

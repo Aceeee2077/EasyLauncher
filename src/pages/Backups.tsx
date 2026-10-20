@@ -15,6 +15,7 @@ import {
 import { Button, Field, Modal, bytes, date } from "../components/ui";
 import { BackupComparison } from "../components/BackupComparison";
 import { RemoteBackup } from "../components/RemoteBackup";
+import { WorldPreviewPanel } from "../components/WorldPreview";
 import { call } from "../services/api";
 import {
   idle,
@@ -338,6 +339,13 @@ export function Backups({
         backups={backups}
         run={run}
         busy={busy}
+      />
+      <WorldPreviewPanel
+        id={server.id}
+        backups={backups}
+        run={run}
+        busy={busy}
+        running={server.runtime.status === "running"}
       />
       {live && rcon && !rcon.enabled && (
         <p className="small muted">{t("backups.liveRconHint")}</p>

@@ -29,6 +29,7 @@ pub mod storage;
 pub mod tunnel;
 pub mod upgrade;
 pub mod upnp;
+pub mod world_map;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -114,6 +115,11 @@ pub fn run() {
             commands::save_remote_backup,
             commands::test_remote_backup,
             commands::upload_backup_remote,
+            commands::world_preview,
+            commands::world_map,
+            commands::world_diff,
+            commands::world_tracks,
+            commands::sample_world_tracks,
             commands::check_dependencies,
             commands::player_stats,
             commands::restore_backup,

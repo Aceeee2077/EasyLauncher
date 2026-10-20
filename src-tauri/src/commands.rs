@@ -658,6 +658,73 @@ pub async fn apply_backup_cleanup(
     Ok(outcome)
 }
 #[tauri::command]
+pub async fn world_preview(
+    m: Managed<'_>,
+    id: String,
+    backup_id: String,
+) -> Result<crate::world_map::WorldPreview> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::world_map::preview(&manager, &id, &backup_id))
+        .await
+        .map_err(|e| AppError::new("Could not inspect the world preview.", e))?
+}
+#[tauri::command]
+pub async fn world_map(
+    m: Managed<'_>,
+    id: String,
+    backup_id: String,
+    world: String,
+    dimension: String,
+    region_x: i32,
+    region_z: i32,
+    scale: u32,
+) -> Result<crate::world_map::WorldMap> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || {
+        crate::world_map::map(
+            &manager, &id, &backup_id, &world, &dimension, region_x, region_z, scale,
+        )
+    })
+    .await
+    .map_err(|e| AppError::new("Could not render the world map.", e))?
+}
+#[tauri::command]
+pub async fn world_diff(
+    m: Managed<'_>,
+    id: String,
+    before_id: String,
+    after_id: String,
+) -> Result<crate::world_map::WorldDiff> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || {
+        crate::world_map::diff(&manager, &id, &before_id, &after_id)
+    })
+    .await
+    .map_err(|e| AppError::new("Could not compare the world backups.", e))?
+}
+#[tauri::command]
+pub async fn world_tracks(m: Managed<'_>, id: String) -> Result<Vec<crate::world_map::WorldTrack>> {
+    let manager = m.inner().clone();
+    tokio::task::spawn_blocking(move || crate::world_map::load_tracks(&manager, &id))
+        .await
+        .map_err(|e| AppError::new("Could not read the player position history.", e))?
+}
+#[tauri::command]
+pub async fn sample_world_tracks(
+    m: Managed<'_>,
+    id: String,
+) -> Result<Vec<crate::world_map::WorldTrack>> {
+    m.ensure_writable()?;
+    let tracks = crate::world_map::sample_tracks(m.inner().clone(), id.clone()).await?;
+    audit(
+        &m,
+        "world.tracks.sample",
+        &id,
+        format!("players={}", tracks.len()),
+    );
+    Ok(tracks)
+}
+#[tauri::command]
 pub fn remote_backup_info(m: Managed<'_>, id: String) -> Result<crate::remote_backup::RemoteInfo> {
     crate::remote_backup::info(&m, &id)
 }

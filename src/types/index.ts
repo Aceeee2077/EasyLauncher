@@ -219,6 +219,127 @@ export interface RemoteUploadOutcome {
   archive: RemoteArchive;
   verification: string;
 }
+export interface WorldCount {
+  id: string;
+  count: number;
+}
+export interface WorldRegion {
+  x: number;
+  z: number;
+  bytes: number;
+  chunks: number;
+  corruptChunks: number;
+}
+export interface WorldDimension {
+  world: string;
+  dimension: string;
+  label: string;
+  regions: WorldRegion[];
+  chunks: number;
+  corruptChunks: number;
+  blockEntities: number;
+  entities: number;
+  blockEntityTypes: WorldCount[];
+  entityTypes: WorldCount[];
+  entityRegions: number;
+  truncated: boolean;
+}
+export interface WorldCorruption {
+  world: string;
+  dimension: string;
+  label: string;
+  regionX: number;
+  regionZ: number;
+  chunkX: number | null;
+  chunkZ: number | null;
+  reason: string;
+}
+export interface WorldTotals {
+  dimensions: number;
+  regions: number;
+  chunks: number;
+  corruptChunks: number;
+  blockEntities: number;
+  entities: number;
+}
+export interface WorldPlayer {
+  uuid: string;
+  name: string;
+  world: string;
+  dimension: string;
+  x: number;
+  y: number;
+  z: number;
+  health: number;
+  food: number;
+  xp: number;
+  observedAt: string;
+}
+export interface WorldTrackPoint {
+  at: string;
+  dimension: string;
+  x: number;
+  y: number;
+  z: number;
+}
+export interface WorldTrack {
+  player: string;
+  points: WorldTrackPoint[];
+}
+export interface WorldPreview {
+  backupId: string;
+  backupCreatedAt: string;
+  dimensions: WorldDimension[];
+  players: WorldPlayer[];
+  tracks: WorldTrack[];
+  totals: WorldTotals;
+  corruptions: WorldCorruption[];
+  omittedCorruptions: number;
+  warnings: string[];
+  generatedAt: string;
+}
+export interface WorldMap {
+  backupId: string;
+  world: string;
+  dimension: string;
+  label: string;
+  regionX: number;
+  regionZ: number;
+  originX: number;
+  originZ: number;
+  scale: number;
+  width: number;
+  height: number;
+  pixels: string;
+  chunks: number;
+  corruptChunks: number;
+  emptyChunks: number;
+  players: WorldPlayer[];
+  tracks: WorldTrack[];
+  warnings: string[];
+  generatedAt: string;
+}
+export interface WorldDiffChange {
+  world: string;
+  dimension: string;
+  label: string;
+  regionX: number;
+  regionZ: number;
+  status: string;
+  beforeBytes: number;
+  afterBytes: number;
+}
+export interface WorldDiff {
+  beforeId: string;
+  afterId: string;
+  added: number;
+  removed: number;
+  changed: number;
+  unchanged: number;
+  changes: WorldDiffChange[];
+  truncated: boolean;
+  generatedAt: string;
+}
 export interface Settings {
   appearance: "system" | "light" | "dark";
   language: "system" | "zh-CN" | "en";

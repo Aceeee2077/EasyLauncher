@@ -2401,6 +2401,217 @@ fieldset:disabled {
     grid-template-columns: 1fr;
   }
 }
+.world-preview {
+  display: grid;
+  gap: 4px;
+}
+.world-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 14px 0;
+}
+.world-controls .field {
+  flex: 1;
+  min-width: 170px;
+  margin: 0;
+}
+.world-controls .check-row {
+  margin: 0;
+  white-space: nowrap;
+}
+.world-stats {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.world-dimensions {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.world-dimensions button {
+  display: grid;
+  gap: 4px;
+  min-width: 130px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.world-dimensions button strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.world-dimensions button small {
+  color: var(--muted);
+  font-size: 9px;
+}
+.world-dimensions button.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+.world-map-wrap {
+  position: relative;
+  width: min(100%, 512px);
+  margin: 12px auto;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.world-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+}
+.world-map-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  color: var(--muted);
+  font-size: 11px;
+}
+.world-dimension-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.world-types {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 14px 0;
+}
+.world-types small {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.world-types .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.world-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+}
+.world-list {
+  min-width: 0;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.world-list .remote-history-head {
+  margin-bottom: 10px;
+}
+.world-list .remote-history-head .btn {
+  padding: 5px 9px;
+  min-height: 28px;
+  font-size: 9px;
+}
+.world-player {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+}
+.world-player:first-of-type {
+  border-top: 0;
+}
+.world-player strong {
+  font-weight: 500;
+}
+.world-player span {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.world-player small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 9px;
+}
+.world-corruptions {
+  display: grid;
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+}
+.world-corruptions > div {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: var(--surface2);
+  font-size: 10px;
+}
+.world-corruptions small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+.world-diff {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.world-diff-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.world-diff-table {
+  margin-top: 10px;
+}
+.world-diff-table .backup-row {
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1fr);
+}
+@media (max-width: 900px) {
+  .world-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .world-columns {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 720px) {
+  .world-types {
+    grid-template-columns: 1fr;
+  }
+  .world-controls {
+    align-items: stretch;
+  }
+  .world-controls .field {
+    min-width: 100%;
+  }
+  .world-diff-table .backup-row {
+    grid-template-columns: 1fr auto;
+  }
+}
 .tag {
   width: fit-content;
   background: var(--surface2);

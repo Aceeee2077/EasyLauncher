@@ -47,6 +47,7 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 sysinfo = "0.33"
 open = "5"
 zstd = { version = "0.13", default-features = false }
+flate2 = "1"
 age = "0.11"
 hmac = "0.12"
 percent-encoding = "2"
