@@ -31,7 +31,7 @@ pub fn required_java(version: &str, software: ServerType, manifest: Option<u32>)
     } else {
         8
     };
-    let paper = if software == ServerType::Paper {
+    let paper = if software.plugins() {
         if v.get(1).copied().unwrap_or(0) >= 20 {
             21
         } else if v.get(1).copied().unwrap_or(0) >= 17 {

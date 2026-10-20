@@ -385,18 +385,22 @@ impl Manager {
                 "Choose a server name between 1 and 64 characters.",
             ));
         }
-        if !input
-            .minecraft_version
-            .bytes()
-            .all(|c| c.is_ascii_digit() || c == b'.')
+        let minecraft_version = input.minecraft_version.trim();
+        if minecraft_version.is_empty()
+            || minecraft_version.len() > 64
+            || !minecraft_version
+                .bytes()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'.' | b'-' | b'_' | b' '))
         {
-            return Err(AppError::user("Select a stable Minecraft release."));
+            return Err(AppError::user(
+                "Select a Minecraft version from the list. Releases and snapshots are supported.",
+            ));
         }
         validate_memory(input.memory_min_mb, input.memory_max_mb)?;
         let client = self.client();
         let required = crate::minecraft::versions::requirement(
             &client,
-            &input.minecraft_version,
+            minecraft_version,
             input.server_type,
             self.settings()?.download_source,
         )
@@ -409,7 +413,7 @@ impl Manager {
             schema_version: 1,
             id: id.clone(),
             name: input.name.trim().into(),
-            minecraft_version: input.minecraft_version,
+            minecraft_version: minecraft_version.into(),
             server_type: input.server_type,
             memory_min_mb: input.memory_min_mb,
             memory_max_mb: input.memory_max_mb,

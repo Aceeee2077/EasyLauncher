@@ -159,11 +159,7 @@ pub async fn create_server(m: Managed<'_>, input: CreateServer) -> Result<Server
         format!(
             "{} {}",
             created.minecraft_version,
-            match created.server_type {
-                ServerType::Vanilla => "vanilla",
-                ServerType::Paper => "paper",
-                ServerType::Fabric => "fabric",
-            }
+            created.server_type.label()
         ),
     );
     Ok(created)
@@ -441,9 +437,16 @@ pub async fn java_requirement(
 pub async fn list_versions(
     m: Managed<'_>,
     software: ServerType,
+    snapshots: Option<bool>,
 ) -> Result<Vec<crate::minecraft::versions::Version>> {
     let source = m.settings()?.download_source;
-    crate::minecraft::versions::list(&m.client(), software, source).await
+    crate::server::software::versions(
+        &m.client(),
+        software,
+        source,
+        snapshots.unwrap_or(false) && software.supports_snapshots(),
+    )
+    .await
 }
 #[tauri::command]
 pub async fn system_info(m: Managed<'_>) -> Result<serde_json::Value> {
@@ -662,10 +665,8 @@ pub async fn latest_log(m: Managed<'_>, id: String) -> Result<String> {
 #[tauri::command]
 pub async fn list_content(m: Managed<'_>, id: String) -> Result<Vec<String>> {
     let s = m.metadata(&id)?;
-    let name = match s.server_type {
-        ServerType::Paper => "plugins",
-        ServerType::Fabric => "mods",
-        ServerType::Vanilla => return Ok(Vec::new()),
+    let Some(name) = s.server_type.content_folder() else {
+        return Ok(Vec::new());
     };
     let dir = crate::storage::child(&m.dir(&id)?, name)?;
     let mut jars = Vec::new();

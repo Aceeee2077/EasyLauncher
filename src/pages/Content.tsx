@@ -47,14 +47,15 @@ export function Content({
   busy,
 }: TaskProps & { server: ServerView }) {
   const { t } = useI18n();
-  const kind = server.serverType === "paper" ? "plugin" : "mod";
-  const loader = server.serverType === "paper" ? "paper" : "fabric";
-  const modes: Mode[] =
-    server.serverType === "vanilla"
-      ? ["modpack"]
-      : server.serverType === "paper"
-        ? ["content"]
-        : ["content", "modpack"];
+  const plugins =
+    server.serverType === "paper" || server.serverType === "purpur";
+  const kind = plugins ? "plugin" : "mod";
+  const loader = plugins ? "paper" : "fabric";
+  const modes: Mode[] = server.serverType === "vanilla"
+    ? ["modpack"]
+    : plugins
+      ? ["content"]
+      : ["content", "modpack"];
   const [mode, setMode] = useState<Mode>(modes[0]);
   const [listing, setListing] = useState<ContentListing | null>(null);
   const [query, setQuery] = useState("");
@@ -337,7 +338,7 @@ export function Content({
                 void run("folder", () =>
                   call("open_folder", {
                     id: server.id,
-                    kind: server.serverType === "paper" ? "plugins" : "mods",
+                    kind: plugins ? "plugins" : "mods",
                   }),
                 )
               }
@@ -356,9 +357,7 @@ export function Content({
                 setPage(null);
               }}
             >
-              {server.serverType === "paper"
-                ? t("content.plugins")
-                : t("content.mods")}
+              {plugins ? t("content.plugins") : t("content.mods")}
             </button>
             <button
               className={mode === "modpack" ? "selected" : ""}

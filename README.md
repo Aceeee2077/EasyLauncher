@@ -9,7 +9,7 @@
 ## 当前功能
 
 - 四步建服向导，实时拉取上游版本列表，并提供内存建议、端口、玩家上限、游戏模式与难度设置。
-- 原版（Vanilla）通过 Mojang 清单获取，稳定版 Paper 通过 v3 下载服务获取，Fabric 可执行启动器通过 Fabric Meta 获取。绝不静默替换用户请求的 Minecraft 版本。
+- 原版（Vanilla）通过 Mojang 清单获取，稳定版 Paper 通过 v3 下载服务获取，Purpur 通过其 v2 API 获取，Fabric 可执行启动器通过 Fabric Meta 获取；各软件通过独立的 adapter 声明元数据来源、校验方式与 Java 要求。原版与 Fabric 还可选择快照版，且支持 1.7 起的旧正式版。绝不静默替换用户请求的 Minecraft 版本。
 - 支持从 PATH、JAVA_HOME、JDK_HOME 与常见安装目录发现 Java；支持校验自定义可执行文件并引导安装。兼容性要求同时参考 Mojang 各版本的 Java 元数据。
 - 托管 Java 运行时：从 Adoptium（Temurin）下载，使用 SHA-256 校验，安全解压，并按服务器固定。缺少兼容运行时时，建服向导提供一键安装。
 - 显式勾选 EULA 并持久化接受时间。安装完成后绝不自动启动 Minecraft。
@@ -151,14 +151,15 @@ src-tauri/src/
   java/                有边界的运行时检测与集中的兼容性规则
   minecraft/           上游版本元数据与 Java Properties 编解码
   server/manager.rs    持久化、按服务器的操作锁与事件/历史状态
-  server/installer.rs  软件适配器、重试、哈希、进度与取消
+  server/software.rs   各服务端软件的版本来源、产物解析与 Java 要求
+  server/installer.rs  共享下载、重试、哈希、进度与取消
   server/process.rs    Java 生命周期、管道读取、stdin 与就绪/崩溃观察
   server/job.rs        Windows 关闭即终止的子进程托管
   backup.rs            一致性快照、恢复暂存与回滚
   upgrade.rs           暂存式服务端 JAR 升级与单步回退
   content_update.rs    内容更新检查、旧包快照与单包回退
   backup_diff.rs       文件哈希索引与快照差异
-  dependencies.rs      Fabric / Paper JAR 与 Modrinth 依赖检查
+  dependencies.rs      Fabric / Paper / Purpur JAR 与 Modrinth 依赖检查
   player_stats.rs      持久化玩家时长、会话与日统计
   log_assistant.rs     可选自带 Key 的日志片段分析
   tunnel.rs            用户配置的 frpc 子进程托管
@@ -214,9 +215,9 @@ React 调用 Rust 命令，并订阅 `server-status`、`server-console-batch`、
 ## 已知限制
 
 - 真实服务器验收是可选的：默认测试与日常使用不会在后台下载或启动服务器；显式运行 `cargo test --test minecraft_e2e -- --ignored` 时，会在临时目录下载并启动真实的 Vanilla、Paper 或 Fabric，接受该临时目录内的 EULA，结束后删除。Vanilla 1.21.4 已在本机通过；Paper 与 Fabric 可通过 `E2E_SOFTWARE` 或 CI 矩阵验收。真实玩家连接、公网隧道与外部付费模型仍需实际环境验收。
-- 仅列出稳定的 Minecraft **1.16 及更高版本**；快照与旧版启动格式不在当前范围内。目录导入支持可识别的 Vanilla、Paper 与 Fabric 服务器。Paper 需要所选版本存在上游 `STABLE` 构建；不支持的选择会给出明确错误。
+- 版本列表覆盖 Mojang 清单中 **1.7 起的正式版与快照**：原版与 Fabric 可在向导中勾选快照，Paper 与 Purpur 只列上游存在稳定构建的正式版；旧版本仍使用标准 `-jar server.jar nogui` 启动格式。快照可能不稳定，升级向导仍只提供正式版。目录导入支持可识别的 Vanilla、Paper、Purpur 与 Fabric 服务器。Spigot 没有官方产物 API；Forge、NeoForge 与 Quilt 需要运行官方安装器并使用非 `-jar` 的启动参数，目前尚未适配，创建向导不会提供这些选项。
 - Java 选择要求主版本兼容。托管的 Adoptium 安装按服务器固定，可在设置中移除。Minecraft 26.x 的要求遵循上游元数据，并以 Java 25 作为回退；版本规则集中在一个模块中。
-- Fabric 提供的启动器没有上游产物哈希。EasyLauncher 会校验 HTTPS 传输、JAR 签名与上报长度；Vanilla 使用 SHA-1，Paper 使用 SHA-256。Fabric 与 Paper 可能在服务器首次启动时下载库文件；这些上游 Java 引导下载不会向 EasyLauncher 报告逐字节进度。
+- Fabric 提供的启动器没有上游产物哈希，Purpur 的 API 只公布 MD5（当前未使用该值）。EasyLauncher 会校验 HTTPS 传输、ZIP/JAR 头与上报长度；Vanilla 使用 SHA-1，Paper 使用 SHA-256。Fabric、Paper 与 Purpur 可能在服务器首次启动时下载库文件；这些上游 Java 引导下载不会向 EasyLauncher 报告逐字节进度。
 - 普通备份与恢复要求服务器已停止。启用 RCON 且服务器就绪时，可创建在线一致性备份：先 `save-off`，再 `save-all flush`，复制世界目录后恢复 `save-on`；`save-on` 失败会明确报错并要求重启或手动执行。Minecraft 没有文件系统快照接口，暂停自动保存与强制刷盘只能显著降低写入风险，复制期间区块卸载等写入仍可能发生，因此这不是原子快照。若 RCON 未启用或不可达，不会尝试在线备份。压缩与远程副本暂未实现。若 `level-name` 与原值不同，恢复会被拒绝，直到配置回原名称。
 - 版本升级只替换 `server.jar`，并保留一份 `server.jar.previous` 用于单步回退；不会迁移模组、插件、配置或世界。升级前的安全备份只包含世界数据。服务端必须停止且已安装，所需 Java 主版本缺失时会拒绝升级并提供安装入口。降级会额外要求确认；即使确认，旧版本也可能无法读取新版本生成的世界。回退只恢复 JAR，不自动回退世界；界面会提示升级前安全备份的 ID。
 - 内容更新检查只覆盖由应用安装并记录在 `content.json` 中的 Modrinth 项目；手动放入的 JAR 不做更新。检查只读取 Modrinth 元数据，可能受上游可用性影响。更新前保存的旧包快照位于服务器目录的 `content-backups/`，只支持单包单步回退，不包含依赖联动升级；页面会提示新增、变化或缺失的必需前置，但不会自动安装。更新只替换该 JAR，不迁移配置；服务器必须停止，世界不受影响。
@@ -226,7 +227,7 @@ React 调用 Rust 命令，并订阅 `server-status`、`server-console-batch`、
 - 正常关闭会在所有支持的平台上优雅停止子进程。Windows 另外使用 Job Object 处理异常退出清理。Linux/macOS 上父进程被强制终止时的清理尚未保证；在这些平台重新启动前请检查残留的 Java 进程。
 - 局域网地址探测仅作为路由提示；VPN 与多网卡会影响结果。本地或局域网可用不代表公网可访问。用户可显式触发 UPnP 映射或 Windows 防火墙放行；frp 则需要用户自己的服务与配置。
 - 模组/插件支持 Modrinth 内容管理与依赖声明检查；本地检查覆盖 Fabric 模组、Paper/Bukkit 插件声明与常见语义化版本谓词，但不是完整的加载器解析器。无法映射回 Modrinth 的手动 JAR 仍可能显示“未找到托管前置”，需结合本地文件核对。Minecraft 自身日志仍遵循服务器的上游日志策略；EasyLauncher 应用日志与控制台缓冲区各有独立上限。
-- API 可用性与吞吐取决于上游服务。Paper 请求会携带标识性 User-Agent；若分发更名后的公开分支，请配置真实项目联系地址。
+- API 可用性与吞吐取决于上游服务。Paper、Purpur 与 Fabric 请求会携带标识性 User-Agent；若分发更名后的公开分支，请配置真实项目联系地址。
 - Windows 是已验证的构建目标。不包含代码签名、macOS 公证、自动更新以及 NSIS 之外的其他平台安装包。
 
 ## 路线图
@@ -237,6 +238,7 @@ React 调用 Rust 命令，并订阅 `server-status`、`server-console-batch`、
 
 - [Tauri 命令与事件](https://v2.tauri.app/develop/calling-rust/)
 - [Paper 下载服务](https://docs.papermc.io/misc/downloads-service/)
+- [Purpur API](https://purpurmc.org/docs/API)
 - [Fabric 服务器启动器](https://fabricmc.net/use/server/)
 - [Minecraft 26.1 Java 要求](https://www.minecraft.net/en-us/article/minecraft-java-edition-26-1)
 - [Minecraft EULA](https://www.minecraft.net/eula)

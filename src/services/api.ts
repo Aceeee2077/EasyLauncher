@@ -129,7 +129,10 @@ type Contract = {
   delete_java: [{ id: string; confirmed: boolean }, void];
   validate_java: [{ path: string; required: number }, JavaRuntime];
   java_requirement: [{ version: string; software: ServerType }, number];
-  list_versions: [{ software: ServerType }, Version[]];
+  list_versions: [
+    { software: ServerType; snapshots?: boolean },
+    Version[],
+  ];
   system_info: [undefined, SystemInfo];
   get_settings: [undefined, Settings];
   save_settings: [{ settings: Settings }, void];

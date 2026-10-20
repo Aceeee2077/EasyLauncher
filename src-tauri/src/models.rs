@@ -5,7 +5,44 @@ use serde::{Deserialize, Serialize};
 pub enum ServerType {
     Vanilla,
     Paper,
+    Purpur,
     Fabric,
+}
+
+impl ServerType {
+    /// Paper and Purpur share the Bukkit plugin layout.
+    pub fn plugins(self) -> bool {
+        matches!(self, Self::Paper | Self::Purpur)
+    }
+    pub fn content_folder(self) -> Option<&'static str> {
+        if self.plugins() {
+            Some("plugins")
+        } else if matches!(self, Self::Fabric) {
+            Some("mods")
+        } else {
+            None
+        }
+    }
+    pub fn content_loader(self) -> Option<&'static str> {
+        if self.plugins() {
+            Some("paper")
+        } else if matches!(self, Self::Fabric) {
+            Some("fabric")
+        } else {
+            None
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Vanilla => "vanilla",
+            Self::Paper => "paper",
+            Self::Purpur => "purpur",
+            Self::Fabric => "fabric",
+        }
+    }
+    pub fn supports_snapshots(self) -> bool {
+        matches!(self, Self::Vanilla | Self::Fabric)
+    }
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]

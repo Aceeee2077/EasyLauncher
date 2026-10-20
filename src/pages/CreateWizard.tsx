@@ -10,6 +10,7 @@ import {
   Layers,
   Leaf,
   Box,
+  Gem,
 } from "lucide-react";
 import { Button, Field, Modal, Step, GuideLink, bytes } from "../components/ui";
 import { call, desktop } from "../services/api";
@@ -47,6 +48,7 @@ export function CreateWizard({
   const [installing, setInstalling] = useState<number | null>(null);
   const [progress, setProgress] = useState<JavaProgress | null>(null);
   const [installed, setInstalled] = useState("");
+  const [snapshots, setSnapshots] = useState(false);
   const [form, setForm] = useState<CreateServer>({
     name: "",
     minecraftVersion: "",
@@ -71,10 +73,19 @@ export function CreateWizard({
     setVersions([]);
     change("minecraftVersion", "");
     void run(`versions-${crypto.randomUUID()}`, async () => {
-      const v = await call("list_versions", { software: form.serverType });
+      const v = await call("list_versions", {
+        software: form.serverType,
+        snapshots,
+      });
       if (live) {
         setVersions(v);
-        setForm((f) => ({ ...f, minecraftVersion: v[0]?.id || "" }));
+        const first = v.find((x) => x.type === "release") ?? v[0];
+        setForm((f) => ({
+          ...f,
+          minecraftVersion: v.some((x) => x.id === f.minecraftVersion)
+            ? f.minecraftVersion
+            : first?.id || "",
+        }));
       }
     }).finally(() => {
       if (live) setLoading(false);
@@ -82,7 +93,7 @@ export function CreateWizard({
     return () => {
       live = false;
     };
-  }, [form.serverType]);
+  }, [form.serverType, snapshots]);
   useEffect(() => {
     let live = true;
     setRequired(null);
@@ -232,6 +243,7 @@ export function CreateWizard({
                       Box,
                     ],
                     ["paper", "software.paper", "software.paperDesc", Leaf],
+                    ["purpur", "software.purpur", "software.purpurDesc", Gem],
                     ["fabric", "software.fabric", "software.fabricDesc", Layers],
                   ] as const
                 ).map(([type, title, desc, Icon]) => (
@@ -259,19 +271,39 @@ export function CreateWizard({
                     : t("wizard.selectRelease")}
                 </option>
                 {versions.map((v) => (
-                  <option key={v.id}>{v.id}</option>
+                  <option key={v.id} value={v.id}>
+                    {v.type === "snapshot"
+                      ? `${v.id} · ${t("wizard.snapshot")}`
+                      : v.id}
+                  </option>
                 ))}
               </select>
             </Field>
+            {(form.serverType === "vanilla" ||
+              form.serverType === "fabric") && (
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={snapshots}
+                  onChange={(e) => setSnapshots(e.target.checked)}
+                />
+                <span>
+                  {t("wizard.showSnapshots")}{" "}
+                  <small>{t("wizard.snapshotsHint")}</small>
+                </span>
+              </label>
+            )}
             {!loading && !versions.length && (
               <Button
                 onClick={() => {
                   void run("versionsRetry", async () => {
                     const v = await call("list_versions", {
                       software: form.serverType,
+                      snapshots,
                     });
                     setVersions(v);
-                    change("minecraftVersion", v[0]?.id || "");
+                    const first = v.find((x) => x.type === "release") ?? v[0];
+                    change("minecraftVersion", first?.id || "");
                   });
                 }}
               >

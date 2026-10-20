@@ -428,11 +428,7 @@ pub async fn check(m: Arc<Manager>, id: String) -> Result<UpdateReport> {
                 .with_code("contentUpdate.tooMany"),
         );
     }
-    let loader: &'static str = if server.server_type == ServerType::Paper {
-        "paper"
-    } else {
-        "fabric"
-    };
+    let loader: &'static str = server.server_type.content_loader().unwrap_or("fabric");
     let pinned: BTreeSet<String> = listing.pinned.iter().cloned().collect();
     let installed: BTreeMap<String, String> = listing
         .entries
@@ -569,11 +565,7 @@ pub async fn apply(
     }
     let folder = crate::modrinth::folder_for(&server)?;
     let kind = if folder == "plugins" { "plugin" } else { "mod" };
-    let loader: &'static str = if server.server_type == ServerType::Paper {
-        "paper"
-    } else {
-        "fabric"
-    };
+    let loader: &'static str = server.server_type.content_loader().unwrap_or("fabric");
     let root = m.dir(&id)?;
     let content_dir = storage::child(&root, folder)?;
     let mut index = crate::modrinth::load_index(&root);
@@ -906,6 +898,7 @@ fn server_type_name(software: ServerType) -> &'static str {
     match software {
         ServerType::Vanilla => "Vanilla",
         ServerType::Paper => "Paper",
+        ServerType::Purpur => "Purpur",
         ServerType::Fabric => "Fabric",
     }
 }

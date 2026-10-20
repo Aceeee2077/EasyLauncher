@@ -81,11 +81,9 @@ pub async fn json(client: &Client, url: &str) -> Result<Value> {
         .json()
         .await?)
 }
-pub async fn list(
-    client: &Client,
-    software: ServerType,
-    source: DownloadSource,
-) -> Result<Vec<Version>> {
+/// Every entry in Mojang's manifest, releases and snapshots alike. Adapters
+/// apply their own support filter and rewrite URLs for the selected source.
+pub async fn manifest_versions(client: &Client, source: DownloadSource) -> Result<Vec<Version>> {
     let manifest: Manifest = client
         .get(manifest(source))
         .send()
@@ -93,46 +91,14 @@ pub async fn list(
         .error_for_status()?
         .json()
         .await?;
-    let mut versions: Vec<_> = manifest
+    Ok(manifest
         .versions
         .into_iter()
-        .filter(|v| v.kind == "release")
-        .collect();
-    // Older releases have incompatible launch protocols and are deliberately outside V0.1.
-    versions.retain(|v| {
-        let n: Vec<u32> = v.id.split('.').filter_map(|s| s.parse().ok()).collect();
-        n.first().copied().unwrap_or(0) >= 26
-            || (n.first() == Some(&1) && n.get(1).copied().unwrap_or(0) >= 16)
-    });
-    match software {
-        ServerType::Vanilla => {}
-        ServerType::Paper => {
-            let p = json(client, "https://fill.papermc.io/v3/projects/paper").await?;
-            let supported: Vec<&str> = p["versions"]
-                .as_object()
-                .map(|o| {
-                    o.values()
-                        .filter_map(|v| v.as_array())
-                        .flatten()
-                        .filter_map(|v| v.as_str())
-                        .collect()
-                })
-                .unwrap_or_default();
-            versions.retain(|v| supported.contains(&v.id.as_str()));
-        }
-        ServerType::Fabric => {
-            let p = json(client, &format!("{}/v2/versions/game", fabric_meta(source))).await?;
-            let supported: Vec<&str> = p
-                .as_array()
-                .map(|a| a.iter().filter_map(|v| v["version"].as_str()).collect())
-                .unwrap_or_default();
-            versions.retain(|v| supported.contains(&v.id.as_str()));
-        }
-    }
-    for v in &mut versions {
-        v.url = mirror_url(&v.url, source);
-    }
-    Ok(versions)
+        .map(|mut v| {
+            v.url = mirror_url(&v.url, source);
+            v
+        })
+        .collect())
 }
 pub async fn details(client: &Client, version: &str, source: DownloadSource) -> Result<Value> {
     let manifest: Manifest = client
@@ -145,9 +111,9 @@ pub async fn details(client: &Client, version: &str, source: DownloadSource) -> 
     let v = manifest
         .versions
         .into_iter()
-        .find(|v| v.id == version && v.kind == "release")
+        .find(|v| v.id == version)
         .ok_or_else(|| {
-            AppError::user("This Minecraft release could not be found in Mojang's manifest.")
+            AppError::user("This Minecraft version could not be found in Mojang's manifest.")
         })?;
     let mut value = json(client, &mirror_url(&v.url, source)).await?;
     rewrite_urls(&mut value, source);

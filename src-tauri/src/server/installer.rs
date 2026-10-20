@@ -1,6 +1,5 @@
 use crate::{
     error::{AppError, Result},
-    minecraft::versions::{details, fabric_meta, json},
     models::{DownloadSource, ServerType},
 };
 use futures_util::StreamExt;
@@ -15,14 +14,7 @@ use std::{
 };
 use tokio::io::AsyncWriteExt;
 
-pub struct Artifact {
-    pub url: String,
-    pub sha1: Option<String>,
-    pub sha256: Option<String>,
-    pub size: Option<u64>,
-    pub label: String,
-    pub java: u32,
-}
+pub use super::software::Artifact;
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Progress {
@@ -43,85 +35,16 @@ pub async fn cancelled(cancel: &AtomicBool) {
     }
 }
 impl ServerInstaller {
+    /// Resolves the artifact through the selected software adapter. Download
+    /// verification below is shared by every adapter.
     pub async fn resolve(
         client: &Client,
         version: &str,
         software: ServerType,
         source: DownloadSource,
     ) -> Result<Artifact> {
-        let vanilla = details(client, version, source).await?;
-        let java = crate::java::version::required_java(
-            version,
-            software,
-            vanilla["javaVersion"]["majorVersion"]
-                .as_u64()
-                .map(|v| v as u32),
-        );
-        match software {
-            ServerType::Vanilla => {
-                let d = &vanilla["downloads"]["server"];
-                Ok(Artifact {
-                    url: required(&d["url"], "Mojang server download")?,
-                    sha1: d["sha1"].as_str().map(str::to_owned),
-                    sha256: None,
-                    size: d["size"].as_u64(),
-                    label: format!("Vanilla {version}"),
-                    java,
-                })
-            }
-            ServerType::Paper => {
-                let builds = json(
-                    client,
-                    &format!("https://fill.papermc.io/v3/projects/paper/versions/{version}/builds"),
-                )
-                .await?;
-                let build=builds.as_array().and_then(|a|a.iter().filter(|v|v["channel"]=="STABLE").max_by_key(|v|v["id"].as_u64().unwrap_or(0))).ok_or_else(||AppError::user("Paper has no stable build for this release. Choose another version or Vanilla."))?;
-                let d = &build["downloads"]["server:default"];
-                Ok(Artifact {
-                    url: required(&d["url"], "Paper download")?,
-                    sha1: None,
-                    sha256: Some(required(&d["checksums"]["sha256"], "Paper checksum")?),
-                    size: d["size"].as_u64(),
-                    label: format!("Paper {version}, build {}", build["id"]),
-                    java,
-                })
-            }
-            ServerType::Fabric => {
-                let meta = fabric_meta(source);
-                let loaders = json(client, &format!("{meta}/v2/versions/loader/{version}")).await?;
-                let loader = loaders
-                    .as_array()
-                    .and_then(|a| a.iter().find(|v| v["loader"]["stable"] == true))
-                    .and_then(|v| v["loader"]["version"].as_str())
-                    .ok_or_else(|| {
-                        AppError::user("No stable Fabric loader is available for this version.")
-                    })?;
-                let installers = json(client, &format!("{meta}/v2/versions/installer")).await?;
-                let installer = installers
-                    .as_array()
-                    .and_then(|a| a.iter().find(|v| v["stable"] == true))
-                    .and_then(|v| v["version"].as_str())
-                    .ok_or_else(|| AppError::user("No stable Fabric launcher is available."))?;
-                Ok(Artifact {
-                    url: format!(
-                        "{meta}/v2/versions/loader/{version}/{loader}/{installer}/server/jar"
-                    ),
-                    sha1: None,
-                    sha256: None,
-                    size: None,
-                    label: format!("Fabric {version}, loader {loader}, launcher {installer}"),
-                    java,
-                })
-            }
-        }
+        super::software::resolve(client, software, version, source).await
     }
-}
-fn required(v: &serde_json::Value, name: &str) -> Result<String> {
-    v.as_str().map(str::to_owned).ok_or_else(|| {
-        AppError::user(format!(
-            "The upstream service did not return a valid {name}. Try again later."
-        ))
-    })
 }
 pub async fn download(
     client: &Client,
@@ -305,11 +228,20 @@ mod tests {
             .timeout(Duration::from_secs(45))
             .build()
             .unwrap();
-        for software in [ServerType::Vanilla, ServerType::Paper, ServerType::Fabric] {
-            let versions =
-                crate::minecraft::versions::list(&client, software, DownloadSource::Official)
-                    .await
-                    .unwrap();
+        for software in [
+            ServerType::Vanilla,
+            ServerType::Paper,
+            ServerType::Purpur,
+            ServerType::Fabric,
+        ] {
+            let versions = crate::server::software::versions(
+                &client,
+                software,
+                DownloadSource::Official,
+                false,
+            )
+            .await
+            .unwrap();
             assert!(versions.iter().any(|v| v.id == "1.21.4"));
             let artifact =
                 ServerInstaller::resolve(&client, "1.21.4", software, DownloadSource::Official)

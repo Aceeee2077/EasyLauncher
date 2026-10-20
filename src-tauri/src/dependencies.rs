@@ -819,10 +819,8 @@ fn sha1_file(path: &Path) -> Option<String> {
     )
 }
 fn local(dir: &Path, software: ServerType, minecraft: &str, java: Option<u32>) -> Result<Report> {
-    let folder = match software {
-        ServerType::Fabric => "mods",
-        ServerType::Paper => "plugins",
-        ServerType::Vanilla => return Ok(Report::default()),
+    let Some(folder) = software.content_folder() else {
+        return Ok(Report::default());
     };
     let mut report = Report::default();
     let path = storage::child(dir, folder)?;

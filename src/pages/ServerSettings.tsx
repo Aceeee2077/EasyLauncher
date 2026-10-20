@@ -837,7 +837,8 @@ export function ServerSettings({
           <div className="section-title">
             <div>
               <h2>
-                {server.serverType === "paper"
+                {server.serverType === "paper" ||
+                server.serverType === "purpur"
                   ? t("serverSettings.plugins")
                   : t("serverSettings.mods")}
               </h2>
@@ -848,7 +849,11 @@ export function ServerSettings({
                 void run("folder", () =>
                   call("open_folder", {
                     id: server.id,
-                    kind: server.serverType === "paper" ? "plugins" : "mods",
+                    kind:
+                      server.serverType === "paper" ||
+                      server.serverType === "purpur"
+                        ? "plugins"
+                        : "mods",
                   }),
                 )
               }

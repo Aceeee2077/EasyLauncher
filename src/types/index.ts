@@ -1,4 +1,4 @@
-export type ServerType = "vanilla" | "paper" | "fabric";
+export type ServerType = "vanilla" | "paper" | "purpur" | "fabric";
 export type Status =
   | "stopped"
   | "installing"

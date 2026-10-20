@@ -584,17 +584,13 @@ pub async fn install(
 
 pub fn listing(m: &Manager, id: &str) -> Result<ContentListing> {
     let server = m.metadata(id)?;
-    let folder = match server.server_type {
-        ServerType::Vanilla => {
-            return Ok(ContentListing {
-                entries: Vec::new(),
-                unmanaged: Vec::new(),
-                pinned: Vec::new(),
-                rollbacks: Vec::new(),
-            })
-        }
-        ServerType::Paper => "plugins",
-        ServerType::Fabric => "mods",
+    let Some(folder) = server.server_type.content_folder() else {
+        return Ok(ContentListing {
+            entries: Vec::new(),
+            unmanaged: Vec::new(),
+            pinned: Vec::new(),
+            rollbacks: Vec::new(),
+        });
     };
     let root = m.dir(id)?;
     let content_dir = storage::child(&root, folder)?;
@@ -726,9 +722,9 @@ pub async fn install_modpack(
             "Install the server software first, then apply a modpack.",
         ));
     }
-    if server.server_type == ServerType::Paper {
+    if server.server_type.plugins() {
         return Err(AppError::user(
-            "Paper servers use plugins. Create a Fabric server to install modpacks.",
+            "Plugin servers use plugins. Create a Fabric server to install modpacks.",
         ));
     }
     let client = m.client();
@@ -831,9 +827,9 @@ async fn apply_pack(
             ))
         }
         (ServerType::Vanilla, _) => {}
-        (ServerType::Paper, _) => {
+        (ServerType::Paper | ServerType::Purpur, _) => {
             return Err(AppError::user(
-                "Paper servers cannot run modpacks. Use Fabric or Vanilla.",
+                "Plugin servers cannot run modpacks. Use Fabric or Vanilla.",
             ))
         }
     }
@@ -1021,21 +1017,15 @@ pub(crate) fn validate_project_id(project_id: &str) -> Result<()> {
 }
 
 fn server_name(software: ServerType) -> &'static str {
-    match software {
-        ServerType::Vanilla => "Vanilla",
-        ServerType::Paper => "Paper",
-        ServerType::Fabric => "Fabric",
-    }
+    software.label()
 }
 
 pub(crate) fn folder_for(server: &Server) -> Result<&'static str> {
-    match server.server_type {
-        ServerType::Paper => Ok("plugins"),
-        ServerType::Fabric => Ok("mods"),
-        ServerType::Vanilla => Err(AppError::user(
-            "Vanilla servers do not load mods or plugins. Create a Paper or Fabric server.",
-        )),
-    }
+    server.server_type.content_folder().ok_or_else(|| {
+        AppError::user(
+            "Vanilla servers do not load mods or plugins. Create a Paper, Purpur or Fabric server.",
+        )
+    })
 }
 
 fn target(server: &Server, kind: &str) -> Result<(&'static str, &'static str)> {
@@ -1053,10 +1043,7 @@ fn target(server: &Server, kind: &str) -> Result<(&'static str, &'static str)> {
 }
 
 fn folder_for_loader(software: ServerType) -> &'static str {
-    match software {
-        ServerType::Paper => "paper",
-        _ => "fabric",
-    }
+    software.content_loader().unwrap_or("fabric")
 }
 
 pub(crate) fn compatible(version: &ProjectVersion, loader: &str) -> bool {

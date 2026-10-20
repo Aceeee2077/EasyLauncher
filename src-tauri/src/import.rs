@@ -309,6 +309,13 @@ fn detect_type(root: &Path, jar: Option<&str>) -> ServerType {
     if libraries.join("net").join("fabricmc").is_dir() || jar.map(is_fabric).unwrap_or(false) {
         return ServerType::Fabric;
     }
+    if root.join("purpur.yml").is_file()
+        || jar
+            .map(|name| name.to_ascii_lowercase().contains("purpur"))
+            .unwrap_or(false)
+    {
+        return ServerType::Purpur;
+    }
     if libraries.join("io").join("papermc").is_dir()
         || libraries
             .join("com")
