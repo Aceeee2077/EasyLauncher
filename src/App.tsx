@@ -31,6 +31,7 @@ import {
   FolderInput,
   LayoutGrid,
   TriangleAlert,
+  Search,
 } from "lucide-react";
 import {
   Button,
@@ -54,6 +55,7 @@ import { Overview } from "./pages/Overview";
 import { Content } from "./pages/Content";
 import { AppSettings } from "./pages/AppSettings";
 import { Splash } from "./components/Splash";
+import { CommandPalette } from "./components/CommandPalette";
 import { useTask } from "./hooks/useTask";
 import { useI18n, type MessageKey } from "./i18n";
 import { brand, call, desktop } from "./services/api";
@@ -87,6 +89,10 @@ const nav = [
   ["backups", "nav.backups", Archive],
   ["console", "nav.console", Terminal],
 ] as const;
+const shortcut =
+  typeof navigator !== "undefined" && /mac/i.test(navigator.platform)
+    ? "⌘K"
+    : "Ctrl K";
 export default function App() {
   const { t, setLanguage } = useI18n();
   const { error, setError, busy, run } = useTask();
@@ -104,6 +110,7 @@ export default function App() {
     checks: HealthCheck[];
   } | null>(null);
   const [log, setLog] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [loading, setLoading] = useState(desktop);
   const [closing, setClosing] = useState(false);
   const load = useCallback(async () => {
@@ -153,6 +160,16 @@ export default function App() {
       alive = false;
       subscriptions.forEach((s) => void s.then((f) => f()));
     };
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
   const server = servers.find((s) => s.id === selected);
   const running = servers.filter((s) => s.runtime.status === "running").length;
@@ -398,6 +415,16 @@ export default function App() {
               <ShieldCheck size={14} />
               {t("topbar.hostedLocally")}
             </span>
+            <button
+              className="palette-trigger"
+              disabled={!desktop}
+              onClick={() => setPaletteOpen(true)}
+              title={t("palette.trigger")}
+            >
+              <Search size={15} />
+              <span>{t("palette.trigger")}</span>
+              <kbd>{shortcut}</kbd>
+            </button>
             <Button
               variant="ghost"
               aria-label={t("topbar.refresh")}
@@ -928,6 +955,17 @@ export default function App() {
           )}
         </main>
       </div>
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        servers={servers}
+        onPage={setPage}
+        onManage={manage}
+        onControl={control}
+        onNew={() => setWizard(true)}
+        onImport={() => setImportOpen(true)}
+        onRefresh={() => void run("refresh", load)}
+      />
       {wizard && (
         <CreateWizard
           {...shared}

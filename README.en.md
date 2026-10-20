@@ -26,6 +26,7 @@ The interface uses **Shan Shui Glass**: frosted layers, azurite blue, malachite 
 - Pre-flight gate: starting reuses the health check and lists blocking issues such as an unaccepted EULA or missing files; you can still force a start after confirming the risk.
 - Scheduled announcements and maintenance windows: tasks can broadcast a one-line `say` message or enter maintenance, which broadcasts first, then stops the server and creates a safety backup.
 - Configuration templates: server settings ship survival, creative and performance presets. Every change is previewed first, and only whitelisted gameplay and performance keys are written; comments, the port, MOTD and other settings stay untouched.
+- Command palette: press `Ctrl/Cmd+K` or click the topbar search field to find servers, pages and actions. Arrow keys move, Enter runs and Esc closes; typing also reveals per-server shortcuts such as console, settings and backups.
 
 ## Screenshots
 
