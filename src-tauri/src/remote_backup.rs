@@ -943,7 +943,7 @@ pub fn save(
 
 fn upload_client() -> Result<reqwest::Client> {
     reqwest::Client::builder()
-        .user_agent("EasyLauncher/0.1.0")
+        .user_agent(concat!("EasyLauncher/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(Duration::from_secs(20))
         .timeout(TRANSFER_TIMEOUT)
         .redirect(reqwest::redirect::Policy::none())

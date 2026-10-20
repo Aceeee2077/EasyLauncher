@@ -707,7 +707,7 @@ fn load_settings(root: &Path) -> Result<Settings> {
 }
 pub fn build_client(proxy: Option<&str>) -> Result<reqwest::Client> {
     let mut builder = reqwest::Client::builder()
-        .user_agent("EasyLauncher/0.1.0")
+        .user_agent(concat!("EasyLauncher/", env!("CARGO_PKG_VERSION")))
         .connect_timeout(std::time::Duration::from_secs(15))
         .timeout(std::time::Duration::from_secs(600))
         .https_only(true);

@@ -224,7 +224,7 @@ mod tests {
     #[ignore = "Read-only upstream network verification; does not download or launch Minecraft"]
     async fn upstream_adapter_resolution() {
         let client = Client::builder()
-            .user_agent("EasyLauncher/0.1.0")
+            .user_agent(concat!("EasyLauncher/", env!("CARGO_PKG_VERSION")))
             .timeout(Duration::from_secs(45))
             .build()
             .unwrap();
