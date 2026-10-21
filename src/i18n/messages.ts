@@ -150,6 +150,29 @@ export const zh = {
     "需要先在服务器设置中启用 RCON 并重启服务器，才能在不停止服务器的情况下备份。",
   "errors.backup.saveOnFailed":
     "备份流程已结束，但未能重新开启自动保存。请重启服务器，或在控制台执行 save-on 后再继续。",
+  "errors.backup.corrupt":
+    "备份数据已损坏或校验失败，无法读取。请改用其他备份或重新创建。",
+  "errors.world.corrupt":
+    "世界或区块数据已损坏，无法安全读取。请从备份恢复。",
+  "errors.remote.config":
+    "远程备份配置不完整或无效。请检查端点、存储桶与凭据。",
+  "errors.remote.url":
+    "远程地址无效。请填写不含文件夹路径的 HTTPS 端点。",
+  "errors.remote.bucket": "存储桶名称无效，请检查 S3 配置。",
+  "errors.remote.prefix": "远程路径前缀不安全或无效。",
+  "errors.remote.auth":
+    "远程存储认证失败，请检查用户名、Access Key 或密码。",
+  "errors.remote.notFound": "远程路径或存储桶不存在，请检查配置。",
+  "errors.remote.http": "远程存储返回了错误响应，请稍后重试。",
+  "errors.remote.network": "无法连接远程存储，请检查网络、代理与端点。",
+  "errors.remote.archive":
+    "无法生成远程备份归档，请检查磁盘空间和服务器文件。",
+  "errors.remote.passphrase": "归档口令无效或缺失，请重新填写。",
+  "errors.remote.rclone":
+    "调用本机 rclone 失败，请确认已安装并可在 PATH 中找到。",
+  "errors.remote.s3": "S3 兼容存储请求失败，请检查区域、签名与权限。",
+  "errors.remote.staging": "无法准备上传暂存文件，请检查磁盘空间与权限。",
+  "errors.remote.verify": "远程备份校验失败，上传内容与本地不一致。",
   "errors.server.preflightBlocked":
     "启动前检查发现严重问题。请先处理，或确认风险后仍然启动。",
 
@@ -2015,6 +2038,37 @@ export const en: Record<MessageKey, string> = {
     "Enable RCON in server settings and restart the server to back up while it keeps running.",
   "errors.backup.saveOnFailed":
     "The backup attempt finished, but autosave could not be re-enabled. Restart the server or run save-on before continuing.",
+  "errors.backup.corrupt":
+    "The backup data is damaged or failed verification and cannot be read. Use another backup or create a new one.",
+  "errors.world.corrupt":
+    "The world or chunk data is damaged and cannot be read safely. Restore from a backup.",
+  "errors.remote.config":
+    "The remote backup configuration is incomplete or invalid. Check the endpoint, bucket and credentials.",
+  "errors.remote.url":
+    "The remote URL is invalid. Enter an HTTPS endpoint without a folder path.",
+  "errors.remote.bucket":
+    "The bucket name is invalid. Check the S3 configuration.",
+  "errors.remote.prefix": "The remote path prefix is unsafe or invalid.",
+  "errors.remote.auth":
+    "Remote storage authentication failed. Check the user name, access key or password.",
+  "errors.remote.notFound":
+    "The remote path or bucket does not exist. Check the configuration.",
+  "errors.remote.http":
+    "Remote storage returned an error response. Try again later.",
+  "errors.remote.network":
+    "Could not reach remote storage. Check the network, proxy and endpoint.",
+  "errors.remote.archive":
+    "Could not build the remote backup archive. Check disk space and server files.",
+  "errors.remote.passphrase":
+    "The archive passphrase is missing or invalid. Enter it again.",
+  "errors.remote.rclone":
+    "Could not run the local rclone process. Make sure rclone is installed and on PATH.",
+  "errors.remote.s3":
+    "The S3-compatible storage request failed. Check the region, signature and permissions.",
+  "errors.remote.staging":
+    "Could not prepare the upload staging file. Check disk space and permissions.",
+  "errors.remote.verify":
+    "Remote backup verification failed; the uploaded content does not match the local copy.",
   "errors.server.preflightBlocked":
     "The pre-flight check found blocking issues. Fix them, or confirm the risk and start anyway.",
 

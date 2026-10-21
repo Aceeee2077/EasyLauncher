@@ -79,7 +79,9 @@
 
 ## 持续集成
 
-`.github/workflows/ci.yml` 在推送到 `main`、拉取请求和手动触发时执行两条并行任务。前端任务运行 `npm ci`、类型检查、Vitest 单元测试、Vite 生产构建与 `npm run check:bundle`；Rust 任务先构建前端资源（`tauri-build` 需要 `dist`），再运行 `cargo fmt --check`、Clippy（`correctness` 与 `suspicious` 为硬性错误，其余风格警告只报告）、库测试、存储安全测试和 `cargo check --all-targets`。所有命令都带 `--locked`，依赖缓存由 `actions/setup-node` 与 `Swatinem/rust-cache` 复用。工作流只做离线检查：不下载服务器 JAR、不启动 Java 或 Minecraft、不访问上游元数据。真实服务器验收仍只在 `workflow_dispatch` 的 `minecraft-e2e.yml` 中手动运行。
+`.github/workflows/ci.yml` 在推送到 `main`、拉取请求和手动触发时执行两条并行任务。前端任务运行 `npm ci`、类型检查、Vitest 单元测试、`npm run check:errors`、Vite 生产构建与 `npm run check:bundle`；Rust 任务先构建前端资源（`tauri-build` 需要 `dist`），再运行 `cargo fmt --check`、Clippy（`correctness` 与 `suspicious` 为硬性错误，其余风格警告只报告）、库测试、存储安全测试和 `cargo check --all-targets`。所有命令都带 `--locked`，依赖缓存由 `actions/setup-node` 与 `Swatinem/rust-cache` 复用。工作流只做离线检查：不下载服务器 JAR、不启动 Java 或 Minecraft、不访问上游元数据。真实服务器验收仍只在 `workflow_dispatch` 的 `minecraft-e2e.yml` 中手动运行。
+
+`scripts/check-error-codes.mjs` 扫描 `src-tauri/src` 中通过 `with_code`、迁移的 `user(...)`、资源规划的 `failure(...)`/原因码和更新模块的 `err(...)` 产生的错误码，与 `src/i18n/messages.ts` 的中英文 `errors.*` 表逐项比对。任一错误码缺少中文或英文翻译、同一语言重复声明同名键，脚本都会失败；仅存在于翻译表而未在源码中出现的键只报告、不失败。当前 134 个后端错误码与 134 个翻译键一一对应。
 
 前端使用 Vitest + jsdom + Testing Library（`vitest.config.ts`、`src/test/setup.ts`）运行离线单元测试，`npm test` 在 CI 中先于构建执行。当前覆盖品牌 SVG 的尺寸与可访问名称、中英文键集合与占位符一致性、空字符串检查、错误码映射、字节格式化、按钮忙碌态和空状态渲染。测试不启动 webview、不加载 Tauri 后端。
 

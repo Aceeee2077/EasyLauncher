@@ -42,6 +42,9 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Error code coverage
+        run: npm run check:errors
+
       - name: Build
         run: npm run build
 
