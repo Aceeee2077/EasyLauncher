@@ -21,7 +21,6 @@ import {
   Network,
   Clock,
   ChevronRight,
-  Mountain,
   Activity,
   Download,
   ShieldCheck,
@@ -55,6 +54,7 @@ import { Ops } from "./pages/Ops";
 import { Overview } from "./pages/Overview";
 import { Content } from "./pages/Content";
 import { AppSettings } from "./pages/AppSettings";
+import { BrandMark } from "./components/BrandMark";
 import { Splash } from "./components/Splash";
 import { CommandPalette } from "./components/CommandPalette";
 import { NotificationCenter } from "./components/NotificationCenter";
@@ -374,7 +374,7 @@ export default function App() {
       <aside className="sidebar">
         <button className="brand" onClick={() => setPage("dashboard")}>
           <div className="brand-mark">
-            <Mountain size={23} strokeWidth={2.5} />
+            <BrandMark size={24} />
           </div>
           <span>
             {brand.name}
@@ -715,7 +715,7 @@ export default function App() {
               ) : (
                 <section className="welcome-card">
                   <div className="welcome-art">
-                    <Mountain size={96} strokeWidth={1} />
+                    <BrandMark size={92} />
                     <div className="orbit one" />
                     <div className="orbit two" />
                   </div>

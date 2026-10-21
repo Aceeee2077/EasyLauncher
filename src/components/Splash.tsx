@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { Mountain } from "lucide-react";
 import { brand } from "../services/api";
+import { BrandMark } from "./BrandMark";
 import { useI18n } from "../i18n";
 
 const HOLD = 3000;
@@ -50,7 +50,7 @@ export function Splash() {
       </div>
       <div className="splash-content" role="status" aria-label={brand.name}>
         <div className="splash-mark">
-          <Mountain size={30} strokeWidth={1.7} />
+          <BrandMark size={32} />
         </div>
         <h1 className="splash-word">{brand.name}</h1>
         <div className="splash-rule" />
