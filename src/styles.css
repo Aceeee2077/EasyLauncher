@@ -4,6 +4,16 @@
     "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui,
     sans-serif;
 }
+/* Design-system contract (single source of truth):
+   - All colors/metrics are CSS custom properties defined in :root and the
+     [data-theme="light"] / [data-theme="system"] blocks below.
+   - Semantic feedback colors live in --ok / --warn / --danger / --info
+     (each with a *-tint fill and *-dot variant) so light + dark stay legible.
+   - Component classes are hand-written and intentionally NOT wrapped in
+     @layer: under Tailwind v4, @layer components/utilities are tree-shaken by
+     usage, which would drop dynamically composed classes (e.g. `status running`).
+     Keeping them flat guarantees they always ship.
+   - Prefer `var(--token)` over raw rgba()/hex; new colors go through tokens. */
 :root {
   font-family:
     "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui,
@@ -25,6 +35,9 @@
   --accent: #b8ef95;
   --accent-text: #14260c;
   --shadow: 0 34px 100px rgba(0, 0, 0, 0.5);
+  /* Reusable soft drop-shadow tints (theme-independent, dark in both modes). */
+  --shadow-soft: rgba(0, 0, 0, 0.16);
+  --shadow-mid: rgba(0, 0, 0, 0.2);
   --sidebar-w: 232px;
   --page-pad: 44px;
   --glass-blur: 28px;
@@ -41,6 +54,19 @@
   --ambient-1: rgba(96, 214, 138, 0.24);
   --ambient-2: rgba(78, 136, 232, 0.18);
   --ambient-3: rgba(206, 236, 138, 0.12);
+  /* Semantic status / feedback colors (dark: light text on dark tint). */
+  --ok: #b6e991;
+  --ok-tint: rgba(120, 214, 138, 0.16);
+  --ok-dot: #a8e985;
+  --warn: #dfc68a;
+  --warn-tint: rgba(223, 198, 138, 0.16);
+  --warn-dot: #dfc68a;
+  --danger: #ee9a8c;
+  --danger-tint: rgba(238, 154, 140, 0.16);
+  --danger-dot: #ee9a8c;
+  --info: #6d9eff;
+  --info-tint: rgba(109, 158, 255, 0.16);
+  --info-dot: #6d9eff;
   color-scheme: dark;
 }
 :root[data-theme="light"] {
@@ -69,6 +95,19 @@
   --ambient-1: rgba(126, 214, 148, 0.42);
   --ambient-2: rgba(122, 176, 244, 0.3);
   --ambient-3: rgba(242, 228, 142, 0.38);
+  /* Semantic status / feedback colors (light: dark text on light tint). */
+  --ok: #1f6b2e;
+  --ok-tint: rgba(61, 107, 40, 0.12);
+  --ok-dot: #2f7d3a;
+  --warn: #8a5a12;
+  --warn-tint: rgba(214, 158, 64, 0.16);
+  --warn-dot: #b07d1e;
+  --danger: #b23b2e;
+  --danger-tint: rgba(204, 96, 93, 0.16);
+  --danger-dot: #c0504d;
+  --info: #1f5fc0;
+  --info-tint: rgba(77, 120, 224, 0.14);
+  --info-dot: #2f6dd0;
   color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
@@ -98,6 +137,19 @@
     --ambient-1: rgba(126, 214, 148, 0.42);
     --ambient-2: rgba(122, 176, 244, 0.3);
     --ambient-3: rgba(242, 228, 142, 0.38);
+    /* Semantic status / feedback colors (light: dark text on light tint). */
+    --ok: #1f6b2e;
+    --ok-tint: rgba(61, 107, 40, 0.12);
+    --ok-dot: #2f7d3a;
+    --warn: #8a5a12;
+    --warn-tint: rgba(214, 158, 64, 0.16);
+    --warn-dot: #b07d1e;
+    --danger: #b23b2e;
+    --danger-tint: rgba(204, 96, 93, 0.16);
+    --danger-dot: #c0504d;
+    --info: #1f5fc0;
+    --info-tint: rgba(77, 120, 224, 0.14);
+    --info-dot: #2f6dd0;
     color-scheme: light;
   }
 }
@@ -344,7 +396,7 @@ nav > button.active,
   border-color: var(--border);
   color: var(--accent);
   box-shadow:
-    0 6px 18px rgba(0, 0, 0, 0.16),
+    0 6px 18px var(--shadow-soft),
     inset 0 1px 0 var(--glass-sheen);
 }
 nav > button:hover,
@@ -440,7 +492,7 @@ nav > button small {
   background-image: var(--glass-sheen-bg);
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
   box-shadow:
-    0 14px 40px rgba(0, 0, 0, 0.2),
+    0 14px 40px var(--shadow-mid),
     inset 0 1px 0 var(--glass-sheen);
 }
 .breadcrumb {
@@ -742,7 +794,7 @@ body:has(.modal-scrim) main {
   filter: brightness(1.1);
   transform: translateY(-1px);
   box-shadow:
-    0 10px 26px rgba(0, 0, 0, 0.2),
+    0 10px 26px var(--shadow-mid),
     inset 0 1px 0 var(--glass-sheen);
 }
 .btn.primary {
@@ -874,7 +926,7 @@ body:has(.modal-scrim) main {
   background-image: var(--glass-sheen-bg);
   backdrop-filter: blur(22px) saturate(150%);
   box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.2),
+    0 16px 40px var(--shadow-mid),
     inset 0 1px 0 var(--glass-sheen);
   transition:
     transform 0.3s cubic-bezier(0.2, 0.8, 0.3, 1.1),
@@ -997,35 +1049,41 @@ body:has(.modal-scrim) main {
 .status i {
   width: 5px;
   height: 5px;
-  background: #899489;
+  background: var(--muted);
   border-radius: 50%;
 }
+.status.stopped {
+  color: var(--muted);
+}
 .status.running {
-  color: #b6e991;
+  color: var(--ok);
+  background: var(--ok-tint);
 }
 .status.running i {
-  background: #a8e985;
+  background: var(--ok-dot);
 }
 .status.starting,
 .status.installing,
 .status.stopping,
 .status.restarting {
-  color: #dfc68a;
+  color: var(--warn);
+  background: var(--warn-tint);
 }
 .status.starting i,
 .status.installing i,
 .status.stopping i,
 .status.restarting i {
-  background: #dfc68a;
+  background: var(--warn-dot);
   animation: pulse 1.8s infinite;
 }
 .status.crashed,
 .status.installationFailed {
-  color: #ee9a8c;
+  color: var(--danger);
+  background: var(--danger-tint);
 }
 .status.crashed i,
 .status.installationFailed i {
-  background: #ee9a8c;
+  background: var(--danger-dot);
 }
 .server-card-body {
   padding: 21px 20px 16px;
@@ -1140,7 +1198,7 @@ body:has(.modal-scrim) main {
   overflow: hidden;
   backdrop-filter: blur(24px) saturate(150%);
   box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.2),
+    0 20px 50px var(--shadow-mid),
     inset 0 1px 0 var(--glass-sheen);
 }
 .welcome-art {
@@ -1215,7 +1273,7 @@ body:has(.modal-scrim) main {
     inset 0 1px 0 var(--glass-sheen);
 }
 .browser-banner {
-  color: #dfc68a;
+  color: var(--warn);
 }
 .notice.error {
   background-color: rgba(123, 53, 53, 0.16);
@@ -1975,7 +2033,7 @@ code {
   margin: 10px 0 20px;
 }
 .crash-strip {
-  color: #ee9a8c;
+  color: var(--danger);
   border-color: #b94c3d60;
 }
 .crash-strip > span {
@@ -1997,16 +2055,27 @@ code {
   width: fit-content;
   max-width: 100%;
   overflow-x: auto;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted) 55%, transparent)
+    transparent;
+  scroll-snap-type: x proximity;
 }
 .tabs::-webkit-scrollbar {
-  display: none;
+  height: 6px;
+}
+.tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tabs::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+  border-radius: 999px;
 }
 .tabs button {
   display: flex;
   flex: none;
   gap: 8px;
   align-items: center;
+  scroll-snap-align: start;
   background: none;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -2027,7 +2096,7 @@ code {
   border-color: var(--border);
   color: var(--text);
   box-shadow:
-    0 4px 14px rgba(0, 0, 0, 0.16),
+    0 4px 14px var(--shadow-soft),
     inset 0 1px 0 var(--glass-sheen);
 }
 .console-card {
@@ -2088,7 +2157,7 @@ code {
   color: #ec9f94;
 }
 .console-line.input {
-  color: #b6e991;
+  color: var(--ok);
 }
 .console-line.warning {
   color: #e3bf78;
@@ -2132,10 +2201,10 @@ code {
   font:
     22px Consolas,
     monospace;
-  color: #b6e991;
+  color: var(--ok);
 }
 .console-input .btn {
-  background: #b6e991;
+  background: var(--ok);
   color: #203117;
 }
 .inline-check {
@@ -2166,7 +2235,7 @@ code {
   background-image: var(--glass-sheen-bg);
   backdrop-filter: blur(24px) saturate(150%);
   box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.16),
+    0 16px 40px var(--shadow-soft),
     inset 0 1px 0 var(--glass-sheen);
 }
 .panel h2 {
@@ -2225,7 +2294,7 @@ code {
   background-color: var(--surface2);
   color: var(--text);
   box-shadow:
-    0 3px 10px rgba(0, 0, 0, 0.16),
+    0 3px 10px var(--shadow-soft),
     inset 0 1px 0 var(--glass-sheen);
 }
 fieldset {
@@ -2924,7 +2993,7 @@ progress::-webkit-progress-value {
   color: var(--muted);
 }
 .card-error {
-  color: #ee9a8c;
+  color: var(--danger);
   font-size: 10px;
   line-height: 1.6;
 }
@@ -2944,7 +3013,7 @@ progress::-webkit-progress-value {
   border-radius: 20px;
   margin: 0 auto 22px;
   box-shadow:
-    0 12px 30px rgba(0, 0, 0, 0.16),
+    0 12px 30px var(--shadow-soft),
     inset 0 1px 0 var(--glass-sheen);
 }
 .empty p {
@@ -3004,10 +3073,10 @@ progress::-webkit-progress-value {
   color: var(--accent);
 }
 .health-score.fair strong {
-  color: #e0b86a;
+  color: var(--warn);
 }
 .health-score.poor strong {
-  color: #ee9a8c;
+  color: var(--danger);
 }
 .health-summary-text strong {
   font-size: 13px;
@@ -3078,10 +3147,10 @@ progress::-webkit-progress-value {
   background: var(--accent);
 }
 .health-dot.warning {
-  background: #e0b86a;
+  background: var(--warn);
 }
 .health-dot.critical {
-  background: #e5705f;
+  background: var(--danger);
 }
 .health-dot.info {
   background: #7fa7c9;
@@ -3091,11 +3160,11 @@ progress::-webkit-progress-value {
   border-color: #456e2d80;
 }
 .tag.warning {
-  color: #e0b86a;
+  color: var(--warn);
   border-color: #a8843a66;
 }
 .tag.critical {
-  color: #ee9a8c;
+  color: var(--danger);
   border-color: #b94c3d66;
 }
 .tag.info {
@@ -3153,10 +3222,10 @@ progress::-webkit-progress-value {
   flex: none;
 }
 .diag-item.critical .diag-head svg {
-  color: #ee9a8c;
+  color: var(--danger);
 }
 .diag-item.warning .diag-head svg {
-  color: #e0b86a;
+  color: var(--warn);
 }
 .diag-head strong {
   flex: 1;
@@ -3236,7 +3305,7 @@ progress::-webkit-progress-value {
 .diag-copy-failed {
   margin: 7px 0 0;
   font-size: 9px;
-  color: #ee9a8c;
+  color: var(--danger);
 }
 .diag-evidence {
   margin-top: 9px;
@@ -3354,7 +3423,7 @@ progress::-webkit-progress-value {
   color: var(--muted);
 }
 .disk-locked {
-  color: #e0b86a !important;
+  color: var(--warn) !important;
 }
 .disk-cleanup {
   display: flex;
@@ -3573,7 +3642,7 @@ progress::-webkit-progress-value {
   border: 1px solid #a8843a55;
   border-radius: 12px;
   background: #a8843a0f;
-  color: #e0b86a;
+  color: var(--warn);
   font-size: 10px;
   line-height: 1.7;
 }
@@ -3952,6 +4021,55 @@ progress::-webkit-progress-value {
   }
   .palette-trigger {
     padding: 7px 9px;
+  }
+}
+/* Progressive sidebar response: stop the fixed rail from crowding the main
+   column on smaller windows. Below 520px it collapses to an icon rail
+   (labels hidden). The global console/players/backups entries intentionally
+   mirror the per-server detail tabs — global aggregate vs single server. */
+@media (max-width: 860px) {
+  :root {
+    --sidebar-w: 170px;
+    --page-pad: 22px;
+  }
+}
+@media (max-width: 640px) {
+  :root {
+    --sidebar-w: 140px;
+    --page-pad: 16px;
+  }
+  .sidebar {
+    padding: 20px 12px;
+  }
+}
+@media (max-width: 520px) {
+  :root {
+    --sidebar-w: 72px;
+    --page-pad: 14px;
+  }
+  .sidebar {
+    padding: 18px 9px;
+    align-items: center;
+  }
+  .brand {
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .brand > span,
+  .workspace-label,
+  .sidebar-world,
+  .sidebar-bottom .version,
+  nav button span,
+  nav button small,
+  .sidebar-bottom button span {
+    display: none;
+  }
+  nav button {
+    justify-content: center;
+    padding: 11px 0;
+  }
+  .sidebar-bottom button {
+    justify-content: center;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -4391,10 +4509,10 @@ progress::-webkit-progress-value {
   white-space: nowrap;
 }
 .metric-card.warn {
-  border-color: color-mix(in srgb, #e0b86a 45%, var(--border));
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--border));
 }
 .metric-card.warn strong {
-  color: #e0b86a;
+  color: var(--warn);
 }
 .chart-card {
   padding: 16px;
@@ -4431,7 +4549,7 @@ progress::-webkit-progress-value {
   background: var(--accent);
 }
 .chart-legend .memory i {
-  background: #6d9eff;
+  background: var(--info);
 }
 .spark {
   display: block;
@@ -4454,7 +4572,7 @@ progress::-webkit-progress-value {
   stroke: var(--accent);
 }
 .spark-line.memory {
-  stroke: #6d9eff;
+  stroke: var(--info);
 }
 .chart-card .mini-empty {
   margin: 18px 0 8px;
@@ -4506,13 +4624,13 @@ progress::-webkit-progress-value {
   stroke: var(--accent);
 }
 .spark-line.mspt {
-  stroke: #e0b86a;
+  stroke: var(--warn);
 }
 .spark-line.memory {
-  stroke: #6d9eff;
+  stroke: var(--info);
 }
 .warn-text {
-  color: #e0b86a;
+  color: var(--warn);
   font-size: 12px;
   margin: 4px 0 10px;
 }
@@ -4531,7 +4649,7 @@ progress::-webkit-progress-value {
   color: var(--text);
 }
 .jfr-tools.blocked {
-  border-color: color-mix(in srgb, #e0b86a 35%, var(--border));
+  border-color: color-mix(in srgb, var(--warn) 35%, var(--border));
 }
 .perf-subtitle {
   margin: 16px 0 8px;
@@ -4636,13 +4754,13 @@ progress::-webkit-progress-value {
   white-space: nowrap;
 }
 .alert-item.cpu .alert-icon {
-  color: #e0b86a;
+  color: var(--warn);
 }
 .alert-item.memory .alert-icon {
-  color: #ee9a8c;
+  color: var(--danger);
 }
 .alert-item.lag .alert-icon {
-  color: #6d9eff;
+  color: var(--info);
 }
 .rollback-card {
   display: flex;
@@ -4841,9 +4959,9 @@ progress::-webkit-progress-value {
   white-space: nowrap;
 }
 .net-badge.ok {
-  border-color: rgba(52, 199, 123, 0.4);
-  background: rgba(52, 199, 123, 0.12);
-  color: #34c77b;
+  border-color: color-mix(in srgb, var(--ok) 40%, var(--border));
+  background: var(--ok-tint);
+  color: var(--ok);
 }
 .net-card .net-badge {
   align-self: flex-start;
@@ -4885,14 +5003,14 @@ progress::-webkit-progress-value {
   margin-top: 4px;
   padding: 14px 16px;
   border: 1px solid var(--border);
-  border-left: 3px solid rgba(255, 176, 69, 0.7);
+  border-left: 3px solid color-mix(in srgb, var(--warn) 70%, transparent);
   border-radius: 14px;
   background: var(--surface2);
 }
 .net-fallback svg {
   flex: none;
   margin-top: 2px;
-  color: #ffb045;
+  color: var(--warn);
 }
 .net-fallback strong {
   display: block;
@@ -5071,7 +5189,7 @@ progress::-webkit-progress-value {
   color: var(--accent);
 }
 .diff-file.removed > span {
-  color: #cf605d;
+  color: var(--danger);
 }
 .diff-file.modified > span {
   color: var(--gold);
@@ -5148,7 +5266,7 @@ progress::-webkit-progress-value {
   max-width: 60%;
 }
 .diff-before {
-  color: #e5705f;
+  color: var(--danger);
   text-decoration: line-through;
   overflow-wrap: anywhere;
 }
@@ -5301,7 +5419,7 @@ progress::-webkit-progress-value {
   margin-left: auto;
   gap: 6px;
 }
-.player-action {
+.btn.player {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -5314,12 +5432,12 @@ progress::-webkit-progress-value {
   font-size: 10px;
   cursor: pointer;
 }
-.player-action:hover:not(:disabled),
-.player-action.active {
+.btn.player:hover:not(:disabled),
+.btn.player.active {
   border-color: var(--accent);
   color: var(--text);
 }
-.player-action:disabled {
+.btn.player:disabled {
   opacity: 0.45;
   cursor: default;
 }
@@ -5364,7 +5482,7 @@ progress::-webkit-progress-value {
   background: var(--surface2);
 }
 .resource-bar.over {
-  border-color: #e0b86a;
+  border-color: var(--warn);
 }
 .resource-bar span {
   display: block;
@@ -5373,10 +5491,10 @@ progress::-webkit-progress-value {
   transition: width 240ms ease;
 }
 .resource-bar .running {
-  background: #58b98a;
+  background: var(--ok);
 }
 .resource-bar .idle {
-  background: #e0b86a;
+  background: var(--warn);
 }
 .resource-bar .free {
   background: var(--fill);
@@ -5399,10 +5517,10 @@ progress::-webkit-progress-value {
   border-radius: 50%;
 }
 .resource-legend i.running {
-  background: #58b98a;
+  background: var(--ok);
 }
 .resource-legend i.idle {
-  background: #e0b86a;
+  background: var(--warn);
 }
 .resource-legend i.free {
   border: 1px solid var(--border);
@@ -5414,7 +5532,7 @@ progress::-webkit-progress-value {
   font-size: 11px;
 }
 .resource-status.bad {
-  color: #e0b86a;
+  color: var(--warn);
 }
 .resource-grid {
   display: grid;
@@ -5456,7 +5574,7 @@ progress::-webkit-progress-value {
 }
 .resource-port-list li > svg {
   flex: none;
-  color: #e0b86a;
+  color: var(--warn);
 }
 .resource-port-list li > div {
   display: grid;
@@ -5547,13 +5665,13 @@ progress::-webkit-progress-value {
 }
 .resource-plan-list li.step-failed,
 .resource-plan-list li.step-skipped {
-  border-color: color-mix(in srgb, #e0b86a 35%, var(--border));
+  border-color: color-mix(in srgb, var(--warn) 35%, var(--border));
 }
 .resource-plan-list li.step-started .resource-step {
-  color: #58b98a;
+  color: var(--ok);
 }
 .resource-plan-list li.step-failed .resource-step {
-  color: #e0b86a;
+  color: var(--warn);
 }
 @media (max-width: 720px) {
   .overview-row {

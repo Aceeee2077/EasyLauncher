@@ -434,7 +434,7 @@ export default function App() {
           <p>{t("sidebar.description")}</p>
           <Button onClick={() => setWizard(true)} disabled={!desktop}>
             <Plus size={15} />
-            {t("common.newServer")}
+            <span>{t("common.newServer")}</span>
           </Button>
         </div>
         <div className="sidebar-bottom">
@@ -443,7 +443,7 @@ export default function App() {
             onClick={() => setPage("settings")}
           >
             <Settings size={18} />
-            {t("common.settings")}
+            <span>{t("common.settings")}</span>
           </button>
           <div className="version">
             <span>

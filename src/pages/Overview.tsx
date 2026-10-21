@@ -316,13 +316,10 @@ export function Overview({
               <h2>{t("overview.resource.title")}</h2>
               <p>{t("overview.resource.desc")}</p>
             </div>
-            <button
-              className="player-action"
-              onClick={() => void loadReport()}
-            >
+            <Button variant="player" onClick={() => void loadReport()}>
               <RefreshCw size={13} />
               {t("common.refresh")}
-            </button>
+            </Button>
           </div>
           <div className="resource-memory">
             <div
@@ -691,9 +688,9 @@ export function Overview({
                   {online && s.runtime.status === "running" && (
                     <div className="overview-players">
                       <div className="row">
-                        <button
-                          className="player-action"
-                          disabled={busy.has(`${busyKey}-rcon`)}
+                        <Button
+                          variant="player"
+                          busy={busy.has(`${busyKey}-rcon`)}
                           onClick={() =>
                             void run(`${busyKey}-rcon`, async () => {
                               await call("rcon_players", { id: s.id });
@@ -703,7 +700,7 @@ export function Overview({
                         >
                           <RefreshCw size={13} />
                           {t("overview.rconRefresh")}
-                        </button>
+                        </Button>
                       </div>
                       {s.runtime.players.length ? (
                         s.runtime.players.map((player) => {
@@ -716,24 +713,25 @@ export function Overview({
                               </span>
                               <strong>{player}</strong>
                               <div className="row">
-                                <button
-                                  className="player-action"
-                                  disabled={busy.has(busyKey)}
+                                <Button
+                                  variant="player"
+                                  busy={busy.has(busyKey)}
                                   onClick={() => act(s, player, "kick")}
                                 >
                                   <UserMinus size={13} />
                                   {t("overview.kick")}
-                                </button>
-                                <button
-                                  className="player-action"
-                                  disabled={busy.has(busyKey)}
+                                </Button>
+                                <Button
+                                  variant="player"
+                                  busy={busy.has(busyKey)}
                                   onClick={() => act(s, player, "op")}
                                 >
                                   <ShieldCheck size={13} />
                                   {t("overview.op")}
-                                </button>
-                                <button
-                                  className={`player-action${chatting ? " active" : ""}`}
+                                </Button>
+                                <Button
+                                  variant="player"
+                                  className={chatting ? "active" : ""}
                                   onClick={() => {
                                     setChat(
                                       chatting
@@ -745,7 +743,7 @@ export function Overview({
                                 >
                                   <MessageSquare size={13} />
                                   {t("overview.message")}
-                                </button>
+                                </Button>
                               </div>
                               {chatting && (
                                 <form
@@ -776,13 +774,13 @@ export function Overview({
                                   >
                                     {t("overview.send")}
                                   </Button>
-                                  <button
+                                  <Button
+                                    variant="player"
                                     type="button"
-                                    className="player-action"
                                     onClick={() => setChat(null)}
                                   >
                                     {t("common.cancel")}
-                                  </button>
+                                  </Button>
                                 </form>
                               )}
                             </div>

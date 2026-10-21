@@ -20,7 +20,7 @@ export function Button({
   busy = false,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "danger" | "ghost";
+  variant?: "primary" | "secondary" | "danger" | "ghost" | "player";
   busy?: boolean;
 }) {
   return (
