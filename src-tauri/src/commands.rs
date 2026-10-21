@@ -1640,6 +1640,18 @@ pub async fn pick_server_folder() -> Result<Option<String>> {
         .map_err(|e| AppError::new("The folder picker stopped unexpectedly.", e))?
 }
 #[tauri::command]
+pub async fn pick_storage_folder() -> Result<Option<String>> {
+    tokio::task::spawn_blocking(crate::import::pick_storage_folder)
+        .await
+        .map_err(|e| AppError::new("The folder picker stopped unexpectedly.", e))?
+}
+#[tauri::command]
+pub async fn change_server_storage(m: Managed<'_>, path: Option<String>) -> Result<String> {
+    let path = m.inner().clone().change_server_storage(path).await?;
+    crate::audit::record(&m, "settings.storage", None, None, &path);
+    Ok(path)
+}
+#[tauri::command]
 pub async fn preview_import(path: String) -> Result<crate::import::ImportPreview> {
     tokio::task::spawn_blocking(move || crate::import::preview(&path))
         .await

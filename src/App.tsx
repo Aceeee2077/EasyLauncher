@@ -61,7 +61,7 @@ import { NotificationCenter } from "./components/NotificationCenter";
 import { useTask } from "./hooks/useTask";
 import { useI18n, type MessageKey } from "./i18n";
 import { brand, call, desktop } from "./services/api";
-import { applyAppearance } from "./services/appearance";
+import { applyAppearance, applyGlassOpacity } from "./services/appearance";
 import {
   active,
   idle,
@@ -181,6 +181,7 @@ export default function App() {
         setInfo(system);
         setLanguage(settings.language);
         await applyAppearance(settings.appearance);
+        applyGlassOpacity(settings.glassOpacity);
       }
     }).finally(() => {
       if (alive) setLoading(false);

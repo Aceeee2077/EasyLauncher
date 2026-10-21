@@ -361,6 +361,8 @@ type Contract = {
   network_check: [{ id: string }, NetworkCheck];
   firewall_allow: [{ port: number }, void];
   pick_server_folder: [undefined, string | null];
+  pick_storage_folder: [undefined, string | null];
+  change_server_storage: [{ path: string | null }, string];
   preview_import: [{ path: string }, ImportPreview];
   import_server: [
     {

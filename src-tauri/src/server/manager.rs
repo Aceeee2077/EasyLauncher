@@ -84,6 +84,8 @@ pub struct Manager {
     pub queue: Mutex<Option<Arc<crate::resources::QueueHandle>>>,
     pub tunnels: AsyncMutex<HashMap<String, crate::tunnel::Runtime>>,
     pub shutting_down: AtomicBool,
+    /// Blocks state changes while the server storage folder is being copied.
+    pub relocating: AtomicBool,
     pub settings_gate: AsyncMutex<()>,
     pub java_gate: AsyncMutex<()>,
     console_pending: Mutex<HashMap<String, Vec<ConsoleLine>>>,
@@ -104,12 +106,36 @@ impl Manager {
     fn initialize(root: PathBuf, app: Option<AppHandle>) -> Result<Arc<Self>> {
         fs::create_dir_all(&root)?;
         storage::no_links(&root)?;
-        let servers = storage::child(&root, "servers")?;
-        fs::create_dir_all(&servers)?;
         let java = storage::child(&root, "java")?;
         fs::create_dir_all(&java)?;
         let logger = Logger::new(storage::child(&root, "logs")?);
         let saved = load_settings(&root).unwrap_or_default();
+        let servers = match saved.server_storage.as_deref().map(str::trim) {
+            Some(path) if !path.is_empty() => {
+                let custom = PathBuf::from(path);
+                let usable = custom.is_absolute()
+                    && fs::create_dir_all(&custom).is_ok()
+                    && storage::no_links(&custom).is_ok();
+                if usable {
+                    custom
+                } else {
+                    logger.log(
+                        "WARN",
+                        &format!(
+                            "Ignoring the saved server storage at {path}; it is not a usable absolute folder."
+                        ),
+                    );
+                    let fallback = storage::child(&root, "servers")?;
+                    fs::create_dir_all(&fallback)?;
+                    fallback
+                }
+            }
+            _ => {
+                let fallback = storage::child(&root, "servers")?;
+                fs::create_dir_all(&fallback)?;
+                fallback
+            }
+        };
         let client = match build_client(saved.proxy.as_deref()) {
             Ok(client) => client,
             Err(e) => {
@@ -135,6 +161,7 @@ impl Manager {
             queue: Mutex::new(None),
             tunnels: AsyncMutex::new(HashMap::new()),
             shutting_down: AtomicBool::new(false),
+            relocating: AtomicBool::new(false),
             settings_gate: AsyncMutex::new(()),
             java_gate: AsyncMutex::new(()),
             console_pending: Mutex::new(HashMap::new()),
@@ -194,7 +221,11 @@ impl Manager {
         });
     }
     pub fn ready(&self) -> Result<()> {
-        if self.shutting_down.load(Ordering::SeqCst) {
+        if self.relocating.load(Ordering::SeqCst) {
+            Err(AppError::user(
+                "Server storage is being moved. Please wait for it to finish.",
+            ))
+        } else if self.shutting_down.load(Ordering::SeqCst) {
             Err(AppError::user(
                 "EasyLauncher is shutting down. Please wait for the servers to stop.",
             ))
@@ -594,6 +625,17 @@ impl Manager {
     }
     pub async fn save_settings(&self, mut s: Settings) -> Result<()> {
         let _g = self.settings_gate.lock().await;
+        s.glass_opacity = if s.glass_opacity.is_finite() {
+            s.glass_opacity.clamp(0.2, 1.0)
+        } else {
+            1.0
+        };
+        // The storage folder is only changed by change_server_storage, which
+        // owns the copy step. Keep whatever is already on disk so a full
+        // settings save from a stale page cannot point at a missing folder.
+        s.server_storage = load_settings(&self.root)
+            .ok()
+            .and_then(|old| old.server_storage);
         if let Some(p) = &s.java_path {
             if !p.trim().is_empty() {
                 crate::java::detector::inspect(p).await?;
@@ -626,6 +668,112 @@ impl Manager {
         storage::write_json(&storage::child(&self.root, "settings.json")?, &s)?;
         *self.client.write().unwrap_or_else(|e| e.into_inner()) = client;
         Ok(())
+    }
+    /// Moves every managed server folder to a new root and restarts the app.
+    ///
+    /// Copy first, then persist the new path, then clear the old folder. A
+    /// failure before the settings write leaves the current storage intact.
+    pub async fn change_server_storage(self: &Arc<Self>, target: Option<String>) -> Result<String> {
+        self.ensure_writable()?;
+        self.ready()?;
+        let _g = self.settings_gate.lock().await;
+        let default = storage::child(&self.root, "servers")?;
+        let to = match target.as_deref().map(str::trim) {
+            Some(p) if !p.is_empty() => PathBuf::from(p),
+            _ => default.clone(),
+        };
+        if !to.is_absolute() {
+            return Err(AppError::user(
+                "Choose an absolute folder for server storage, such as D:\\Minecraft.",
+            ));
+        }
+        if to == self.servers {
+            return Ok(to.display().to_string());
+        }
+        if to.starts_with(&self.servers) || self.servers.starts_with(&to) {
+            return Err(AppError::user(
+                "Choose a folder outside the current server storage so the folders do not nest.",
+            ));
+        }
+        fs::create_dir_all(&to)?;
+        storage::no_links(&to)?;
+        if fs::read_dir(&to)?.next().is_some() {
+            return Err(AppError::user(
+                "Choose an empty folder, or create a new one, for server storage.",
+            ));
+        }
+        for runtime in self.runtimes.lock().unwrap().values() {
+            runtime.idle()?;
+        }
+        self.relocating.store(true, Ordering::SeqCst);
+        let from = self.servers.clone();
+        let dest = to.clone();
+        let copy = tokio::task::spawn_blocking(move || -> Result<u64> {
+            storage::validate_tree(&from)?;
+            storage::copy_tree(&from, &dest)
+        })
+        .await;
+        let bytes = match copy {
+            Ok(Ok(bytes)) => bytes,
+            Ok(Err(e)) => {
+                clear_folder(&to);
+                self.relocating.store(false, Ordering::SeqCst);
+                return Err(e);
+            }
+            Err(e) => {
+                clear_folder(&to);
+                self.relocating.store(false, Ordering::SeqCst);
+                return Err(AppError::new("The storage move stopped unexpectedly.", e));
+            }
+        };
+        let mut settings = load_settings(&self.root).unwrap_or_default();
+        settings.server_storage = if to == default {
+            None
+        } else {
+            Some(to.display().to_string())
+        };
+        if let Err(e) = storage::write_json(&storage::child(&self.root, "settings.json")?, &settings)
+        {
+            clear_folder(&to);
+            self.relocating.store(false, Ordering::SeqCst);
+            return Err(e);
+        }
+        // The copy is live now, so clearing the old folder is housekeeping. A
+        // file that is still locked must not undo a finished move.
+        if let Ok(entries) = fs::read_dir(&self.servers) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let result = if path.is_dir() {
+                    fs::remove_dir_all(&path)
+                } else {
+                    fs::remove_file(&path)
+                };
+                if let Err(e) = result {
+                    self.logger.log(
+                        "WARN",
+                        &format!(
+                            "Could not clear {} after moving storage: {e}",
+                            path.display()
+                        ),
+                    );
+                }
+            }
+        }
+        self.logger.log(
+            "INFO",
+            &format!(
+                "Moved server storage to {} ({:.1} MB). Restarting EasyLauncher.",
+                to.display(),
+                bytes as f64 / 1_048_576.0
+            ),
+        );
+        if let Some(app) = self.app.clone() {
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_millis(900)).await;
+                app.request_restart();
+            });
+        }
+        Ok(to.display().to_string())
     }
     pub async fn update_auto_restart(&self, id: &str, enabled: bool) -> Result<Server> {
         self.ready()?;
@@ -695,6 +843,19 @@ impl Manager {
         self.logger
             .log("INFO", &format!("JVM preset for {id}: {preset:?}"));
         Ok(s)
+    }
+}
+/// Best-effort cleanup of a folder's entries, used to undo a partial copy.
+fn clear_folder(path: &Path) {
+    if let Ok(entries) = fs::read_dir(path) {
+        for entry in entries.flatten() {
+            let p = entry.path();
+            let _ = if p.is_dir() {
+                fs::remove_dir_all(&p)
+            } else {
+                fs::remove_file(&p)
+            };
+        }
     }
 }
 fn load_settings(root: &Path) -> Result<Settings> {

@@ -480,6 +480,10 @@ export const zh = {
   "settings.appearance.system": "跟随系统",
   "settings.appearance.light": "浅色",
   "settings.appearance.dark": "深色",
+  "settings.appearance.opacity": "玻璃透明度",
+  "settings.appearance.opacityHint":
+    "向右拖动让卡片的磨砂玻璃更通透，文字与图标始终保持清晰。",
+  "settings.appearance.opacityValue": "透明度 {value}%",
   "settings.java.title": "Java 环境",
   "settings.java.desc": "全局检测偏好。每个服务器仍保留自己的运行时。",
   "settings.java.detect": "自动检测",
@@ -503,9 +507,16 @@ export const zh = {
   "settings.java.managedTag": "托管",
   "settings.java.installedAt": "安装于 {date}",
   "settings.storage.title": "服务器存储",
-  "settings.storage.desc": "使用操作系统的应用数据目录进行管理。",
+  "settings.storage.desc": "服务器文件保存的位置，默认为应用数据目录。",
   "settings.storage.open": "打开文件夹",
   "settings.storage.unavailable": "在桌面应用中可用",
+  "settings.storage.change": "更改位置",
+  "settings.storage.changeHint":
+    "文件会先完整复制到新文件夹，成功后应用自动重启；复制失败时原数据保持不变。",
+  "settings.storage.confirmTitle": "更改服务器存储位置",
+  "settings.storage.confirmBody":
+    "所有服务器文件将从 {from} 复制到 {to}。请先停止所有服务器，复制完成并切换后应用会自动重启。",
+  "settings.storage.moved": "已迁移到 {path}，正在重启应用…",
   "settings.downloads.title": "下载",
   "settings.downloads.desc": "文件会直接流式写入托管的服务器目录。",
   "settings.downloads.incomplete":
@@ -520,6 +531,12 @@ export const zh = {
   "settings.downloads.proxyPlaceholder": "例如 http://127.0.0.1:7890",
   "settings.downloads.proxyHint":
     "仅支持 HTTP 或 HTTPS 代理，留空表示直连。保存后立即生效。",
+  "settings.network.title": "自动联机",
+  "settings.network.desc":
+    "服务器启动后自动放行防火墙并重新映射路由器端口，路由器重启后也能恢复。",
+  "settings.network.autoJoin": "启动服务器时自动开放联机",
+  "settings.network.autoJoinHint":
+    "需要路由器支持 UPnP 且有公网 IPv4。缺少防火墙规则时会弹一次管理员授权；服务器先启动，联机在后台完成。",
   "settings.security.title": "安全与审计",
   "settings.security.desc":
     "只读模式会在后端拦截创建、修改、删除与启动等操作；仍允许停止服务器、停止隧道和查看内容。",
@@ -2343,6 +2360,10 @@ export const en: Record<MessageKey, string> = {
   "settings.appearance.system": "System",
   "settings.appearance.light": "Light",
   "settings.appearance.dark": "Dark",
+  "settings.appearance.opacity": "Glass transparency",
+  "settings.appearance.opacityHint":
+    "Drag right to make the frosted glass more see-through. Text and icons keep full contrast.",
+  "settings.appearance.opacityValue": "Transparency {value}%",
   "settings.java.title": "Java environment",
   "settings.java.desc":
     "Global detection preference. Each server keeps its own runtime.",
@@ -2369,9 +2390,16 @@ export const en: Record<MessageKey, string> = {
   "settings.java.installedAt": "Installed {date}",
   "settings.storage.title": "Server storage",
   "settings.storage.desc":
-    "Managed using the operating system’s application data directory.",
+    "Where server files are kept. The default lives in the application data folder.",
   "settings.storage.open": "Open folder",
   "settings.storage.unavailable": "Available in the desktop application",
+  "settings.storage.change": "Change location",
+  "settings.storage.changeHint":
+    "Files are copied in full to the new folder and the app restarts afterwards. A failed copy leaves the current data untouched.",
+  "settings.storage.confirmTitle": "Change server storage",
+  "settings.storage.confirmBody":
+    "All server files will be copied from {from} to {to}. Stop every server first; the app restarts once the copy finishes.",
+  "settings.storage.moved": "Moved to {path}. Restarting…",
   "settings.downloads.title": "Downloads",
   "settings.downloads.desc":
     "Files are streamed directly into the managed server directory.",
@@ -2388,6 +2416,12 @@ export const en: Record<MessageKey, string> = {
   "settings.downloads.proxyPlaceholder": "e.g. http://127.0.0.1:7890",
   "settings.downloads.proxyHint":
     "HTTP or HTTPS proxies only. Leave empty for a direct connection. Takes effect immediately after saving.",
+  "settings.network.title": "Automatic multiplayer",
+  "settings.network.desc":
+    "When a server starts, allow it through the firewall and re-create the router port mapping, so the address survives router reboots.",
+  "settings.network.autoJoin": "Open multiplayer automatically on start",
+  "settings.network.autoJoinHint":
+    "Requires a UPnP router and a public IPv4 address. A missing firewall rule asks for administrator approval once; the server starts first and networking finishes in the background.",
   "settings.security.title": "Security & audit",
   "settings.security.desc":
     "Read-only mode blocks creating, changing, deleting and starting from the backend. Stopping servers, stopping tunnels and viewing content stay available.",

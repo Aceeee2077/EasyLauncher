@@ -211,9 +211,21 @@ pub struct Settings {
     /// Silent startup check; the user still downloads and opens installers.
     #[serde(default = "yes")]
     pub auto_check_updates: bool,
+    /// How opaque the liquid-glass surfaces are, from 0.2 (very sheer) to 1.0.
+    #[serde(default = "one")]
+    pub glass_opacity: f32,
+    /// Custom servers root. None keeps the default under the app data folder.
+    #[serde(default)]
+    pub server_storage: Option<String>,
+    /// Re-apply the router port mapping and firewall rule whenever a server starts.
+    #[serde(default)]
+    pub auto_join: bool,
 }
 fn yes() -> bool {
     true
+}
+fn one() -> f32 {
+    1.0
 }
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Default, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]

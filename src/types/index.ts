@@ -351,6 +351,9 @@ export interface Settings {
   assistantModel: string | null;
   updateChannel: string | null;
   autoCheckUpdates: boolean;
+  glassOpacity: number;
+  serverStorage: string | null;
+  autoJoin: boolean;
 }
 export interface UpdateAsset {
   platform: string;

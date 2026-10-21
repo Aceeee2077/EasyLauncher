@@ -795,22 +795,26 @@ pub async fn import_folder(
 }
 
 #[cfg(windows)]
-pub fn pick_folder() -> Result<Option<String>> {
+fn pick(description: &str, allow_new: bool) -> Result<Option<String>> {
     use std::{
         os::windows::process::CommandExt,
         process::{Command, Stdio},
     };
-    const SCRIPT: &str = r#"
+    let script = format!(
+        r#"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Windows.Forms | Out-Null
 $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-$dialog.Description = 'Select the existing Minecraft server folder'
-$dialog.ShowNewFolderButton = $false
+$dialog.Description = '{}'
+$dialog.ShowNewFolderButton = ${}
 $result = $dialog.ShowDialog()
-if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+if ($result -eq [System.Windows.Forms.DialogResult]::OK) {{
   [Console]::Out.WriteLine($dialog.SelectedPath)
-}
-"#;
+}}
+"#,
+        description.replace('\'', "''"),
+        if allow_new { "true" } else { "false" }
+    );
     let mut command = Command::new("powershell.exe");
     command
         .args([
@@ -820,7 +824,7 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
             "-ExecutionPolicy",
             "Bypass",
             "-Command",
-            SCRIPT,
+            &script,
         ])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
@@ -836,8 +840,23 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
         .map(str::to_string))
 }
 
+#[cfg(windows)]
+pub fn pick_folder() -> Result<Option<String>> {
+    pick("Select the existing Minecraft server folder", false)
+}
+
+#[cfg(windows)]
+pub fn pick_storage_folder() -> Result<Option<String>> {
+    pick("Select an empty folder for EasyLauncher server storage", true)
+}
+
 #[cfg(not(windows))]
 pub fn pick_folder() -> Result<Option<String>> {
+    Ok(None)
+}
+
+#[cfg(not(windows))]
+pub fn pick_storage_folder() -> Result<Option<String>> {
     Ok(None)
 }
 

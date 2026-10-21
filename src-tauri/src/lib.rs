@@ -216,6 +216,8 @@ pub fn run() {
             commands::network_check,
             commands::firewall_allow,
             commands::pick_server_folder,
+            commands::pick_storage_folder,
+            commands::change_server_storage,
             commands::preview_import,
             commands::import_server
         ])

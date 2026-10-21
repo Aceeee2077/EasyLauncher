@@ -132,6 +132,7 @@ impl Manager {
             Some("Java started. Waiting for Minecraft to finish loading…".into()),
         )?;
         self.logger.log("INFO", &format!("Started Java for {id}"));
+        self.auto_join(id, port);
         let mut readers = Vec::new();
         if let Some(out) = stdout {
             readers.push(tauri::async_runtime::spawn(read_output(
@@ -278,6 +279,47 @@ impl Manager {
             }
         });
         Ok(())
+    }
+    /// Opens the server to the internet without a visit to the network page:
+    /// adds the firewall rule (one UAC prompt) and replays the router mapping.
+    /// Runs in the background so a slow router or pending UAC prompt never
+    /// delays the server itself.
+    fn auto_join(self: &Arc<Self>, id: &str, port: u16) {
+        let manager = self.clone();
+        let server_id = id.to_string();
+        tauri::async_runtime::spawn(async move {
+            if !manager.settings().map(|s| s.auto_join).unwrap_or(false) {
+                return;
+            }
+            #[cfg(windows)]
+            {
+                let allowed =
+                    tokio::task::spawn_blocking(move || crate::network::firewall_rule(port))
+                        .await
+                        .unwrap_or(false);
+                if !allowed {
+                    if let Err(e) = crate::network::allow_firewall(port) {
+                        manager.logger.log(
+                            "WARN",
+                            &format!("{server_id}: firewall rule was not added: {}", e.message),
+                        );
+                    }
+                }
+            }
+            #[cfg(not(windows))]
+            let _ = port;
+            match crate::upnp::ensure(&manager, &server_id, true).await {
+                Ok(Some(m)) => manager.logger.log(
+                    "INFO",
+                    &format!("{server_id}: mapped public port {}", m.external_port),
+                ),
+                Ok(None) => {}
+                Err(e) => manager.logger.log(
+                    "WARN",
+                    &format!("{server_id}: automatic port mapping failed: {}", e.message),
+                ),
+            }
+        });
     }
     /// Read-only view of the exact Java invocation used to start this server.
     pub fn launch_info(&self, id: &str) -> Result<LaunchInfo> {

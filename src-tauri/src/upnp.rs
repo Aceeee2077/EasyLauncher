@@ -128,6 +128,20 @@ pub async fn map(manager: &Manager, id: &str, external_port: Option<u16>) -> Res
     })
 }
 
+/// Re-applies the stored mapping when a server starts. `create` also maps a
+/// server that has never been mapped; a mapping the user switched off is left
+/// alone. Routers drop lease-free mappings on reboot, so replaying the stored
+/// port is what keeps the address working without opening this page.
+pub async fn ensure(manager: &Manager, id: &str, create: bool) -> Result<Option<PortMapping>> {
+    let external = match read_mapping(manager, id) {
+        Some(m) if m.enabled => Some(m.external_port),
+        Some(_) => return Ok(None),
+        None if create => None,
+        None => return Ok(None),
+    };
+    map(manager, id, external).await.map(|r| r.mapping)
+}
+
 pub async fn unmap(manager: &Manager, id: &str) -> Result<NetworkReport> {
     manager.metadata(id)?;
     let previous = read_mapping(manager, id);

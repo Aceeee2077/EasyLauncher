@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import {
   FolderOpen,
+  Globe,
   Monitor,
   Cpu,
   Info,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button, Field, GuideLink, Modal, bytes, date } from "../components/ui";
 import { brand, call, desktop } from "../services/api";
+import { applyGlassOpacity } from "../services/appearance";
 import { useI18n } from "../i18n";
 import type {
   AuditEntry,
@@ -52,6 +54,9 @@ export function AppSettings({
     assistantModel: null,
     updateChannel: null,
     autoCheckUpdates: true,
+    glassOpacity: 1,
+    serverStorage: null,
+    autoJoin: false,
   });
   const [java, setJava] = useState<JavaRuntime[]>([]);
   const [managed, setManaged] = useState<ManagedJava[]>([]);
@@ -63,6 +68,8 @@ export function AppSettings({
   const [clearingAudit, setClearingAudit] = useState(false);
   const [message, setMessage] = useState("");
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
+  const [storageTarget, setStorageTarget] = useState<string | null>(null);
+  const [storageMoved, setStorageMoved] = useState("");
 
   const reload = async () => setManaged(await call("list_managed_java"));
   const reloadAudit = async () =>
@@ -233,6 +240,32 @@ export function AppSettings({
             </button>
           ))}
         </div>
+        <Field
+          label={t("settings.appearance.opacity")}
+          hint={t("settings.appearance.opacityHint")}
+        >
+          <div className="slider-row">
+            <input
+              className="glass-slider"
+              type="range"
+              min={0}
+              max={80}
+              step={5}
+              aria-label={t("settings.appearance.opacity")}
+              value={Math.round((1 - settings.glassOpacity) * 100)}
+              onChange={(e) => {
+                const next = 1 - Number(e.target.value) / 100;
+                setSettings((s) => ({ ...s, glassOpacity: next }));
+                applyGlassOpacity(next);
+              }}
+            />
+            <span className="slider-value">
+              {t("settings.appearance.opacityValue", {
+                value: Math.round((1 - settings.glassOpacity) * 100),
+              })}
+            </span>
+          </div>
+        </Field>
       </section>
       <section className="panel">
         <div className="section-title">
@@ -378,6 +411,11 @@ export function AppSettings({
             </h2>
             <p>{t("settings.storage.desc")}</p>
           </div>
+        </div>
+        <code className="path-block">
+          {info?.storagePath || t("settings.storage.unavailable")}
+        </code>
+        <div className="row">
           <Button
             onClick={() =>
               void run("folder", () => call("open_folder", { kind: "storage" }))
@@ -385,10 +423,46 @@ export function AppSettings({
           >
             {t("settings.storage.open")}
           </Button>
+          <Button
+            busy={busy.has("changeStorage")}
+            onClick={() =>
+              void run("changeStorage", async () => {
+                const path = await call("pick_storage_folder");
+                if (path) setStorageTarget(path);
+              })
+            }
+          >
+            {t("settings.storage.change")}
+          </Button>
         </div>
-        <code className="path-block">
-          {info?.storagePath || t("settings.storage.unavailable")}
-        </code>
+        <p className="small muted">{t("settings.storage.changeHint")}</p>
+        {storageMoved && (
+          <p className="small muted" role="status">
+            {t("settings.storage.moved", { path: storageMoved })}
+          </p>
+        )}
+      </section>
+      <section className="panel">
+        <div className="section-title">
+          <div>
+            <h2>
+              <Globe size={18} />
+              {t("settings.network.title")}
+            </h2>
+            <p>{t("settings.network.desc")}</p>
+          </div>
+        </div>
+        <label className="inline-check">
+          <input
+            type="checkbox"
+            checked={settings.autoJoin}
+            onChange={(e) =>
+              setSettings((s) => ({ ...s, autoJoin: e.target.checked }))
+            }
+          />
+          <strong>{t("settings.network.autoJoin")}</strong>
+        </label>
+        <p className="small muted">{t("settings.network.autoJoinHint")}</p>
       </section>
       <section className="panel">
         <div className="section-title">
@@ -689,6 +763,40 @@ export function AppSettings({
           </span>
         )}
       </div>
+      {storageTarget && (
+        <Modal
+          title={t("settings.storage.confirmTitle")}
+          onClose={() => setStorageTarget(null)}
+        >
+          <p>
+            {t("settings.storage.confirmBody", {
+              from: info?.storagePath || "",
+              to: storageTarget,
+            })}
+          </p>
+          <div className="modal-actions">
+            <Button onClick={() => setStorageTarget(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              busy={busy.has("moveStorage")}
+              onClick={() =>
+                void run("moveStorage", async () => {
+                  const moved = await call("change_server_storage", {
+                    path: storageTarget,
+                  });
+                  setStorageMoved(moved);
+                  setSettings((s) => ({ ...s, serverStorage: moved }));
+                  setStorageTarget(null);
+                })
+              }
+            >
+              {t("settings.storage.change")}
+            </Button>
+          </div>
+        </Modal>
+      )}
       {removing && (
         <Modal
           title={t("settings.java.removeTitle", { major: removing.major })}
