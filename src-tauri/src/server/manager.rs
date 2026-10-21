@@ -732,7 +732,8 @@ impl Manager {
         } else {
             Some(to.display().to_string())
         };
-        if let Err(e) = storage::write_json(&storage::child(&self.root, "settings.json")?, &settings)
+        if let Err(e) =
+            storage::write_json(&storage::child(&self.root, "settings.json")?, &settings)
         {
             clear_folder(&to);
             self.relocating.store(false, Ordering::SeqCst);

@@ -96,6 +96,8 @@ cargo check --manifest-path src-tauri/Cargo.toml
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
+The same offline checks run in `.github/workflows/ci.yml` on pushes to `main`, pull requests and manual dispatch: npm install, typecheck and production build, plus Rust formatting, Clippy correctness lints, library tests, storage safety tests and all-target compilation. The workflow never downloads or starts a Minecraft server.
+
 Additional process integration test, using a tiny **test-only Rust subprocess with no Minecraft code**:
 
 ```powershell

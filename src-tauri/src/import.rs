@@ -847,7 +847,10 @@ pub fn pick_folder() -> Result<Option<String>> {
 
 #[cfg(windows)]
 pub fn pick_storage_folder() -> Result<Option<String>> {
-    pick("Select an empty folder for EasyLauncher server storage", true)
+    pick(
+        "Select an empty folder for EasyLauncher server storage",
+        true,
+    )
 }
 
 #[cfg(not(windows))]

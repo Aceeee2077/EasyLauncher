@@ -1,0 +1,91 @@
+name: Quality gates
+
+# Offline-only checks. This workflow never downloads a Minecraft server or
+# starts a game process; the opt-in E2E suite lives in minecraft-e2e.yml.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+  backend:
+    name: Rust
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      # tauri-build embeds the frontend output, so dist must exist before cargo.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build the frontend assets required by tauri-build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Formatting
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
+      # The crate still carries a small set of style warnings; correctness and
+      # suspicious lints are hard gates, style lints are reported but allowed.
+      - name: Clippy
+        working-directory: src-tauri
+        run: cargo clippy --locked --all-targets -- -D clippy::correctness -D clippy::suspicious
+
+      - name: Library tests
+        working-directory: src-tauri
+        run: cargo test --locked --lib
+
+      - name: Storage safety tests
+        working-directory: src-tauri
+        run: cargo test --locked --test storage_safety
+
+      - name: Check every target
+        working-directory: src-tauri
+        run: cargo check --locked --all-targets
