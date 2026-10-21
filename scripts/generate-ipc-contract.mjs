@@ -133,7 +133,8 @@ if (check) {
   } catch {
     // Missing file is a drift failure too.
   }
-  if (current !== content) {
+  // A Windows checkout may hand us CRLF even though the committed file is LF.
+  if (current.replace(/\r\n/g, "\n") !== content) {
     console.error(
       `IPC contract is stale. Run \`npm run generate:ipc\` and commit ${output}.`,
     );
