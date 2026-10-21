@@ -103,6 +103,7 @@ Windows 可执行文件位于 `src-tauri/target/release/easylauncher.exe`；NSIS
 ## 验证
 
 ```powershell
+npm run check:ipc
 npm run typecheck
 npm test
 npm run check:errors
@@ -112,7 +113,7 @@ cargo check --manifest-path src-tauri/Cargo.toml
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
-以上离线检查同样由 `.github/workflows/ci.yml` 在推送到 `main`、拉取请求和手动触发时执行：前端安装、类型检查、Vitest 单元测试、错误码覆盖检查、生产构建与包体积预算，以及 Rust 格式、Clippy 正确性规则、库测试、存储安全测试和全目标编译。该工作流不会下载或启动 Minecraft 服务器。
+以上离线检查同样由 `.github/workflows/ci.yml` 在推送到 `main`、拉取请求和手动触发时执行：前端安装、IPC 契约漂移检查、类型检查、Vitest 单元测试、错误码覆盖检查、生产构建与包体积预算，以及 Rust 格式、Clippy 正确性规则、库测试、存储安全测试和全目标编译。该工作流不会下载或启动 Minecraft 服务器。
 
 额外的进程集成测试使用一个**仅用于测试、不含任何 Minecraft 代码的小型 Rust 子进程**：
 

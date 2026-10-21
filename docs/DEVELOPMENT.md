@@ -79,7 +79,9 @@
 
 ## 持续集成
 
-`.github/workflows/ci.yml` 在推送到 `main`、拉取请求和手动触发时执行两条并行任务。前端任务运行 `npm ci`、类型检查、Vitest 单元测试、`npm run check:errors`、Vite 生产构建与 `npm run check:bundle`；Rust 任务先构建前端资源（`tauri-build` 需要 `dist`），再运行 `cargo fmt --check`、Clippy（`correctness` 与 `suspicious` 为硬性错误，其余风格警告只报告）、库测试、存储安全测试和 `cargo check --all-targets`。所有命令都带 `--locked`，依赖缓存由 `actions/setup-node` 与 `Swatinem/rust-cache` 复用。工作流只做离线检查：不下载服务器 JAR、不启动 Java 或 Minecraft、不访问上游元数据。真实服务器验收仍只在 `workflow_dispatch` 的 `minecraft-e2e.yml` 中手动运行。
+`.github/workflows/ci.yml` 在推送到 `main`、拉取请求和手动触发时执行两条并行任务。前端任务运行 `npm ci`、`npm run check:ipc`、类型检查、Vitest 单元测试、`npm run check:errors`、Vite 生产构建与 `npm run check:bundle`；Rust 任务先构建前端资源（`tauri-build` 需要 `dist`），再运行 `cargo fmt --check`、Clippy（`correctness` 与 `suspicious` 为硬性错误，其余风格警告只报告）、库测试、存储安全测试和 `cargo check --all-targets`。所有命令都带 `--locked`，依赖缓存由 `actions/setup-node` 与 `Swatinem/rust-cache` 复用。工作流只做离线检查：不下载服务器 JAR、不启动 Java 或 Minecraft、不访问上游元数据。真实服务器验收仍只在 `workflow_dispatch` 的 `minecraft-e2e.yml` 中手动运行。
+
+`scripts/generate-ipc-contract.mjs` 解析 `lib.rs` 的 `tauri::generate_handler!` 列表与 `commands.rs` 中每个 `#[tauri::command]` 的签名（排除 `Managed`/`Remote` 状态参数），生成 `src/services/ipc.generated.ts` 中的命令名与 camelCase 参数名清单。`api.ts` 内的类型断言要求手写的 `Contract` 与清单的命令集合和每个命令的参数键完全一致；新增、删除或重命名命令时，类型检查会直接失败。`npm run check:ipc` 只校验已提交的生成文件是否最新，`npm run generate:ipc` 负责重写。参数与返回值的具体 TypeScript 类型仍由 `Contract` 与 `src/types` 手工维护，清单只保证名称层面不漂移；后续可用 tauri-specta 替换为完整类型生成。
 
 `scripts/check-error-codes.mjs` 扫描 `src-tauri/src` 中通过 `with_code`、迁移的 `user(...)`、资源规划的 `failure(...)`/原因码和更新模块的 `err(...)` 产生的错误码，与 `src/i18n/messages.ts` 的中英文 `errors.*` 表逐项比对。任一错误码缺少中文或英文翻译、同一语言重复声明同名键，脚本都会失败；仅存在于翻译表而未在源码中出现的键只报告、不失败。当前 134 个后端错误码与 134 个翻译键一一对应。
 

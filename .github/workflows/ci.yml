@@ -36,6 +36,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: IPC contract drift
+        run: npm run check:ipc
+
       - name: Typecheck
         run: npm run typecheck
 

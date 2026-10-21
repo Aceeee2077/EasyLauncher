@@ -89,6 +89,7 @@ The Windows executable is `src-tauri/target/release/easylauncher.exe`; NSIS inst
 ## Verification
 
 ```powershell
+npm run check:ipc
 npm run typecheck
 npm test
 npm run check:errors
@@ -98,7 +99,7 @@ cargo check --manifest-path src-tauri/Cargo.toml
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
 
-The same offline checks run in `.github/workflows/ci.yml` on pushes to `main`, pull requests and manual dispatch: npm install, typecheck, Vitest unit tests, the error code coverage audit, production build and the bundle budget, plus Rust formatting, Clippy correctness lints, library tests, storage safety tests and all-target compilation. The workflow never downloads or starts a Minecraft server.
+The same offline checks run in `.github/workflows/ci.yml` on pushes to `main`, pull requests and manual dispatch: npm install, the IPC contract drift check, typecheck, Vitest unit tests, the error code coverage audit, production build and the bundle budget, plus Rust formatting, Clippy correctness lints, library tests, storage safety tests and all-target compilation. The workflow never downloads or starts a Minecraft server.
 
 Additional process integration test, using a tiny **test-only Rust subprocess with no Minecraft code**:
 

@@ -1,4 +1,5 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
+import type { IpcArgName, IpcCommand } from "./ipc.generated";
 import type {
   ServerView,
   Server,
@@ -392,6 +393,25 @@ type Contract = {
   ];
   migration_pick_archive: [undefined, string | null];
 };
+
+// The generated manifest is produced from the Rust command definitions. These
+// checks fail typechecking when a command or argument name drifts, and
+// `npm run check:ipc` catches a stale committed manifest in CI.
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false;
+type Assert<T extends true> = T;
+type ContractCommands = keyof Contract;
+type CommandNamesAreCurrent = Assert<Equal<ContractCommands, IpcCommand>>;
+type ArgumentNamesAreCurrent = Assert<
+  {
+    [K in IpcCommand]: Equal<keyof Contract[K][0], IpcArgName<K>>;
+  }[IpcCommand] extends true
+    ? true
+    : false
+>;
+
 export const desktop = isTauri();
 export async function call<K extends keyof Contract>(
   command: K,

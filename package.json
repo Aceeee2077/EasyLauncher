@@ -12,7 +12,9 @@
     "check:bundle": "node scripts/check-bundle.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:errors": "node scripts/check-error-codes.mjs"
+    "check:errors": "node scripts/check-error-codes.mjs",
+    "generate:ipc": "node scripts/generate-ipc-contract.mjs",
+    "check:ipc": "node scripts/generate-ipc-contract.mjs --check"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.4",
