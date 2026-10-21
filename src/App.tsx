@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import {
   LayoutDashboard,
@@ -41,19 +41,6 @@ import {
   StatusBadge,
   bytes,
 } from "./components/ui";
-import { CreateWizard } from "./pages/CreateWizard";
-import { ImportServer } from "./pages/ImportServer";
-import { Console } from "./pages/Console";
-import { ServerSettings } from "./pages/ServerSettings";
-import { Players } from "./pages/Players";
-import { Backups } from "./pages/Backups";
-import { Schedule } from "./pages/Schedule";
-import { Monitor } from "./pages/Monitor";
-import { NetworkPanel } from "./pages/Network";
-import { Ops } from "./pages/Ops";
-import { Overview } from "./pages/Overview";
-import { Content } from "./pages/Content";
-import { AppSettings } from "./pages/AppSettings";
 import { BrandMark } from "./components/BrandMark";
 import { Splash } from "./components/Splash";
 import { CommandPalette } from "./components/CommandPalette";
@@ -76,6 +63,46 @@ import {
   type SystemInfo,
   type UpdateStatus,
 } from "./types";
+
+// Pages are loaded on demand so the initial bundle only carries the shell.
+const CreateWizard = lazy(() =>
+  import("./pages/CreateWizard").then((m) => ({ default: m.CreateWizard })),
+);
+const ImportServer = lazy(() =>
+  import("./pages/ImportServer").then((m) => ({ default: m.ImportServer })),
+);
+const Console = lazy(() =>
+  import("./pages/Console").then((m) => ({ default: m.Console })),
+);
+const ServerSettings = lazy(() =>
+  import("./pages/ServerSettings").then((m) => ({ default: m.ServerSettings })),
+);
+const Players = lazy(() =>
+  import("./pages/Players").then((m) => ({ default: m.Players })),
+);
+const Backups = lazy(() =>
+  import("./pages/Backups").then((m) => ({ default: m.Backups })),
+);
+const Schedule = lazy(() =>
+  import("./pages/Schedule").then((m) => ({ default: m.Schedule })),
+);
+const Monitor = lazy(() =>
+  import("./pages/Monitor").then((m) => ({ default: m.Monitor })),
+);
+const NetworkPanel = lazy(() =>
+  import("./pages/Network").then((m) => ({ default: m.NetworkPanel })),
+);
+const Ops = lazy(() => import("./pages/Ops").then((m) => ({ default: m.Ops })));
+const Overview = lazy(() =>
+  import("./pages/Overview").then((m) => ({ default: m.Overview })),
+);
+const Content = lazy(() =>
+  import("./pages/Content").then((m) => ({ default: m.Content })),
+);
+const AppSettings = lazy(() =>
+  import("./pages/AppSettings").then((m) => ({ default: m.AppSettings })),
+);
+
 type Page =
   | "dashboard"
   | "overview"
@@ -516,507 +543,516 @@ export default function App() {
           {closing && (
             <div className="info-strip">{t("app.closing")}</div>
           )}
-          {(page === "dashboard" || page === "servers") && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">{t("page.eyebrow")}</div>
-                  <h1>
-                    {page === "dashboard"
-                      ? t("page.dashboardTitle")
-                      : t("page.serversTitle")}
-                  </h1>
-                  <p>{t("page.subtitle")}</p>
-                </div>
-                <div className="page-actions">
-                  <Button
-                    disabled={!desktop}
-                    onClick={() => setImportOpen(true)}
-                  >
-                    <FolderInput size={17} />
-                    {t("import.title")}
-                  </Button>
-                  <Button
-                    variant="primary"
-                    disabled={!desktop}
-                    onClick={() => setWizard(true)}
-                  >
-                    <Plus size={17} />
-                    {t("common.createServer")}
-                  </Button>
-                </div>
+          <Suspense
+            fallback={
+              <div className="route-loading" role="status">
+                <span className="route-loading-dot" />
+                {t("common.loading")}
               </div>
-              <div className="stats-grid">
-                <div className="stat">
-                  <span className="stat-icon">
-                    <ServerIcon size={21} />
-                  </span>
+            }
+          >
+            {(page === "dashboard" || page === "servers") && (
+              <>
+                <div className="page-heading">
                   <div>
-                    <small>{t("stats.totalServers")}</small>
-                    <strong>
-                      {servers.length.toString().padStart(2, "0")}
-                    </strong>
+                    <div className="eyebrow">{t("page.eyebrow")}</div>
+                    <h1>
+                      {page === "dashboard"
+                        ? t("page.dashboardTitle")
+                        : t("page.serversTitle")}
+                    </h1>
+                    <p>{t("page.subtitle")}</p>
                   </div>
-                  <span className="stat-note">{t("stats.inWorkspace")}</span>
-                </div>
-                <div className="stat">
-                  <span className="stat-icon green">
-                    <Activity size={21} />
-                  </span>
-                  <div>
-                    <small>{t("stats.runningNow")}</small>
-                    <strong>{running.toString().padStart(2, "0")}</strong>
-                  </div>
-                  <span className="stat-note">
-                    {running ? t("stats.readyForAdventure") : t("stats.allQuiet")}
-                  </span>
-                </div>
-                <div className="stat">
-                  <span className="stat-icon">
-                    <Cpu size={21} />
-                  </span>
-                  <div>
-                    <small>{t("stats.systemMemory")}</small>
-                    <strong>
-                      {info ? `${(info.availableMb / 1024).toFixed(1)}` : "—"}
-                      <em>{t("stats.gbFree")}</em>
-                    </strong>
-                  </div>
-                  <span className="stat-note">
-                    {info
-                      ? t("stats.gbTotal", {
-                          size: (info.totalMb / 1024).toFixed(1),
-                        })
-                      : t("stats.desktopRequired")}
-                  </span>
-                </div>
-              </div>
-              <div className="section-heading">
-                <h2>
-                  {t("section.yourServers")} <span>{servers.length}</span>
-                </h2>
-                <small>{t("section.everything")}</small>
-              </div>
-              {loading ? (
-                <div className="panel muted">{t("section.loadingServers")}</div>
-              ) : servers.length ? (
-                <div className="server-grid">
-                  {servers.map((s, i) => (
-                    <article key={s.id} className="server-card">
-                      <div className={`server-art art-${i % 3}`}>
-                        <div className="terrain terrain-back" />
-                        <div className="terrain terrain-front" />
-                        <div className="art-sun" />
-                        <div className="software-tag">
-                          <Layers size={13} />
-                          {s.serverType}
-                        </div>
-                        <StatusBadge status={s.runtime.status} />
-                      </div>
-                      <div className="server-card-body">
-                        <div className="server-title">
-                          <div>
-                            <h3>{s.name}</h3>
-                            <p>
-                              {t("server.subtitle", {
-                                version: s.minecraftVersion,
-                              })}
-                            </p>
-                          </div>
-                          <button
-                            className="icon-arrow"
-                            onClick={() => manage(s)}
-                            aria-label={t("server.manageAria", { name: s.name })}
-                          >
-                            <ArrowUpRight size={20} />
-                          </button>
-                        </div>
-                        <div className="server-meta">
-                          <span>
-                            <Cpu size={14} />
-                            {t("server.ram", {
-                              size: (s.memoryMaxMb / 1024).toFixed(1),
-                            })}
-                          </span>
-                          <span>
-                            <Network size={14} />
-                            {s.port}
-                          </span>
-                        </div>
-                        {downloadProgress(s)}
-                        {s.runtime.message &&
-                          ["crashed", "installationFailed"].includes(
-                            s.runtime.status,
-                          ) && (
-                            <p className="card-error">{s.runtime.message}</p>
-                          )}
-                        <div className="card-footer">
-                          <Button onClick={() => manage(s)}>
-                            {t("common.manage")}
-                            <ChevronRight size={14} />
-                          </Button>
-                          {s.installed ? (
-                            <Button
-                              variant={
-                                active(s.runtime.status)
-                                  ? "secondary"
-                                  : "primary"
-                              }
-                              disabled={
-                                s.runtime.status === "stopping" ||
-                                (!idle(s.runtime.status) &&
-                                  !active(s.runtime.status))
-                              }
-                              busy={busy.has(`control-${s.id}`)}
-                              onClick={() =>
-                                control(
-                                  s,
-                                  active(s.runtime.status)
-                                    ? "stop_server"
-                                    : "start_server",
-                                )
-                              }
-                            >
-                              {active(s.runtime.status) ? (
-                                <>
-                                  <Square size={13} />
-                                  {t("common.stop")}
-                                </>
-                              ) : (
-                                <>
-                                  <Play size={13} />
-                                  {t("common.start")}
-                                </>
-                              )}
-                            </Button>
-                          ) : (
-                            <Button
-                              disabled={s.runtime.status === "installing"}
-                              onClick={() => install(s)}
-                            >
-                              {t("common.install")}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                  <button
-                    className="create-card"
-                    onClick={() => setWizard(true)}
-                  >
-                    <span>
-                      <Plus size={23} />
-                    </span>
-                    <strong>{t("server.newWorldAwaits")}</strong>
-                    <small>{t("server.createAnother")}</small>
-                  </button>
-                </div>
-              ) : (
-                <section className="welcome-card">
-                  <div className="welcome-art">
-                    <BrandMark size={92} />
-                    <div className="orbit one" />
-                    <div className="orbit two" />
-                  </div>
-                  <div className="eyebrow">
-                    {t("welcome.eyebrow", { name: brand.name.toUpperCase() })}
-                  </div>
-                  <h2>{t("welcome.tagline")}</h2>
-                  <p>
-                    {t("welcome.description")}
-                    <br />
-                    {t("welcome.description2")}
-                  </p>
-                  <div className="welcome-actions">
+                  <div className="page-actions">
+                    <Button
+                      disabled={!desktop}
+                      onClick={() => setImportOpen(true)}
+                    >
+                      <FolderInput size={17} />
+                      {t("import.title")}
+                    </Button>
                     <Button
                       variant="primary"
                       disabled={!desktop}
                       onClick={() => setWizard(true)}
                     >
                       <Plus size={17} />
-                      {t("welcome.createFirst")}
-                      <ArrowUpRight size={16} />
+                      {t("common.createServer")}
                     </Button>
-                    <Button
-                      disabled={!desktop}
-                      onClick={() => setImportOpen(true)}
+                  </div>
+                </div>
+                <div className="stats-grid">
+                  <div className="stat">
+                    <span className="stat-icon">
+                      <ServerIcon size={21} />
+                    </span>
+                    <div>
+                      <small>{t("stats.totalServers")}</small>
+                      <strong>
+                        {servers.length.toString().padStart(2, "0")}
+                      </strong>
+                    </div>
+                    <span className="stat-note">{t("stats.inWorkspace")}</span>
+                  </div>
+                  <div className="stat">
+                    <span className="stat-icon green">
+                      <Activity size={21} />
+                    </span>
+                    <div>
+                      <small>{t("stats.runningNow")}</small>
+                      <strong>{running.toString().padStart(2, "0")}</strong>
+                    </div>
+                    <span className="stat-note">
+                      {running ? t("stats.readyForAdventure") : t("stats.allQuiet")}
+                    </span>
+                  </div>
+                  <div className="stat">
+                    <span className="stat-icon">
+                      <Cpu size={21} />
+                    </span>
+                    <div>
+                      <small>{t("stats.systemMemory")}</small>
+                      <strong>
+                        {info ? `${(info.availableMb / 1024).toFixed(1)}` : "—"}
+                        <em>{t("stats.gbFree")}</em>
+                      </strong>
+                    </div>
+                    <span className="stat-note">
+                      {info
+                        ? t("stats.gbTotal", {
+                            size: (info.totalMb / 1024).toFixed(1),
+                          })
+                        : t("stats.desktopRequired")}
+                    </span>
+                  </div>
+                </div>
+                <div className="section-heading">
+                  <h2>
+                    {t("section.yourServers")} <span>{servers.length}</span>
+                  </h2>
+                  <small>{t("section.everything")}</small>
+                </div>
+                {loading ? (
+                  <div className="panel muted">{t("section.loadingServers")}</div>
+                ) : servers.length ? (
+                  <div className="server-grid">
+                    {servers.map((s, i) => (
+                      <article key={s.id} className="server-card">
+                        <div className={`server-art art-${i % 3}`}>
+                          <div className="terrain terrain-back" />
+                          <div className="terrain terrain-front" />
+                          <div className="art-sun" />
+                          <div className="software-tag">
+                            <Layers size={13} />
+                            {s.serverType}
+                          </div>
+                          <StatusBadge status={s.runtime.status} />
+                        </div>
+                        <div className="server-card-body">
+                          <div className="server-title">
+                            <div>
+                              <h3>{s.name}</h3>
+                              <p>
+                                {t("server.subtitle", {
+                                  version: s.minecraftVersion,
+                                })}
+                              </p>
+                            </div>
+                            <button
+                              className="icon-arrow"
+                              onClick={() => manage(s)}
+                              aria-label={t("server.manageAria", { name: s.name })}
+                            >
+                              <ArrowUpRight size={20} />
+                            </button>
+                          </div>
+                          <div className="server-meta">
+                            <span>
+                              <Cpu size={14} />
+                              {t("server.ram", {
+                                size: (s.memoryMaxMb / 1024).toFixed(1),
+                              })}
+                            </span>
+                            <span>
+                              <Network size={14} />
+                              {s.port}
+                            </span>
+                          </div>
+                          {downloadProgress(s)}
+                          {s.runtime.message &&
+                            ["crashed", "installationFailed"].includes(
+                              s.runtime.status,
+                            ) && (
+                              <p className="card-error">{s.runtime.message}</p>
+                            )}
+                          <div className="card-footer">
+                            <Button onClick={() => manage(s)}>
+                              {t("common.manage")}
+                              <ChevronRight size={14} />
+                            </Button>
+                            {s.installed ? (
+                              <Button
+                                variant={
+                                  active(s.runtime.status)
+                                    ? "secondary"
+                                    : "primary"
+                                }
+                                disabled={
+                                  s.runtime.status === "stopping" ||
+                                  (!idle(s.runtime.status) &&
+                                    !active(s.runtime.status))
+                                }
+                                busy={busy.has(`control-${s.id}`)}
+                                onClick={() =>
+                                  control(
+                                    s,
+                                    active(s.runtime.status)
+                                      ? "stop_server"
+                                      : "start_server",
+                                  )
+                                }
+                              >
+                                {active(s.runtime.status) ? (
+                                  <>
+                                    <Square size={13} />
+                                    {t("common.stop")}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play size={13} />
+                                    {t("common.start")}
+                                  </>
+                                )}
+                              </Button>
+                            ) : (
+                              <Button
+                                disabled={s.runtime.status === "installing"}
+                                onClick={() => install(s)}
+                              >
+                                {t("common.install")}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                    <button
+                      className="create-card"
+                      onClick={() => setWizard(true)}
                     >
-                      <FolderInput size={16} />
-                      {t("import.title")}
-                    </Button>
+                      <span>
+                        <Plus size={23} />
+                      </span>
+                      <strong>{t("server.newWorldAwaits")}</strong>
+                      <small>{t("server.createAnother")}</small>
+                    </button>
                   </div>
-                  <div className="welcome-notes">
-                    <span>
-                      <ShieldCheck size={14} />
-                      {t("welcome.localFiles")}
-                    </span>
-                    <span>
-                      <Layers size={14} />
-                      {t("welcome.software")}
-                    </span>
+                ) : (
+                  <section className="welcome-card">
+                    <div className="welcome-art">
+                      <BrandMark size={92} />
+                      <div className="orbit one" />
+                      <div className="orbit two" />
+                    </div>
+                    <div className="eyebrow">
+                      {t("welcome.eyebrow", { name: brand.name.toUpperCase() })}
+                    </div>
+                    <h2>{t("welcome.tagline")}</h2>
+                    <p>
+                      {t("welcome.description")}
+                      <br />
+                      {t("welcome.description2")}
+                    </p>
+                    <div className="welcome-actions">
+                      <Button
+                        variant="primary"
+                        disabled={!desktop}
+                        onClick={() => setWizard(true)}
+                      >
+                        <Plus size={17} />
+                        {t("welcome.createFirst")}
+                        <ArrowUpRight size={16} />
+                      </Button>
+                      <Button
+                        disabled={!desktop}
+                        onClick={() => setImportOpen(true)}
+                      >
+                        <FolderInput size={16} />
+                        {t("import.title")}
+                      </Button>
+                    </div>
+                    <div className="welcome-notes">
+                      <span>
+                        <ShieldCheck size={14} />
+                        {t("welcome.localFiles")}
+                      </span>
+                      <span>
+                        <Layers size={14} />
+                        {t("welcome.software")}
+                      </span>
+                    </div>
+                  </section>
+                )}
+                <div className="workspace-footer">
+                  <span>
+                    <ShieldCheck size={15} />
+                    {t("footer.locallyManaged")}
+                  </span>
+                  <small>{t("footer.disclaimer")}</small>
+                </div>
+              </>
+            )}
+            {page === "overview" && (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <div className="eyebrow">{t("overview.eyebrow")}</div>
+                    <h1>{t("overview.title")}</h1>
+                    <p>{t("overview.subtitle")}</p>
                   </div>
-                </section>
-              )}
-              <div className="workspace-footer">
-                <span>
-                  <ShieldCheck size={15} />
-                  {t("footer.locallyManaged")}
-                </span>
-                <small>{t("footer.disclaimer")}</small>
-              </div>
-            </>
-          )}
-          {page === "overview" && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">{t("overview.eyebrow")}</div>
-                  <h1>{t("overview.title")}</h1>
-                  <p>{t("overview.subtitle")}</p>
-                </div>
-                <div className="page-actions">
-                  <Button
-                    variant="primary"
-                    disabled={!desktop}
-                    onClick={() => setWizard(true)}
-                  >
-                    <Plus size={17} />
-                    {t("common.createServer")}
-                  </Button>
-                </div>
-              </div>
-              <Overview
-                {...shared}
-                servers={servers}
-                reload={load}
-                onManage={manage}
-              />
-            </>
-          )}
-          {page === "settings" && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">{t("settings.eyebrow")}</div>
-                  <h1>{t("settings.title")}</h1>
-                  <p>{t("settings.subtitle")}</p>
-                </div>
-              </div>
-              <AppSettings
-                {...shared}
-                info={info}
-                onAppearance={(a) => {
-                  void run("appearance", () => applyAppearance(a));
-                }}
-              />
-            </>
-          )}
-          {["detail", "console", "players", "backups"].includes(page) && (
-            <>
-              {!server ? (
-                <Empty
-                  title={t("empty.chooseWorld")}
-                  description={t("empty.chooseWorldDesc")}
-                  action={
+                  <div className="page-actions">
                     <Button
                       variant="primary"
                       disabled={!desktop}
                       onClick={() => setWizard(true)}
                     >
+                      <Plus size={17} />
                       {t("common.createServer")}
                     </Button>
-                  }
+                  </div>
+                </div>
+                <Overview
+                  {...shared}
+                  servers={servers}
+                  reload={load}
+                  onManage={manage}
                 />
-              ) : (
-                <>
-                  <div className="detail-top">
-                    <button
-                      className="back-link"
-                      onClick={() => setPage("servers")}
-                    >
-                      <ArrowLeft size={15} />
-                      {t("detail.allServers")}
-                    </button>
-                    <select
-                      aria-label={t("detail.selectServer")}
-                      value={selected}
-                      onChange={(e) => setSelected(e.target.value)}
-                    >
-                      {servers.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
+              </>
+            )}
+            {page === "settings" && (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <div className="eyebrow">{t("settings.eyebrow")}</div>
+                    <h1>{t("settings.title")}</h1>
+                    <p>{t("settings.subtitle")}</p>
                   </div>
-                  <div className="page-heading detail-heading">
-                    <div>
-                      <div className="row">
-                        <h1>{server.name}</h1>
-                        <StatusBadge status={server.runtime.status} />
-                      </div>
-                      <p>
-                        {t("detail.meta", {
-                          type: server.serverType,
-                          version: server.minecraftVersion,
-                          java: server.requiredJava || "—",
-                        })}
-                      </p>
+                </div>
+                <AppSettings
+                  {...shared}
+                  info={info}
+                  onAppearance={(a) => {
+                    void run("appearance", () => applyAppearance(a));
+                  }}
+                />
+              </>
+            )}
+            {["detail", "console", "players", "backups"].includes(page) && (
+              <>
+                {!server ? (
+                  <Empty
+                    title={t("empty.chooseWorld")}
+                    description={t("empty.chooseWorldDesc")}
+                    action={
+                      <Button
+                        variant="primary"
+                        disabled={!desktop}
+                        onClick={() => setWizard(true)}
+                      >
+                        {t("common.createServer")}
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <>
+                    <div className="detail-top">
+                      <button
+                        className="back-link"
+                        onClick={() => setPage("servers")}
+                      >
+                        <ArrowLeft size={15} />
+                        {t("detail.allServers")}
+                      </button>
+                      <select
+                        aria-label={t("detail.selectServer")}
+                        value={selected}
+                        onChange={(e) => setSelected(e.target.value)}
+                      >
+                        {servers.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    {serverControls(server)}
-                  </div>
-                  <div className="connection-strip">
-                    <span>
-                      <Network size={16} />
-                      <small>{t("detail.localAddress")}</small>
-                      <code>localhost:{server.port}</code>
-                    </span>
-                    <span>
-                      <small>{t("detail.lanAddress")}</small>
-                      <code>
-                        {info?.lanAddress
-                          ? `${info.lanAddress}:${server.port}`
-                          : t("common.unavailable")}
-                      </code>
-                    </span>
-                    <span>
-                      <Cpu size={16} />
-                      <small>{t("detail.ramLimit")}</small>
-                      <code>{server.memoryMaxMb} MB</code>
-                    </span>
-                    {active(server.runtime.status) && (
+                    <div className="page-heading detail-heading">
+                      <div>
+                        <div className="row">
+                          <h1>{server.name}</h1>
+                          <StatusBadge status={server.runtime.status} />
+                        </div>
+                        <p>
+                          {t("detail.meta", {
+                            type: server.serverType,
+                            version: server.minecraftVersion,
+                            java: server.requiredJava || "—",
+                          })}
+                        </p>
+                      </div>
+                      {serverControls(server)}
+                    </div>
+                    <div className="connection-strip">
                       <span>
-                        <Clock size={16} />
-                        <small>{t("detail.started")}</small>
+                        <Network size={16} />
+                        <small>{t("detail.localAddress")}</small>
+                        <code>localhost:{server.port}</code>
+                      </span>
+                      <span>
+                        <small>{t("detail.lanAddress")}</small>
                         <code>
-                          {server.runtime.startedAt
-                            ? new Date(
-                                server.runtime.startedAt,
-                              ).toLocaleTimeString()
-                            : "—"}
+                          {info?.lanAddress
+                            ? `${info.lanAddress}:${server.port}`
+                            : t("common.unavailable")}
                         </code>
                       </span>
-                    )}
-                  </div>
-                  <p className="address-note">{t("detail.addressNote")}</p>
-                  {server.runtime.message && (
-                    <div
-                      className={`info-strip ${["crashed", "installationFailed"].includes(server.runtime.status) ? "crash-strip" : ""}`}
-                    >
-                      <Activity size={18} />
-                      <span>{server.runtime.message}</span>
-                      {server.runtime.status === "crashed" && (
-                        <>
-                          <Button
-                            onClick={() =>
-                              void run("latestLog", async () =>
-                                setLog(
-                                  await call("latest_log", { id: server.id }),
-                                ),
-                              )
-                            }
-                          >
-                            {t("detail.viewLog")}
-                          </Button>
-                          <Button onClick={() => setTab("ops")}>
-                            {t("detail.diagnose")}
-                          </Button>
-                        </>
+                      <span>
+                        <Cpu size={16} />
+                        <small>{t("detail.ramLimit")}</small>
+                        <code>{server.memoryMaxMb} MB</code>
+                      </span>
+                      {active(server.runtime.status) && (
+                        <span>
+                          <Clock size={16} />
+                          <small>{t("detail.started")}</small>
+                          <code>
+                            {server.runtime.startedAt
+                              ? new Date(
+                                  server.runtime.startedAt,
+                                ).toLocaleTimeString()
+                              : "—"}
+                          </code>
+                        </span>
                       )}
                     </div>
-                  )}
-                  {downloadProgress(server)}
-                  {page === "detail" && (
-                    <div className="tabs">
-                      {[
-                        ["console", "common.console", Terminal],
-                        ["settings", "common.settings", Settings],
-                        ["players", "common.players", Users],
-                        ["backups", "common.backups", Archive],
-                        ["schedule", "common.schedule", Clock],
-                        ["monitor", "common.monitor", Activity],
-                        ["network", "common.network", Globe],
-                        ["content", "common.content", Package],
-                        ["ops", "common.ops", Stethoscope],
-                      ].map(([v, label, Icon]) => {
-                        const TabIcon = Icon as typeof Terminal;
-                        return (
-                          <button
-                            className={tab === v ? "active" : ""}
-                            key={v as string}
-                            onClick={() => setTab(v as string)}
-                          >
-                            <TabIcon size={16} />
-                            {t(label as MessageKey)}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {(page === "console" ||
-                    (page === "detail" && tab === "console")) && (
-                    <Console key={server.id} {...shared} server={server} />
-                  )}
-                  {(page === "players" ||
-                    (page === "detail" && tab === "players")) && (
-                    <Players key={server.id} {...shared} server={server} />
-                  )}
-                  {(page === "backups" ||
-                    (page === "detail" && tab === "backups")) && (
-                    <Backups key={server.id} {...shared} server={server} />
-                  )}
-                  {page === "detail" && tab === "content" && (
-                    <Content key={server.id} {...shared} server={server} />
-                  )}
-                  {page === "detail" && tab === "schedule" && (
-                    <Schedule key={server.id} {...shared} server={server} />
-                  )}
-                  {page === "detail" && tab === "monitor" && (
-                    <Monitor key={server.id} {...shared} server={server} />
-                  )}
-                  {page === "detail" && tab === "network" && (
-                    <NetworkPanel key={server.id} {...shared} server={server} />
-                  )}
-                  {page === "detail" && tab === "ops" && (
-                    <Ops key={server.id} {...shared} server={server} />
-                  )}
-                  {page === "detail" && tab === "settings" && (
-                    <>
-                      <ServerSettings
-                        key={server.id}
-                        {...shared}
-                        server={server}
-                        onSaved={load}
-                      />
-                      <div className="danger-zone">
-                        <div>
-                          <strong>{t("detail.deleteServer")}</strong>
-                          <p>{t("detail.deleteServerDesc")}</p>
-                        </div>
-                        <Button
-                          variant="danger"
-                          disabled={!idle(server.runtime.status)}
-                          onClick={() => setConfirmDelete(server)}
-                        >
-                          <Trash2 size={15} />
-                          {t("detail.deleteServerButton")}
-                        </Button>
+                    <p className="address-note">{t("detail.addressNote")}</p>
+                    {server.runtime.message && (
+                      <div
+                        className={`info-strip ${["crashed", "installationFailed"].includes(server.runtime.status) ? "crash-strip" : ""}`}
+                      >
+                        <Activity size={18} />
+                        <span>{server.runtime.message}</span>
+                        {server.runtime.status === "crashed" && (
+                          <>
+                            <Button
+                              onClick={() =>
+                                void run("latestLog", async () =>
+                                  setLog(
+                                    await call("latest_log", { id: server.id }),
+                                  ),
+                                )
+                              }
+                            >
+                              {t("detail.viewLog")}
+                            </Button>
+                            <Button onClick={() => setTab("ops")}>
+                              {t("detail.diagnose")}
+                            </Button>
+                          </>
+                        )}
                       </div>
-                    </>
-                  )}
-                  {online && (
-                    <div className="workspace-footer">
-                      <span>
-                        <i className="online-dot" />
-                        {t("detail.startedUp")}
-                      </span>
-                    </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
+                    )}
+                    {downloadProgress(server)}
+                    {page === "detail" && (
+                      <div className="tabs">
+                        {[
+                          ["console", "common.console", Terminal],
+                          ["settings", "common.settings", Settings],
+                          ["players", "common.players", Users],
+                          ["backups", "common.backups", Archive],
+                          ["schedule", "common.schedule", Clock],
+                          ["monitor", "common.monitor", Activity],
+                          ["network", "common.network", Globe],
+                          ["content", "common.content", Package],
+                          ["ops", "common.ops", Stethoscope],
+                        ].map(([v, label, Icon]) => {
+                          const TabIcon = Icon as typeof Terminal;
+                          return (
+                            <button
+                              className={tab === v ? "active" : ""}
+                              key={v as string}
+                              onClick={() => setTab(v as string)}
+                            >
+                              <TabIcon size={16} />
+                              {t(label as MessageKey)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {(page === "console" ||
+                      (page === "detail" && tab === "console")) && (
+                      <Console key={server.id} {...shared} server={server} />
+                    )}
+                    {(page === "players" ||
+                      (page === "detail" && tab === "players")) && (
+                      <Players key={server.id} {...shared} server={server} />
+                    )}
+                    {(page === "backups" ||
+                      (page === "detail" && tab === "backups")) && (
+                      <Backups key={server.id} {...shared} server={server} />
+                    )}
+                    {page === "detail" && tab === "content" && (
+                      <Content key={server.id} {...shared} server={server} />
+                    )}
+                    {page === "detail" && tab === "schedule" && (
+                      <Schedule key={server.id} {...shared} server={server} />
+                    )}
+                    {page === "detail" && tab === "monitor" && (
+                      <Monitor key={server.id} {...shared} server={server} />
+                    )}
+                    {page === "detail" && tab === "network" && (
+                      <NetworkPanel key={server.id} {...shared} server={server} />
+                    )}
+                    {page === "detail" && tab === "ops" && (
+                      <Ops key={server.id} {...shared} server={server} />
+                    )}
+                    {page === "detail" && tab === "settings" && (
+                      <>
+                        <ServerSettings
+                          key={server.id}
+                          {...shared}
+                          server={server}
+                          onSaved={load}
+                        />
+                        <div className="danger-zone">
+                          <div>
+                            <strong>{t("detail.deleteServer")}</strong>
+                            <p>{t("detail.deleteServerDesc")}</p>
+                          </div>
+                          <Button
+                            variant="danger"
+                            disabled={!idle(server.runtime.status)}
+                            onClick={() => setConfirmDelete(server)}
+                          >
+                            <Trash2 size={15} />
+                            {t("detail.deleteServerButton")}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                    {online && (
+                      <div className="workspace-footer">
+                        <span>
+                          <i className="online-dot" />
+                          {t("detail.startedUp")}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </Suspense>
         </main>
       </div>
       <CommandPalette
@@ -1030,21 +1066,23 @@ export default function App() {
         onImport={() => setImportOpen(true)}
         onRefresh={() => void run("refresh", load)}
       />
-      {wizard && (
-        <CreateWizard
-          {...shared}
-          info={info}
-          onClose={() => setWizard(false)}
-          onCreated={created}
-        />
-      )}
-      {importOpen && (
-        <ImportServer
-          {...shared}
-          onClose={() => setImportOpen(false)}
-          onImported={imported}
-        />
-      )}
+      <Suspense fallback={null}>
+        {wizard && (
+          <CreateWizard
+            {...shared}
+            info={info}
+            onClose={() => setWizard(false)}
+            onCreated={created}
+          />
+        )}
+        {importOpen && (
+          <ImportServer
+            {...shared}
+            onClose={() => setImportOpen(false)}
+            onImported={imported}
+          />
+        )}
+      </Suspense>
       {confirmDelete && (
         <Modal
           title={t("delete.title", { name: confirmDelete.name })}

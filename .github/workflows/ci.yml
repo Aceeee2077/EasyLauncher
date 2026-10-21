@@ -42,6 +42,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Bundle budget
+        run: npm run check:bundle
+
   backend:
     name: Rust
     runs-on: windows-latest
