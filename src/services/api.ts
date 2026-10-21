@@ -430,6 +430,6 @@ export async function call<K extends keyof Contract>(
 }
 export const brand = {
   name: "EasyLauncher",
-  version: "0.2.0",
+  version: "0.2.1",
   tagline: "A home for your next world.",
 };

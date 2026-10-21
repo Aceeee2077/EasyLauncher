@@ -1,6 +1,6 @@
 [package]
 name = "easylauncher"
-version = "0.2.0"
+version = "0.2.1"
 description = "Local Minecraft Java server manager"
 edition = "2021"
 rust-version = "1.85"
