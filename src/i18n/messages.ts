@@ -640,7 +640,7 @@ export const zh = {
   "wizard.openGuide": "打开 Java 下载指南",
   "wizard.javaInstall": "自动安装 Java {major}",
   "wizard.javaInstallHint":
-    "由 EasyLauncher 下载并校验 Eclipse Temurin，安装后会自动重新检测。",
+    "由 EasyLauncher 从官方 API 获取版本，优先经国内镜像下载并校验 Eclipse Temurin，安装后会自动重新检测。",
   "wizard.javaInstalling": "正在安装 Java {major}…",
   "wizard.javaInstalled": "Java {major} 已安装，已自动选中。",
   "wizard.step4.title": "一个小小的约定，一个全新的世界。",
@@ -2515,7 +2515,7 @@ export const en: Record<MessageKey, string> = {
   "wizard.openGuide": "Open Java download guide",
   "wizard.javaInstall": "Install Java {major} automatically",
   "wizard.javaInstallHint":
-    "EasyLauncher downloads and verifies Eclipse Temurin, then detects it again automatically.",
+    "EasyLauncher reads release metadata from the official API, prefers a nearby mirror for the download, and verifies Eclipse Temurin before installing.",
   "wizard.javaInstalling": "Installing Java {major}…",
   "wizard.javaInstalled": "Java {major} installed and selected.",
   "wizard.step4.title": "A little agreement. A whole new world.",

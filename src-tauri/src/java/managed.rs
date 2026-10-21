@@ -18,6 +18,11 @@ const MAX_ARCHIVE: u64 = 512 * 1024 * 1024;
 const MAX_EXTRACTED: u64 = 1024 * 1024 * 1024;
 const MAX_ENTRIES: usize = 30_000;
 const MANIFEST: &str = "minehost-java.json";
+const IMAGE_TYPE: &str = "jre";
+const MIRROR_BASE: &str = "https://mirrors.tuna.tsinghua.edu.cn/Adoptium";
+const CHUNK_TIMEOUT: Duration = Duration::from_secs(30);
+const SLOW_AFTER: Duration = Duration::from_secs(12);
+const SLOW_BYTES_PER_SEC: f64 = 64.0 * 1024.0;
 
 pub const SUPPORTED_MAJORS: [u32; 4] = [8, 17, 21, 25];
 
@@ -133,15 +138,31 @@ fn platform() -> Result<(&'static str, &'static str)> {
 }
 
 struct Release {
-    url: String,
+    sources: Vec<String>,
     sha256: String,
     size: Option<u64>,
     semver: String,
 }
 
+/// Builds the Tsinghua mirror URL for an Adoptium asset. The checked-in checksum
+/// from the official API still verifies whatever the mirror serves.
+fn mirror_url(major: u32, name: &str) -> Option<String> {
+    let (os, arch) = platform().ok()?;
+    if name.is_empty()
+        || !name
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
+    {
+        return None;
+    }
+    Some(format!(
+        "{MIRROR_BASE}/{major}/{IMAGE_TYPE}/{arch}/{os}/{name}"
+    ))
+}
+
 async fn resolve(client: &reqwest::Client, major: u32) -> Result<Release> {
     let (os, arch) = platform()?;
-    let url = format!("https://api.adoptium.net/v3/assets/latest/{major}/hotspot?architecture={arch}&image_type=jre&jvm_impl=hotspot&os={os}&vendor=eclipse");
+    let url = format!("https://api.adoptium.net/v3/assets/latest/{major}/hotspot?architecture={arch}&image_type={IMAGE_TYPE}&jvm_impl=hotspot&os={os}&vendor=eclipse");
     let response = client.get(url).send().await?.error_for_status()?;
     let assets: serde_json::Value = response.json().await?;
     let asset = assets.as_array().and_then(|a| a.first()).ok_or_else(|| {
@@ -166,8 +187,18 @@ async fn resolve(client: &reqwest::Client, major: u32) -> Result<Release> {
             "The Java provider returned an invalid checksum.",
         ));
     }
+    let name = package["name"]
+        .as_str()
+        .map(str::to_owned)
+        .or_else(|| link.rsplit('/').next().map(str::to_owned))
+        .unwrap_or_default();
+    let mut sources = Vec::with_capacity(2);
+    if let Some(mirror) = mirror_url(major, &name) {
+        sources.push(mirror);
+    }
+    sources.push(link.into());
     Ok(Release {
-        url: link.into(),
+        sources,
         sha256: sha256.to_ascii_lowercase(),
         size: package["size"].as_u64(),
         semver: asset["version"]["semver"]
@@ -178,80 +209,114 @@ async fn resolve(client: &reqwest::Client, major: u32) -> Result<Release> {
     })
 }
 
+async fn fetch(
+    m: &Manager,
+    client: &reqwest::Client,
+    release: &Release,
+    url: &str,
+    dest: &Path,
+    id: &str,
+    attempt: u32,
+) -> Result<u64> {
+    let response = client.get(url).send().await?.error_for_status()?;
+    let total = release.size.or(response.content_length());
+    let mut hash = Sha256::new();
+    let mut bytes = 0u64;
+    let mut file = tokio::fs::File::create(dest).await?;
+    let mut stream = response.bytes_stream();
+    let mut tick = Instant::now() - Duration::from_secs(1);
+    let started = Instant::now();
+    while let Some(chunk) = tokio::time::timeout(CHUNK_TIMEOUT, stream.next())
+        .await
+        .map_err(|_| AppError::user("The Java download stalled. Please retry."))?
+    {
+        let chunk = chunk?;
+        bytes += chunk.len() as u64;
+        if bytes > MAX_ARCHIVE {
+            return Err(AppError::user(
+                "The Java archive exceeded the 512 MB safety limit.",
+            ));
+        }
+        hash.update(&chunk);
+        file.write_all(&chunk).await?;
+        let elapsed = started.elapsed();
+        if elapsed >= SLOW_AFTER && bytes as f64 / elapsed.as_secs_f64() < SLOW_BYTES_PER_SEC {
+            return Err(AppError::user(
+                "The Java download source is too slow. Trying another source.",
+            ));
+        }
+        if tick.elapsed() > Duration::from_millis(150) {
+            m_emit_progress(m, id, "downloading", bytes, total, attempt);
+            tick = Instant::now();
+        }
+    }
+    file.flush().await?;
+    file.sync_all().await?;
+    drop(file);
+    if total.map(|n| n != bytes).unwrap_or(false) {
+        return Err(AppError::user(
+            "The Java download is incomplete. Please retry.",
+        ));
+    }
+    if format!("{:x}", hash.finalize()) != release.sha256 {
+        return Err(AppError::user(
+            "Java checksum verification failed. The file was discarded.",
+        ));
+    }
+    Ok(bytes)
+}
+
+fn m_emit_progress(
+    m: &Manager,
+    id: &str,
+    stage: &str,
+    downloaded: u64,
+    total: Option<u64>,
+    attempt: u32,
+) {
+    m.emit(
+        "java-progress",
+        JavaProgress {
+            id: id.into(),
+            stage: stage.into(),
+            downloaded_bytes: downloaded,
+            total_bytes: total,
+            attempt,
+        },
+    );
+}
+
 async fn download(m: &Manager, release: &Release, dest: &Path, id: &str) -> Result<u64> {
     storage::no_links(dest)?;
     let client = m.client();
     let mut last = AppError::user("Download failed.");
-    for attempt in 1..=3 {
-        let result = async {
-            let response = client.get(&release.url).send().await?.error_for_status()?;
-            let total = release.size.or(response.content_length());
-            let mut hash = Sha256::new();
-            let mut bytes = 0u64;
-            let mut file = tokio::fs::File::create(dest).await?;
-            let mut stream = response.bytes_stream();
-            let mut tick = Instant::now() - Duration::from_secs(1);
-            while let Some(chunk) = tokio::time::timeout(Duration::from_secs(60), stream.next())
-                .await
-                .map_err(|_| AppError::user("The Java download stalled. Please retry."))?
-            {
-                let chunk = chunk?;
-                bytes += chunk.len() as u64;
-                if bytes > MAX_ARCHIVE {
-                    return Err(AppError::user(
-                        "The Java archive exceeded the 512 MB safety limit.",
-                    ));
-                }
-                hash.update(&chunk);
-                file.write_all(&chunk).await?;
-                if tick.elapsed() > Duration::from_millis(150) {
+    let mut attempt = 0;
+    for url in &release.sources {
+        for _ in 0..2 {
+            attempt += 1;
+            match fetch(m, &client, release, url, dest, id, attempt).await {
+                Ok(bytes) => {
                     m.emit(
                         "java-progress",
                         JavaProgress {
                             id: id.into(),
-                            stage: "downloading".into(),
+                            stage: "verifying".into(),
                             downloaded_bytes: bytes,
-                            total_bytes: total,
+                            total_bytes: Some(bytes),
                             attempt,
                         },
                     );
-                    tick = Instant::now();
+                    m.logger
+                        .log("INFO", &format!("Downloaded the Java archive from {url}"));
+                    return Ok(bytes);
+                }
+                Err(e) => {
+                    last = e;
+                    let _ = tokio::fs::remove_file(dest).await;
                 }
             }
-            file.flush().await?;
-            file.sync_all().await?;
-            drop(file);
-            if total.map(|n| n != bytes).unwrap_or(false) {
-                return Err(AppError::user(
-                    "The Java download is incomplete. Please retry.",
-                ));
-            }
-            if format!("{:x}", hash.finalize()) != release.sha256 {
-                return Err(AppError::user(
-                    "Java checksum verification failed. The file was discarded.",
-                ));
-            }
-            m.emit(
-                "java-progress",
-                JavaProgress {
-                    id: id.into(),
-                    stage: "verifying".into(),
-                    downloaded_bytes: bytes,
-                    total_bytes: Some(bytes),
-                    attempt,
-                },
-            );
-            Ok(bytes)
+            tokio::time::sleep(Duration::from_millis(400)).await;
         }
-        .await;
-        match result {
-            Ok(bytes) => return Ok(bytes),
-            Err(e) => {
-                last = e;
-                let _ = tokio::fs::remove_file(dest).await;
-            }
-        }
-        tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
     }
     Err(last)
 }
@@ -507,6 +572,16 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join(MANIFEST), b"not json").unwrap();
         assert!(list(temp.path()).is_empty());
+    }
+
+    #[test]
+    fn mirror_url_follows_adoptium_layout() {
+        let url = mirror_url(25, "OpenJDK25U-jre_x64_windows_hotspot_25.0.4.1_1.zip").unwrap();
+        assert!(url.starts_with(MIRROR_BASE));
+        assert!(url.contains("/25/jre/"));
+        assert!(url.ends_with("/OpenJDK25U-jre_x64_windows_hotspot_25.0.4.1_1.zip"));
+        assert!(mirror_url(25, "../escape.zip").is_none());
+        assert!(mirror_url(25, "").is_none());
     }
 
     #[test]
