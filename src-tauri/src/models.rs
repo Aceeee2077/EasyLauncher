@@ -214,6 +214,13 @@ pub struct Settings {
     /// How opaque the liquid-glass surfaces are, from 0.2 (very sheer) to 1.0.
     #[serde(default = "one")]
     pub glass_opacity: f32,
+    /// Pixel blur applied to the backdrop artwork, from 0 (sharp) to 40.
+    #[serde(default)]
+    pub background_blur: f32,
+    /// Wallpaper this app copied into `<app data>/appearance`, or none to use
+    /// the bundled landscape. Only paths inside that folder are accepted.
+    #[serde(default)]
+    pub background_image: Option<String>,
     /// Custom servers root. None keeps the default under the app data folder.
     #[serde(default)]
     pub server_storage: Option<String>,
@@ -359,5 +366,15 @@ mod tests {
             "\"zh-CN\""
         );
         assert_eq!(serde_json::to_string(&Language::English).unwrap(), "\"en\"");
+    }
+    #[test]
+    fn older_settings_get_background_defaults() {
+        let s: Settings = serde_json::from_str(r#"{"glassOpacity":0.6}"#).unwrap();
+        assert_eq!(s.glass_opacity, 0.6);
+        assert_eq!(s.background_blur, 0.0);
+        assert!(s.background_image.is_none());
+        let json = serde_json::to_string(&s).unwrap();
+        assert!(json.contains("\"backgroundBlur\":0.0"));
+        assert!(json.contains("\"backgroundImage\":null"));
     }
 }

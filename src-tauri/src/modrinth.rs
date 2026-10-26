@@ -1,6 +1,6 @@
 use crate::{
     error::{AppError, Result},
-    models::{Server, ServerType},
+    models::{CreateServer, Server, ServerType},
     server::manager::Manager,
     storage,
 };
@@ -11,7 +11,7 @@ use sha2::{Digest, Sha512};
 use std::{
     collections::BTreeMap,
     fs,
-    io::Read,
+    io::{Read, Write},
     path::{Path, PathBuf},
     sync::Arc,
     time::{Duration, Instant},
@@ -59,6 +59,41 @@ pub struct ProjectPage {
 }
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GalleryImage {
+    pub url: String,
+    pub featured: bool,
+    pub title: Option<String>,
+    pub description: Option<String>,
+}
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectDetail {
+    pub id: String,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
+    pub body: String,
+    pub project_type: String,
+    pub icon_url: Option<String>,
+    pub downloads: u64,
+    pub followers: u64,
+    pub categories: Vec<String>,
+    pub additional_categories: Vec<String>,
+    pub client_side: String,
+    pub server_side: String,
+    pub game_versions: Vec<String>,
+    pub loaders: Vec<String>,
+    pub gallery: Vec<GalleryImage>,
+    pub source_url: Option<String>,
+    pub issues_url: Option<String>,
+    pub wiki_url: Option<String>,
+    pub discord_url: Option<String>,
+    pub license_name: Option<String>,
+    pub license_url: Option<String>,
+    pub updated: String,
+}
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VersionFile {
     pub filename: String,
     pub url: String,
@@ -99,6 +134,50 @@ pub struct ContentEntry {
     pub version_number: String,
     pub kind: String,
     pub installed_at: String,
+}
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModpackServerInput {
+    pub project_id: String,
+    pub version_id: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub port: Option<u16>,
+    #[serde(default)]
+    pub memory_min_mb: Option<u32>,
+    #[serde(default)]
+    pub memory_max_mb: Option<u32>,
+    #[serde(default)]
+    pub max_players: Option<u32>,
+    #[serde(default)]
+    pub online_mode: Option<bool>,
+    #[serde(default)]
+    pub eula_accepted: bool,
+}
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModpackServerResult {
+    pub server: Server,
+    pub report: ModpackReport,
+}
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportPackInput {
+    pub path: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub version: Option<String>,
+}
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportedPack {
+    pub path: String,
+    pub files: u32,
+    pub overrides: u32,
+    pub skipped: u32,
+    pub size_bytes: u64,
 }
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -408,11 +487,20 @@ pub async fn search(
     project_type: &str,
     game_version: Option<&str>,
     loader: Option<&str>,
+    sort: Option<&str>,
     offset: u64,
 ) -> Result<ProjectPage> {
     if !matches!(project_type, "mod" | "plugin" | "modpack") {
         return Err(AppError::user("Unsupported Modrinth project type."));
     }
+    let index = match sort.unwrap_or("relevance") {
+        "relevance" => "relevance",
+        "downloads" => "downloads",
+        "follows" => "follows",
+        "newest" => "newest",
+        "updated" => "updated",
+        _ => return Err(AppError::user("Unsupported Modrinth sort order.")),
+    };
     let facets = facets(project_type, game_version, loader);
     let response = client
         .get(format!("{API_BASE}/search"))
@@ -420,7 +508,7 @@ pub async fn search(
             ("query", query.trim().to_string()),
             ("limit", PAGE_SIZE.to_string()),
             ("offset", offset.min(5000).to_string()),
-            ("index", "relevance".to_string()),
+            ("index", index.to_string()),
             ("facets", facets),
         ])
         .send()
@@ -455,6 +543,148 @@ fn map_search(raw: RawSearch) -> ProjectPage {
         offset: raw.offset,
         limit: raw.limit.max(PAGE_SIZE),
     }
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct RawGallery {
+    #[serde(default)]
+    url: String,
+    #[serde(default)]
+    featured: bool,
+    #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
+    description: Option<String>,
+}
+#[derive(Debug, Default, Deserialize)]
+struct RawLicense {
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    url: Option<String>,
+}
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RawProjectDetail {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    slug: String,
+    #[serde(default)]
+    title: String,
+    #[serde(default)]
+    description: String,
+    #[serde(default)]
+    body: String,
+    #[serde(default)]
+    project_type: String,
+    #[serde(default)]
+    icon_url: Option<String>,
+    #[serde(default)]
+    downloads: u64,
+    #[serde(default)]
+    followers: u64,
+    #[serde(default)]
+    categories: Vec<String>,
+    #[serde(default)]
+    additional_categories: Vec<String>,
+    #[serde(default)]
+    client_side: String,
+    #[serde(default)]
+    server_side: String,
+    #[serde(default)]
+    game_versions: Vec<String>,
+    #[serde(default)]
+    loaders: Vec<String>,
+    #[serde(default)]
+    gallery: Vec<RawGallery>,
+    #[serde(default)]
+    source_url: Option<String>,
+    #[serde(default)]
+    issues_url: Option<String>,
+    #[serde(default)]
+    wiki_url: Option<String>,
+    #[serde(default)]
+    discord_url: Option<String>,
+    #[serde(default)]
+    license: Option<RawLicense>,
+    #[serde(default)]
+    updated: String,
+}
+fn trusted_image(url: &str) -> bool {
+    url.len() <= 512
+        && (url.starts_with("https://cdn.modrinth.com/")
+            || url.starts_with("https://cdn-raw.modrinth.com/"))
+}
+fn trusted_link(url: Option<String>) -> Option<String> {
+    url.filter(|u| u.len() <= 512 && u.starts_with("https://"))
+}
+/// Full project metadata for the browse detail view. The body is capped so a
+/// hostile or broken project cannot exhaust memory.
+pub async fn project_detail(client: &reqwest::Client, project_id: &str) -> Result<ProjectDetail> {
+    validate_project_id(project_id)?;
+    let response = client
+        .get(format!("{API_BASE}/project/{project_id}"))
+        .timeout(Duration::from_secs(20))
+        .send()
+        .await?
+        .error_for_status()?;
+    if response
+        .content_length()
+        .is_some_and(|n| n > 4 * 1024 * 1024)
+    {
+        return Err(AppError::user(
+            "The project description is larger than the 4 MB safety limit.",
+        ));
+    }
+    let bytes = response.bytes().await?;
+    if bytes.len() > 4 * 1024 * 1024 {
+        return Err(AppError::user(
+            "The project description is larger than the 4 MB safety limit.",
+        ));
+    }
+    let raw: RawProjectDetail = serde_json::from_slice(&bytes)?;
+    if raw.id.is_empty() {
+        return Err(AppError::user(
+            "The project metadata could not be read. Refresh and try again.",
+        ));
+    }
+    Ok(ProjectDetail {
+        id: raw.id,
+        slug: raw.slug,
+        title: raw.title,
+        description: raw.description,
+        body: raw.body,
+        project_type: raw.project_type,
+        icon_url: raw.icon_url.filter(|u| trusted_image(u)),
+        downloads: raw.downloads,
+        followers: raw.followers,
+        categories: raw.categories,
+        additional_categories: raw.additional_categories,
+        client_side: raw.client_side,
+        server_side: raw.server_side,
+        game_versions: raw.game_versions,
+        loaders: raw.loaders,
+        gallery: raw
+            .gallery
+            .into_iter()
+            .filter(|g| trusted_image(&g.url))
+            .take(20)
+            .map(|g| GalleryImage {
+                url: g.url,
+                featured: g.featured,
+                title: g.title,
+                description: g.description,
+            })
+            .collect(),
+        source_url: trusted_link(raw.source_url),
+        issues_url: trusted_link(raw.issues_url),
+        wiki_url: trusted_link(raw.wiki_url),
+        discord_url: trusted_link(raw.discord_url),
+        license_name: raw.license.as_ref().map(|l| l.name.clone()),
+        license_url: raw.license.and_then(|l| trusted_link(l.url)),
+        updated: raw.updated,
+    })
 }
 
 pub async fn versions(
@@ -973,6 +1203,520 @@ async fn install_pack(
         let _ = fs::remove_file(path);
     }
     Ok(report)
+}
+
+fn pick_pack_file(version: &ProjectVersion) -> Option<&VersionFile> {
+    version
+        .files
+        .iter()
+        .find(|f| f.primary && f.filename.to_ascii_lowercase().ends_with(".mrpack"))
+        .or_else(|| {
+            version
+                .files
+                .iter()
+                .find(|f| f.filename.to_ascii_lowercase().ends_with(".mrpack"))
+        })
+}
+fn free_port() -> Result<u16> {
+    std::net::TcpListener::bind(("127.0.0.1", 0))
+        .and_then(|listener| listener.local_addr())
+        .map(|address| address.port())
+        .map_err(|e| AppError::new("Could not reserve a local port.", e))
+}
+async fn ensure_runtime(m: &Arc<Manager>, major: u32) -> Result<String> {
+    let runtimes = crate::java::detector::detect(None, Some(&m.java)).await;
+    if let Some(runtime) = runtimes.into_iter().find(|runtime| runtime.major == major) {
+        return Ok(runtime.path);
+    }
+    if let Some(path) = m.settings()?.java_path {
+        if let Ok(runtime) = crate::java::detector::validate(&path, major).await {
+            return Ok(runtime.path);
+        }
+    }
+    Ok(crate::java::managed::install(m, major).await?.path)
+}
+
+/// Create a complete server from a Modrinth modpack: infer the loader and game
+/// version from the pack itself, install the matching server software, then
+/// apply the pack. The pack is downloaded once and reused for the install.
+pub async fn create_server_from_modpack(
+    m: Arc<Manager>,
+    input: ModpackServerInput,
+) -> Result<ModpackServerResult> {
+    m.ready()?;
+    validate_project_id(&input.project_id)?;
+    if !input.eula_accepted {
+        return Err(AppError::user(
+            "Accept the Minecraft EULA before creating a server.",
+        ));
+    }
+    let client = m.client();
+    let available = versions(&client, &input.project_id, None, None).await?;
+    let version = available
+        .into_iter()
+        .find(|v| v.id == input.version_id)
+        .ok_or_else(|| {
+            AppError::user("This modpack version is no longer available. Refresh and try again.")
+        })?;
+    let file = pick_pack_file(&version)
+        .ok_or_else(|| AppError::user("This modpack version has no .mrpack file."))?;
+    if file.size > MAX_PACK_BYTES {
+        return Err(AppError::user(
+            "This modpack is larger than the 512 MB safety limit.",
+        ));
+    }
+    let staging = storage::child(&m.root, "pack-staging")?;
+    fs::create_dir_all(&staging)?;
+    let temp = staging.join(format!("{}.mrpack", uuid::Uuid::new_v4().simple()));
+    storage::no_links(&temp)?;
+    let outcome = async {
+        progress(
+            &m,
+            "modpack-setup",
+            "download",
+            &file.filename,
+            0,
+            1,
+            0,
+            (file.size > 0).then_some(file.size),
+        );
+        download_file(
+            &client,
+            &file.url,
+            &temp,
+            file.sha512.as_deref(),
+            file.sha1.as_deref(),
+            MAX_PACK_BYTES,
+            |done, total| {
+                progress(
+                    &m,
+                    "modpack-setup",
+                    "download",
+                    &file.filename,
+                    0,
+                    1,
+                    done,
+                    total,
+                )
+            },
+        )
+        .await?;
+        let layout = pack_layout(&temp)?;
+        let loader = detect_loader(&layout.pack.dependencies)?;
+        let minecraft = layout
+            .pack
+            .dependencies
+            .get("minecraft")
+            .filter(|value| !value.is_empty() && value.len() <= 32)
+            .cloned()
+            .ok_or_else(|| AppError::user("This modpack does not declare a Minecraft version."))?;
+        let server_type = match loader {
+            "fabric" => ServerType::Fabric,
+            _ => ServerType::Vanilla,
+        };
+        let settings = m.settings()?;
+        let required = crate::minecraft::versions::requirement(
+            &client,
+            &minecraft,
+            server_type,
+            settings.download_source,
+        )
+        .await?;
+        let java_path = ensure_runtime(&m, required).await?;
+        let memory_max = input.memory_max_mb.unwrap_or(2048).clamp(512, 65536);
+        let memory_min = input.memory_min_mb.unwrap_or(512).clamp(256, memory_max);
+        let port = input
+            .port
+            .filter(|port| *port > 0)
+            .map_or_else(free_port, Ok)?;
+        let name = input
+            .name
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or(&version.name)
+            .chars()
+            .take(64)
+            .collect::<String>();
+        let created = m
+            .create(CreateServer {
+                name,
+                minecraft_version: minecraft,
+                server_type,
+                memory_min_mb: memory_min,
+                memory_max_mb: memory_max,
+                port,
+                max_players: input.max_players.unwrap_or(20).clamp(1, 10_000),
+                game_mode: "survival".into(),
+                difficulty: "normal".into(),
+                online_mode: input.online_mode.unwrap_or(true),
+                java_path,
+                eula_accepted: true,
+            })
+            .await?;
+        let id = created.id.clone();
+        let applied = async {
+            m.install(&id).await?;
+            let server = m.metadata(&id)?;
+            let root = m.dir(&id)?;
+            install_pack(&m, &id, &server, &root, &temp, &client, &version).await
+        }
+        .await;
+        match applied {
+            Ok(report) => Ok(ModpackServerResult {
+                server: m.metadata(&id)?,
+                report,
+            }),
+            Err(error) => {
+                let _ = m.delete(&id, true).await;
+                Err(error)
+            }
+        }
+    }
+    .await;
+    let _ = fs::remove_file(&temp);
+    outcome
+}
+
+fn zip_err(error: zip::result::ZipError) -> AppError {
+    AppError::new("Could not write the modpack archive.", error)
+}
+struct ExportStats {
+    files: u32,
+    overrides: u32,
+    skipped: u32,
+    bytes: u64,
+}
+const MAX_EXPORT_BYTES: u64 = 256 * 1024 * 1024;
+const MAX_EXPORT_FILE_BYTES: u64 = 64 * 1024 * 1024;
+const MAX_EXPORT_ENTRIES: u32 = 10_000;
+fn add_export_file<W: Write + std::io::Seek>(
+    zip: &mut zip::ZipWriter<W>,
+    name: &str,
+    path: &Path,
+    stats: &mut ExportStats,
+) -> Result<()> {
+    storage::no_links(path)?;
+    let metadata = fs::metadata(path)?;
+    if !metadata.is_file() || metadata.len() > MAX_EXPORT_FILE_BYTES {
+        stats.skipped += 1;
+        return Ok(());
+    }
+    if stats.bytes + metadata.len() > MAX_EXPORT_BYTES
+        || stats.files + stats.overrides >= MAX_EXPORT_ENTRIES
+    {
+        stats.skipped += 1;
+        return Ok(());
+    }
+    let mut source = fs::File::open(path)?;
+    zip.start_file(name, zip::write::SimpleFileOptions::default())
+        .map_err(zip_err)?;
+    std::io::copy(&mut source, zip)?;
+    stats.bytes += metadata.len();
+    stats.overrides += 1;
+    Ok(())
+}
+fn add_export_dir<W: Write + std::io::Seek>(
+    zip: &mut zip::ZipWriter<W>,
+    root: &Path,
+    relative: &str,
+    depth: u32,
+    stats: &mut ExportStats,
+) -> Result<()> {
+    if depth > 8 {
+        return Ok(());
+    }
+    let dir = match safe_join(root, relative) {
+        Ok(path) => path,
+        Err(_) => {
+            stats.skipped += 1;
+            return Ok(());
+        }
+    };
+    if !dir.is_dir() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(dir)?.flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let child = format!("{relative}/{name}");
+        if path.is_dir() {
+            add_export_dir(zip, root, &child, depth + 1, stats)?;
+        } else if path.is_file() {
+            add_export_file(zip, &format!("overrides/{child}"), &path, stats)?;
+        }
+    }
+    Ok(())
+}
+async fn versions_by_ids(
+    client: &reqwest::Client,
+    ids: &[String],
+) -> Result<BTreeMap<String, ProjectVersion>> {
+    let mut found = BTreeMap::new();
+    for chunk in ids.chunks(100) {
+        let encoded = serde_json::to_string(chunk)?;
+        let raw: Vec<RawVersion> = client
+            .get(format!("{API_BASE}/versions"))
+            .query(&[("ids", encoded)])
+            .timeout(Duration::from_secs(30))
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        for version in map_versions(raw) {
+            found.insert(version.id.clone(), version);
+        }
+    }
+    Ok(found)
+}
+async fn fabric_loader_version(
+    client: &reqwest::Client,
+    source: crate::models::DownloadSource,
+    game: &str,
+) -> Result<String> {
+    let meta = crate::minecraft::versions::fabric_meta(source);
+    let value =
+        crate::minecraft::versions::json(client, &format!("{meta}/v2/versions/loader/{game}"))
+            .await?;
+    value
+        .as_array()
+        .and_then(|items| items.iter().find(|item| item["loader"]["stable"] == true))
+        .or_else(|| value.as_array().and_then(|items| items.first()))
+        .and_then(|item| item["loader"]["version"].as_str())
+        .map(str::to_owned)
+        .ok_or_else(|| AppError::user("No stable Fabric loader is available for this version."))
+}
+
+/// Build a portable `.mrpack` from a server's managed mods, loose mods and
+/// config folders. Managed files keep their Modrinth download URLs so other
+/// launchers can reuse them; files whose local copy no longer matches the
+/// recorded version are embedded as overrides instead.
+pub async fn export_modpack(
+    m: Arc<Manager>,
+    id: String,
+    input: ExportPackInput,
+) -> Result<ExportedPack> {
+    let runtime = m.runtime(&id)?;
+    let _guard = runtime.gate.lock().await;
+    runtime.idle()?;
+    let server = m.metadata(&id)?;
+    if !server.installed {
+        return Err(AppError::user("Install the server before exporting it."));
+    }
+    if server.server_type.plugins() {
+        return Err(AppError::user(
+            "Plugin servers cannot be exported as modpacks. Use a Fabric or Vanilla server.",
+        ));
+    }
+    let path = PathBuf::from(input.path.trim());
+    if !path.is_absolute()
+        || path
+            .extension()
+            .and_then(|value| value.to_str())
+            .is_none_or(|value| !value.eq_ignore_ascii_case("mrpack"))
+    {
+        return Err(AppError::user("Choose an absolute path ending in .mrpack."));
+    }
+    let parent = path
+        .parent()
+        .filter(|parent| parent.is_dir())
+        .ok_or_else(|| AppError::user("The destination folder does not exist."))?;
+    storage::no_links(&path)?;
+    storage::no_links(parent)?;
+    let client = m.client();
+    let root = m.dir(&id)?;
+    let listing = listing(&m, &id)?;
+    let known = versions_by_ids(
+        &client,
+        &listing
+            .entries
+            .iter()
+            .map(|entry| entry.version_id.clone())
+            .collect::<Vec<_>>(),
+    )
+    .await?;
+    let source = m.settings()?.download_source;
+    let loader = if server.server_type == ServerType::Fabric {
+        Some(fabric_loader_version(&client, source, &server.minecraft_version).await?)
+    } else {
+        None
+    };
+    let name = input
+        .name
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or(&server.name)
+        .chars()
+        .take(96)
+        .collect::<String>();
+    let version = input
+        .version
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .or_else(|| pack_info(&m, &id).ok().flatten().map(|pack| pack.version))
+        .unwrap_or_else(|| "1.0.0".into());
+    // versionId is an identifier in the pack index, so keep it portable.
+    let version: String = version
+        .chars()
+        .filter(|value| value.is_ascii_alphanumeric() || matches!(value, '.' | '_' | '-' | '+'))
+        .take(64)
+        .collect();
+    let version = if version.is_empty() {
+        "1.0.0".to_string()
+    } else {
+        version
+    };
+    let temp = parent.join(format!(
+        ".{}-{}.part",
+        path.file_stem()
+            .and_then(|value| value.to_str())
+            .unwrap_or("modpack"),
+        uuid::Uuid::new_v4().simple()
+    ));
+    storage::no_links(&temp)?;
+    let mut stats = ExportStats {
+        files: 0,
+        overrides: 0,
+        skipped: 0,
+        bytes: 0,
+    };
+    let outcome = (|| -> Result<()> {
+        let handle = fs::File::create(&temp)?;
+        let mut zip = zip::ZipWriter::new(handle);
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+        let mut files = Vec::new();
+        let folder = server.server_type.content_folder().unwrap_or("mods");
+        let mods = root.join(folder);
+        for entry in &listing.entries {
+            if !safe_component(&entry.file) {
+                stats.skipped += 1;
+                continue;
+            }
+            let Some(known_version) = known.get(&entry.version_id) else {
+                stats.skipped += 1;
+                let local = mods.join(&entry.file);
+                if local.is_file() {
+                    add_export_file(
+                        &mut zip,
+                        &format!("overrides/{folder}/{}", entry.file),
+                        &local,
+                        &mut stats,
+                    )?;
+                }
+                continue;
+            };
+            let Some(file) = known_version
+                .files
+                .iter()
+                .find(|file| file.filename.eq_ignore_ascii_case(&entry.file))
+            else {
+                stats.skipped += 1;
+                let local = mods.join(&entry.file);
+                if local.is_file() {
+                    add_export_file(
+                        &mut zip,
+                        &format!("overrides/{folder}/{}", entry.file),
+                        &local,
+                        &mut stats,
+                    )?;
+                }
+                continue;
+            };
+            let local = mods.join(&entry.file);
+            let matches = local.is_file()
+                && file_matches_hashes(&local, file.sha1.as_deref(), file.sha512.as_deref());
+            if !matches || !file.url.starts_with("https://") {
+                stats.skipped += 1;
+                if local.is_file() {
+                    add_export_file(
+                        &mut zip,
+                        &format!("overrides/{folder}/{}", entry.file),
+                        &local,
+                        &mut stats,
+                    )?;
+                }
+                continue;
+            }
+            files.push(json!({
+                "path": format!("{folder}/{}", entry.file),
+                "hashes": {
+                    "sha1": file.sha1,
+                    "sha512": file.sha512,
+                },
+                "downloads": [file.url.clone()],
+                "fileSize": file.size,
+                "env": {
+                    "client": "required",
+                    "server": "required",
+                },
+            }));
+        }
+        for name in &listing.unmanaged {
+            if !safe_component(name) {
+                stats.skipped += 1;
+                continue;
+            }
+            let local = mods.join(name);
+            if local.is_file() {
+                add_export_file(
+                    &mut zip,
+                    &format!("overrides/{folder}/{name}"),
+                    &local,
+                    &mut stats,
+                )?;
+            }
+        }
+        for dir in ["config", "defaultconfigs", "scripts", "kubejs"] {
+            add_export_dir(&mut zip, &root, dir, 0, &mut stats)?;
+        }
+        let mut dependencies = serde_json::Map::new();
+        dependencies.insert(
+            "minecraft".into(),
+            serde_json::Value::String(server.minecraft_version.clone()),
+        );
+        if let Some(loader) = &loader {
+            dependencies.insert(
+                "fabric-loader".into(),
+                serde_json::Value::String(loader.clone()),
+            );
+        }
+        let index = json!({
+            "formatVersion": 1,
+            "game": "minecraft",
+            "versionId": version,
+            "name": name,
+            "summary": format!("Exported from EasyLauncher · {}", server.name),
+            "files": files,
+            "dependencies": dependencies,
+        });
+        zip.start_file("modrinth.index.json", options)
+            .map_err(zip_err)?;
+        zip.write_all(serde_json::to_string_pretty(&index)?.as_bytes())?;
+        stats.files = index["files"].as_array().map_or(0, |f| f.len()) as u32;
+        zip.finish().map_err(zip_err)?;
+        Ok(())
+    })();
+    if let Err(error) = outcome {
+        let _ = fs::remove_file(&temp);
+        return Err(error);
+    }
+    if path.exists() {
+        fs::remove_file(&path)?;
+    }
+    fs::rename(&temp, &path)?;
+    let size_bytes = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+    Ok(ExportedPack {
+        path: path.to_string_lossy().into_owned(),
+        files: stats.files,
+        overrides: stats.overrides,
+        skipped: stats.skipped,
+        size_bytes,
+    })
 }
 
 async fn apply_pack(

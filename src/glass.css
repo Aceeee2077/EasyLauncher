@@ -4,6 +4,8 @@
 :root {
   --gold: #d9c68c;
   --backdrop-artwork: url("./assets/default-landscape.png");
+  /* Set live from Appearance settings; 0 keeps the artwork sharp. */
+  --backdrop-blur: 0px;
 }
 :root[data-theme="light"] {
   --gold: #937840;
@@ -20,9 +22,11 @@ body {
 body::before {
   content: "";
   position: fixed;
-  inset: 0;
+  /* Grow the layer with the blur radius so its soft edges never show. */
+  inset: calc(var(--backdrop-blur) * -2);
   background: var(--backdrop-artwork) center 40% / cover no-repeat;
   opacity: 0.92;
+  filter: blur(var(--backdrop-blur));
   z-index: -2;
   pointer-events: none;
 }

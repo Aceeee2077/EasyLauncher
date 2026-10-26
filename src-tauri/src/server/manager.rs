@@ -83,6 +83,9 @@ pub struct Manager {
     /// Last start queue, kept after it finishes so the UI can show results.
     pub queue: Mutex<Option<Arc<crate::resources::QueueHandle>>>,
     pub tunnels: AsyncMutex<HashMap<String, crate::tunnel::Runtime>>,
+    pub playit: crate::playit::Service,
+    pub sakura: crate::sakura::Service,
+    pub public_access: crate::public_access::Service,
     pub shutting_down: AtomicBool,
     /// Blocks state changes while the server storage folder is being copied.
     pub relocating: AtomicBool,
@@ -160,6 +163,9 @@ impl Manager {
             player_stats: Mutex::new(HashMap::new()),
             queue: Mutex::new(None),
             tunnels: AsyncMutex::new(HashMap::new()),
+            playit: crate::playit::Service::default(),
+            sakura: crate::sakura::Service::default(),
+            public_access: crate::public_access::Service::default(),
             shutting_down: AtomicBool::new(false),
             relocating: AtomicBool::new(false),
             settings_gate: AsyncMutex::new(()),
@@ -630,6 +636,16 @@ impl Manager {
         } else {
             1.0
         };
+        s.background_blur = if s.background_blur.is_finite() {
+            s.background_blur.clamp(0.0, crate::appearance::MAX_BLUR)
+        } else {
+            0.0
+        };
+        // Never let a settings file point the webview at an arbitrary local
+        // image: only our own copied wallpaper is allowed.
+        s.background_image = s
+            .background_image
+            .filter(|path| crate::appearance::is_managed(&self.root, path));
         // The storage folder is only changed by change_server_storage, which
         // owns the copy step. Keep whatever is already on disk so a full
         // settings save from a stale page cannot point at a missing folder.
@@ -960,6 +976,32 @@ mod integration_tests {
             Arc::new(Runtime::new(&id, Status::Stopped, None)),
         );
         (temp, m, id)
+    }
+    #[tokio::test]
+    async fn activity_reads_managed_logs_in_read_only_mode() {
+        let (_temp, m, id) = setup("unused-in-this-test".into());
+        let logs = m.dir(&id).unwrap().join("logs");
+        fs::create_dir(&logs).unwrap();
+        let original = "[09:10:11] [Server thread/INFO]: Alex joined the game\n";
+        fs::write(logs.join("latest.log"), original).unwrap();
+        let mut settings = m.settings().unwrap();
+        settings.read_only = true;
+        m.save_settings(settings).await.unwrap();
+        assert!(m.ensure_writable().is_err());
+        assert_eq!(
+            crate::activity::library(&m, &id).unwrap().files[0].name,
+            "latest.log"
+        );
+        let report = crate::activity::analyze(&m, &id, "latest.log").unwrap();
+        assert_eq!(report.players, vec!["Alex"]);
+        assert_eq!(report.events[0].line, 1);
+        assert!(crate::activity::analyze(&m, &id, "../latest.log").is_err());
+        assert!(crate::activity::library(&m, "invalid-id").is_err());
+        assert_eq!(
+            fs::read_to_string(logs.join("latest.log")).unwrap(),
+            original
+        );
+        assert_eq!(m.runtime(&id).unwrap().snapshot().status, Status::Stopped);
     }
     async fn wait(m: &Manager, id: &str, status: Status) {
         tokio::time::timeout(std::time::Duration::from_secs(8), async {

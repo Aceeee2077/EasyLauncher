@@ -1,4 +1,106 @@
 export const zh = {
+  "activity.title": "日志洞察工作台",
+  "activity.desc":
+    "从本机历史日志提取玩家与运维事件，按时间和玩家回查证据。不会启动游戏或上传日志。",
+  "activity.source": "日志库",
+  "activity.noLogs": "没有可读取的日志",
+  "activity.analyze": "分析所选日志",
+  "activity.omitted":
+    "仅列出最近命名的 200 个日志（latest.log 优先），另有 {count} 个未列出。",
+  "activity.scope":
+    "已扫描 {lines} 行 · 识别 {events} 个事件 · {players} 位玩家",
+  "activity.truncated":
+    "结果不完整：最多读取日志开头解压后 8 MiB、保留 10,000 个事件。统计只覆盖已读取部分。",
+  "activity.hours": "事件时段分布（日志本地时间，点击筛选）",
+  "activity.hour": "{hour} 时：{count} 个事件",
+  "activity.player": "玩家",
+  "activity.allPlayers": "所有玩家",
+  "activity.search": "搜索事件内容",
+  "activity.bookmarked": "仅看标记",
+  "activity.export": "导出筛选结果 JSON",
+  "activity.reset": "清除筛选",
+  "activity.markHint":
+    "标记仅保留在本次分析中，可随导出保存。内容做基础脱敏，分享前请检查；仅识别标准英文服务端消息，死亡事件为规则识别，不代表完整战斗统计。",
+  "activity.line": "原始行号",
+  "activity.time": "时间",
+  "activity.type": "类型",
+  "activity.evidence": "日志证据",
+  "activity.mark": "标记",
+  "activity.markLine": "标记第 {line} 行",
+  "activity.empty": "没有匹配的事件。可清除筛选或选择其他日志。",
+  "activity.previous": "上一页",
+  "activity.next": "下一页",
+  "activity.page": "第 {page} / {total} 页 · {count} 个匹配事件",
+  "activity.startHint":
+    "选择 .log 或 .log.gz 后点击分析。兼容 Vanilla、Paper、Purpur、Fabric 的标准服务端日志；未知格式不会猜测为玩家事件。",
+  "activity.kind.join": "玩家加入",
+  "activity.kind.leave": "玩家离开",
+  "activity.kind.death": "死亡",
+  "activity.kind.advancement": "进度与挑战",
+  "activity.kind.chat": "聊天",
+  "activity.kind.warning": "警告",
+  "activity.kind.error": "错误",
+  "activity.kind.lifecycle": "启停",
+  "playit.title": "好友联机",
+  "playit.entryHint":
+    "异地好友加入：首次开启好友联机并授权，以后随开服自动连接。",
+  "playit.desc": "开启后自动连接公网，朋友直接用 Minecraft 加入。",
+  "playit.explain":
+    "首次在 playit.gg 登录并授权一次。之后随开服自动连接、关服自动断开，无需安装客户端或配置路由器。线路速度和可用额度由 playit 提供；当前支持 Windows x64 / Java 版。",
+  "playit.enable": "开启自动联机",
+  "playit.disable": "关闭自动联机",
+  "playit.authorize": "前往 playit 授权",
+  "playit.reauthorize": "重新授权（需先停止所有服务器）",
+  "playit.claimHint":
+    "在浏览器完成登录与授权后回到这里，软件会自动创建联机地址。若服务商要求验证邮箱，请先完成验证。",
+  "playit.readyHint": "授权已保存。启动服务器后，软件会自动建立联机连接。",
+  "playit.address": "好友加入地址",
+  "playit.verifying":
+    "正在通过公网地址验证 Minecraft 响应，验证完成后即可复制分享。",
+  "playit.advanced": "高级网络设置 · UPnP / 路由器映射 / 防火墙",
+  "playit.loadFailed": "无法读取联机状态，正在重试。",
+  "playit.phase.disabled": "未开启",
+  "playit.phase.preparing": "准备中",
+  "playit.phase.authorizing": "等待首次授权",
+  "playit.phase.downloading": "准备联机组件",
+  "playit.phase.ready": "已授权 · 等待开服",
+  "playit.phase.connecting": "正在连接与验证",
+  "playit.phase.online": "公网 Minecraft 响应已验证",
+  "playit.phase.error": "连接遇到问题 · 自动重试",
+  "sakura.title": "樱花 FRP",
+  "sakura.desc": "使用已安装的樱花 FRP，开服时自动建立隧道。",
+  "sakura.explain":
+    "首次填写访问密钥并选择一次线路：之后启动服务器会自动创建或更新隧道并连接，停止服务器会自动断开。仅支持 Windows x64 / Java 版，需要本机已安装樱花启动器。",
+  "sakura.tokenLabel": "访问密钥",
+  "sakura.tokenHint":
+    "只加密保存在本机（Windows DPAPI），不会写入日志、命令行或发给网页界面。",
+  "sakura.tokenPlaceholder": "粘贴樱花 FRP 访问密钥",
+  "sakura.saveToken": "保存并验证",
+  "sakura.getToken": "获取访问密钥",
+  "sakura.changeToken": "更换密钥",
+  "sakura.nodeLabel": "线路节点",
+  "sakura.nodeHint":
+    "已禁用的节点表示当前满载或离线。免费账户请选择非 VIP 节点。",
+  "sakura.publicRule":
+    "仅好友小群联机可以直接使用普通节点。会把连接方式公开发布到论坛、群聊或视频平台的服务器，必须选择带「多线」标记的节点，否则樱花 FRP 可能封禁账户。",
+  "sakura.nodeUnavailable": "暂时没有可用节点",
+  "sakura.enable": "开启樱花穿透",
+  "sakura.disable": "关闭樱花穿透",
+  "sakura.manage": "管理隧道",
+  "sakura.address": "好友加入地址",
+  "sakura.verifying": "隧道已连接，正在通过公网验证 Minecraft 响应…",
+  "sakura.readyHint": "配置已保存。启动服务器后会自动创建或更新隧道并连接。",
+  "sakura.tunnel": "隧道 #{id}",
+  "sakura.publicBadge": "多线",
+  "sakura.vipBadge": "VIP {level}",
+  "sakura.loadFailed": "无法读取樱花穿透状态，正在重试。",
+  "sakura.phase.disabled": "未开启",
+  "sakura.phase.preparing": "准备中",
+  "sakura.phase.needs_token": "等待访问密钥",
+  "sakura.phase.ready": "已配置 · 等待开服",
+  "sakura.phase.connecting": "正在连接与验证",
+  "sakura.phase.online": "公网 Minecraft 响应已验证",
+  "sakura.phase.error": "连接遇到问题 · 自动重试",
   "diagnosis.jvmOptions.title": "JVM 参数无效或互相冲突",
   "diagnosis.jvmOptions.advice":
     "先切换到均衡 JVM 预设，确认 Java 版本兼容，再逐项恢复自定义调优参数。",
@@ -16,6 +118,48 @@ export const zh = {
   "tunnel.stopped": "进程未运行",
   "tunnel.unverified": "地址由配置者提供，进程运行不代表公网连接已验证。",
   "tunnel.exited": "frpc 已退出（代码 {code}），请检查服务商配置后重试。",
+
+  "sakura.nodeAuto": "自动选择可用节点",
+  "public.title": "公网联机",
+  "public.desc": "选择一次联机方式，之后开服自动连接、关服自动断开。",
+  "public.explain":
+    "公网联机（内网穿透）让异地好友直接加入。选择方式、协议和本地端口后保存即可；地址会在 Minecraft 开始监听并通过公网验证后显示。",
+  "public.provider": "联机方式",
+  "public.providerHint": "局域网只适合同一路由器下的朋友。",
+  "public.provider.lan": "仅局域网",
+  "public.provider.sakura": "樱花 FRP",
+  "public.provider.playit": "playit.gg",
+  "public.provider.custom": "自定义 FRP",
+  "public.protocol": "协议",
+  "public.protocolHint": "Java 版使用 TCP；基岩版使用 UDP。",
+  "public.protocol.tcp": "TCP · Java 版",
+  "public.protocol.udp": "UDP · 基岩版",
+  "public.localPort": "本地端口",
+  "public.localPortHint": "留空则跟随服务器端口 {port}。基岩版请填写 19132。",
+  "public.save": "保存并启用",
+  "public.savedHint": "当前使用：{provider}",
+  "public.address": "公网地址",
+  "public.copy": "复制地址",
+  "public.copied": "已复制",
+  "public.verifying": "隧道已建立，正在验证公网响应…",
+  "public.needsSetup": "还需要完成一次服务商配置：填写访问密钥或打开授权页面。",
+  "public.loadFailed": "无法读取公网联机状态，正在重试。",
+  "public.playitHint":
+    "首次使用时，启动一次服务器以生成授权链接；完成授权后以后无需再操作。",
+  "public.customHint":
+    "填写官方 frpc 可执行文件、独立配置文件和公网地址。凭据由 frpc 从配置文件读取，本应用只保存路径和地址；本地端口需与 frpc 配置一致。",
+  "public.lanHint": "无需隧道，朋友需与本机处于同一局域网。",
+  "public.manage": "打开设置",
+  "public.addressPending": "启动服务器后显示公网地址",
+  "public.phase.needs_setup": "需要配置",
+  "public.phase.preparing": "准备中",
+  "public.phase.authorizing": "等待授权",
+  "public.phase.downloading": "准备联机组件",
+  "public.phase.ready": "已配置 · 等待开服",
+  "public.phase.waiting": "等待 Minecraft 监听端口",
+  "public.phase.connecting": "正在连接与验证",
+  "public.phase.online": "公网 Minecraft 响应已验证",
+  "public.phase.error": "连接遇到问题 · 自动重试",
 
   "deps.relation.required": "必需",
   "deps.relation.optional": "可选",
@@ -75,7 +219,8 @@ export const zh = {
   "errors.server.jarMissing": "缺少 server.jar。请重新安装服务器或恢复文件。",
   "errors.server.restorePending":
     "存在未处理的世界恢复文件。请先在服务器文件夹中完成或清理恢复内容。",
-  "errors.server.javaStartFailed": "无法启动 Java。请检查运行时路径和文件夹权限。",
+  "errors.server.javaStartFailed":
+    "无法启动 Java。请检查运行时路径和文件夹权限。",
   "errors.server.javaPathInvalid":
     "请选择 Java 可执行文件的完整路径（Windows 上是 java.exe）。",
   "errors.server.javaTimeout": "Java 在 8 秒内没有响应。请换一个运行时。",
@@ -105,8 +250,7 @@ export const zh = {
   "errors.supervision.unsupported":
     "当前系统不支持生产服务。只有 Linux systemd 和 macOS launchd 可以安装。",
   "errors.supervision.notConfirmed": "请先确认服务器已停止或服务已停用。",
-  "errors.supervision.notInstalled":
-    "请先安装服务器文件，再创建生产服务。",
+  "errors.supervision.notInstalled": "请先安装服务器文件，再创建生产服务。",
   "errors.supervision.noFile": "这个服务器没有已安装的服务文件。",
   "errors.update.invalidChannel":
     "请填写 latest.json 的直接 HTTPS 地址，不要包含空格、查询参数或片段。",
@@ -133,7 +277,8 @@ export const zh = {
   "errors.migration.unsafeEntry": "归档包含不安全的路径或链接，已拒绝导入。",
   "errors.migration.invalidArchive": "无法安全读取这个服务器归档。",
   "errors.migration.invalidManifest": "归档清单无效或已损坏。",
-  "errors.migration.unsupported": "这个归档由其他版本或更新版本的 EasyLauncher 创建。",
+  "errors.migration.unsupported":
+    "这个归档由其他版本或更新版本的 EasyLauncher 创建。",
   "errors.migration.missingArchive": "找不到归档文件，请确认路径。",
   "errors.migration.limit": "归档超出导入大小或文件数量限制。",
   "errors.migration.noJar": "归档根目录没有可启动的服务端 JAR。",
@@ -152,21 +297,17 @@ export const zh = {
     "备份流程已结束，但未能重新开启自动保存。请重启服务器，或在控制台执行 save-on 后再继续。",
   "errors.backup.corrupt":
     "备份数据已损坏或校验失败，无法读取。请改用其他备份或重新创建。",
-  "errors.world.corrupt":
-    "世界或区块数据已损坏，无法安全读取。请从备份恢复。",
+  "errors.world.corrupt": "世界或区块数据已损坏，无法安全读取。请从备份恢复。",
   "errors.remote.config":
     "远程备份配置不完整或无效。请检查端点、存储桶与凭据。",
-  "errors.remote.url":
-    "远程地址无效。请填写不含文件夹路径的 HTTPS 端点。",
+  "errors.remote.url": "远程地址无效。请填写不含文件夹路径的 HTTPS 端点。",
   "errors.remote.bucket": "存储桶名称无效，请检查 S3 配置。",
   "errors.remote.prefix": "远程路径前缀不安全或无效。",
-  "errors.remote.auth":
-    "远程存储认证失败，请检查用户名、Access Key 或密码。",
+  "errors.remote.auth": "远程存储认证失败，请检查用户名、Access Key 或密码。",
   "errors.remote.notFound": "远程路径或存储桶不存在，请检查配置。",
   "errors.remote.http": "远程存储返回了错误响应，请稍后重试。",
   "errors.remote.network": "无法连接远程存储，请检查网络、代理与端点。",
-  "errors.remote.archive":
-    "无法生成远程备份归档，请检查磁盘空间和服务器文件。",
+  "errors.remote.archive": "无法生成远程备份归档，请检查磁盘空间和服务器文件。",
   "errors.remote.passphrase": "归档口令无效或缺失，请重新填写。",
   "errors.remote.rclone":
     "调用本机 rclone 失败，请确认已安装并可在 PATH 中找到。",
@@ -258,10 +399,71 @@ export const zh = {
   "nav.dashboard": "概览",
   "nav.overview": "总览",
   "nav.servers": "我的服务器",
+  "nav.discover": "发现",
   "nav.players": "玩家",
   "nav.backups": "备份",
   "nav.console": "控制台",
   "nav.settings": "设置",
+
+  "discover.eyebrow": "社区内容",
+  "discover.pageTitle": "发现与一键开服",
+  "discover.pageSubtitle":
+    "浏览 Modrinth 上的整合包与模组，直接从整合包创建服务器；在服务器的内容页可以把模组导出为整合包。",
+  "discover.title": "发现",
+  "discover.subtitle": "搜索 Modrinth，从整合包一键创建属于自己的服务器。",
+  "discover.tab.modpacks": "整合包",
+  "discover.tab.mods": "模组",
+  "discover.searchPlaceholder": "搜索整合包或模组…",
+  "discover.search": "搜索",
+  "discover.gameVersion": "游戏版本",
+  "discover.allVersions": "全部版本",
+  "discover.loader": "加载器",
+  "discover.allLoaders": "全部加载器",
+  "discover.sort": "排序",
+  "discover.sort.relevance": "相关度",
+  "discover.sort.downloads": "下载量",
+  "discover.sort.follows": "关注数",
+  "discover.sort.newest": "最新发布",
+  "discover.sort.updated": "最近更新",
+  "discover.results": "共 {total} 个结果",
+  "discover.clientOnly": "仅客户端",
+  "discover.details": "查看详情",
+  "discover.loadMore": "加载更多",
+  "discover.searchHint": "输入关键词开始浏览 Modrinth。",
+  "discover.noResults": "没有找到匹配的内容，换个关键词试试。",
+  "discover.license": "许可证",
+  "discover.description": "简介",
+  "discover.noDescription": "该项目没有提供简介。",
+  "discover.versions": "可用版本",
+  "discover.versionCount": "共 {count} 个版本",
+  "discover.noVersions": "没有与当前筛选条件匹配的版本。",
+  "discover.installTo": "安装到服务器",
+  "discover.oneClick": "一键开服",
+  "discover.unsupportedLoader": "目前仅支持 Fabric 或原版整合包一键开服。",
+  "discover.showMore": "显示更多版本",
+  "discover.installModHint":
+    "模组会安装到已安装的 Fabric 服务器；安装前请确认版本匹配。",
+  "discover.fabricOnly":
+    "一键开服目前支持 Fabric 与原版整合包，Forge/NeoForge/Quilt 请使用手动方式。",
+  "discover.installTitle": "安装 {name}",
+  "discover.chooseServer": "选择目标服务器",
+  "discover.noCompatibleServer":
+    "没有兼容的服务器。请先创建一个对应版本与加载器的服务器。",
+  "discover.install": "安装",
+  "discover.oneClickTitle": "从 {name} 创建服务器",
+  "discover.createHint":
+    "将根据整合包自动选择 Minecraft 版本与加载器，并安装所需 Java。",
+  "discover.serverName": "服务器名称",
+  "discover.port": "端口",
+  "discover.portHint": "留空自动选择可用端口",
+  "discover.memory": "最大内存（MB）",
+  "discover.onlineMode": "正版验证",
+  "discover.onlineModeHint": "关闭后离线客户端也可以加入。",
+  "discover.eula": "我已阅读并同意 Minecraft EULA",
+  "discover.create": "创建并安装",
+  "discover.creating": "正在创建…",
+  "discover.installed": "已将 {name} 安装到服务器。",
+  "discover.created": "已创建服务器 {name}，正在打开管理页。",
 
   "common.cancel": "取消",
   "common.close": "关闭",
@@ -507,6 +709,25 @@ export const zh = {
   "settings.appearance.opacityHint":
     "向右拖动让卡片的磨砂玻璃更通透，文字与图标始终保持清晰。",
   "settings.appearance.opacityValue": "透明度 {value}%",
+  "settings.appearance.blur": "背景模糊",
+  "settings.appearance.blurHint":
+    "柔化山水背景，让前景卡片更突出。0 px 保持原图清晰。",
+  "settings.appearance.blurValue": "{value} px",
+  "settings.appearance.background": "背景图片",
+  "settings.appearance.backgroundHint":
+    "支持 PNG、JPG、WEBP、BMP，最大 25 MB。图片会复制到应用数据目录，之后移动原文件也不影响显示。",
+  "settings.appearance.backgroundPreview": "当前背景预览",
+  "settings.appearance.backgroundDefault": "内置山水画",
+  "settings.appearance.backgroundDefaultHint":
+    "正在使用应用自带的公版山水背景。",
+  "settings.appearance.backgroundCopied":
+    "已复制到应用数据，原图移动后仍可显示。",
+  "settings.appearance.backgroundChoose": "选择图片",
+  "settings.appearance.backgroundReset": "恢复默认",
+  "settings.appearance.backgroundPicked": "背景图片已更新。",
+  "settings.appearance.backgroundResetDone": "已恢复内置背景。",
+  "settings.appearance.backgroundUnreadable":
+    "无法读取这张图片，已恢复内置背景。",
   "settings.java.title": "Java 环境",
   "settings.java.desc": "全局检测偏好。每个服务器仍保留自己的运行时。",
   "settings.java.detect": "自动检测",
@@ -628,7 +849,8 @@ export const zh = {
   "wizard.namePlaceholder": "例如：周末世界",
   "wizard.software": "服务器软件",
   "wizard.version": "Minecraft 版本",
-  "wizard.versionHint": "版本列表从上游获取，可选 1.7 以来的旧版本；Paper/Purpur 安装需要稳定构建。",
+  "wizard.versionHint":
+    "版本列表从上游获取，可选 1.7 以来的旧版本；Paper/Purpur 安装需要稳定构建。",
   "wizard.loadingVersions": "正在加载可用版本…",
   "wizard.selectRelease": "选择版本",
   "wizard.retryVersions": "重试获取版本",
@@ -872,14 +1094,16 @@ export const zh = {
   "backups.remoteRclonePath": "rclone 可执行文件（可留空）",
   "backups.remoteRclonePathHint": "留空时从 PATH 查找 rclone。",
   "backups.remotePrefix": "存储子目录（可留空）",
-  "backups.remotePrefixHint": "只允许字母、数字、点、横线和下划线，使用 / 分隔。",
+  "backups.remotePrefixHint":
+    "只允许字母、数字、点、横线和下划线，使用 / 分隔。",
   "backups.remotePathStyle": "使用路径式 S3 地址（MinIO 通常需要）",
   "backups.remoteEncrypt": "上传前用口令加密归档",
   "backups.remoteEncryptHint":
     "使用 age 口令加密。口令只保存在 Windows 密钥库；遗失后远程归档无法恢复。",
   "backups.remotePassphrase": "归档口令",
   "backups.remotePassphraseSaved": "已保存；留空表示不修改",
-  "backups.remotePassphraseHint": "至少 8 个字符。请另外妥善保管，遗失后无法解密。",
+  "backups.remotePassphraseHint":
+    "至少 8 个字符。请另外妥善保管，遗失后无法解密。",
   "backups.remoteVerifyContent": "上传后重新下载并校验 SHA-256",
   "backups.remoteVerifyHint":
     "更可靠，但会额外消耗一次下载流量。关闭时只校验远程文件大小。",
@@ -1262,8 +1486,7 @@ export const zh = {
   "import.archive.java": "需要 Java {major}",
   "import.archive.portHint":
     "端口被占用时会建议新端口；导入后仍可在服务器设置中修改。",
-  "import.archive.eulaHint":
-    "归档不会被视为已接受 EULA，必须在这里显式确认。",
+  "import.archive.eulaHint": "归档不会被视为已接受 EULA，必须在这里显式确认。",
   "import.archive.noteScope":
     "世界、server.properties、模组、插件与受管内容会写入新的服务器目录。",
   "import.archive.noteState":
@@ -1455,6 +1678,24 @@ export const zh = {
   "content.packRollbackBody":
     "将删除更新新增的文件，并恢复更新前的文件和整合包记录（版本 {version}）。世界不受影响。",
   "content.packRollbackDone": "整合包已回退到 {version}。",
+  "content.exportPack": "导出整合包",
+  "content.exportTitle": "导出为整合包",
+  "content.exportHint":
+    "把当前服务器的模组与配置打包成 .mrpack，任何人都可以在启动器中导入。",
+  "content.exportName": "整合包名称",
+  "content.exportVersion": "版本号",
+  "content.exportPath": "保存位置",
+  "content.exportPathHint": "点击右侧按钮选择 .mrpack 的保存路径。",
+  "content.exportNoPath": "尚未选择保存位置",
+  "content.exportChoose": "选择位置",
+  "content.exportNote":
+    "世界、日志与备份不会被打包。来自 Modrinth 的模组会保留下载链接与哈希，手动放入的文件会写入 overrides。",
+  "content.exportRun": "开始导出",
+  "content.exporting": "正在导出…",
+  "content.exportDone": "导出完成",
+  "content.exportStats":
+    "已写入索引 {files} 个，覆盖文件 {overrides} 个，未写入索引 {skipped} 个，共 {size}。",
+  "content.exportNeedsIdle": "请先安装服务器并停止运行，再导出整合包。",
   "content.progress.download": "正在下载 {file}（{done}/{total}）",
   "content.progress.overrides": "正在应用配置 {file}（{done}/{total}）",
   "content.progress.reuse": "正在复用未变化的文件 {file}（{done}/{total}）",
@@ -1521,8 +1762,7 @@ export const zh = {
     "Windows 不需要这个功能：应用已经把服务器进程绑定到任务对象，退出时会先清理子进程。请在应用内启动服务器。",
   "service.reason.noSystemd":
     "没有检测到 systemd（/run/systemd/system 不存在）。请确认系统使用 systemd 启动后再试。",
-  "service.reason.noHome":
-    "无法确定当前用户的主目录，因此找不到用户服务目录。",
+  "service.reason.noHome": "无法确定当前用户的主目录，因此找不到用户服务目录。",
   "service.reason.unsupportedOs":
     "生产服务只支持 Linux systemd 用户服务和 macOS launchd LaunchAgent。",
   "service.kind.systemd": "systemd 用户服务",
@@ -1567,7 +1807,8 @@ export const zh = {
     "统计服务器目录各部分占用，并清理可重新生成的日志与中断残留文件。",
   "disk.used": "目录占用",
   "disk.free": "磁盘可用",
-  "disk.summary": "可用空间来自服务器所在磁盘；世界、备份与配置不会被自动清理。",
+  "disk.summary":
+    "可用空间来自服务器所在磁盘；世界、备份与配置不会被自动清理。",
   "disk.category.worlds": "世界存档",
   "disk.category.backups": "备份",
   "disk.category.logs": "日志",
@@ -1646,7 +1887,8 @@ export const zh = {
     "已分配 {max} MB，系统可用 {available} MB，建议降低内存。",
   "health.jvm.title": "JVM 参数",
   "health.jvm.ok": "预设 {preset}，额外参数 {flags} 个。",
-  "health.jvm.critical": "预设 {preset}，但自定义参数无法通过校验（{flags} 个）。",
+  "health.jvm.critical":
+    "预设 {preset}，但自定义参数无法通过校验（{flags} 个）。",
   "health.jvm.info": "预设 {preset}，已附加 {flags} 个自定义参数（会被忽略）。",
   "health.port.title": "端口",
   "health.port.ok": "端口 {port} 可用。",
@@ -1654,11 +1896,13 @@ export const zh = {
   "health.port.info": "服务器运行中，跳过端口占用检查（{port}）。",
   "health.firewall.title": "防火墙",
   "health.firewall.ok": "已允许端口 {port}（规则 {rule}）。",
-  "health.firewall.warning": "未找到放行端口 {port} 的规则 {rule}，局域网玩家可能无法连接。",
+  "health.firewall.warning":
+    "未找到放行端口 {port} 的规则 {rule}，局域网玩家可能无法连接。",
   "health.firewall.info": "无法读取防火墙规则（端口 {port}），请在系统中确认。",
   "health.upnp.title": "路由器映射",
   "health.upnp.ok": "已映射外网端口 {external} 到内网端口 {internal}。",
-  "health.upnp.info": "未启用 UPnP 映射，外网玩家需手动配置端口转发（{port}）。",
+  "health.upnp.info":
+    "未启用 UPnP 映射，外网玩家需手动配置端口转发（{port}）。",
   "health.properties.title": "服务器配置",
   "health.properties.ok": "server.properties 校验通过。",
   "health.properties.warning": "以下设置存在风险：{keys}",
@@ -1677,7 +1921,8 @@ export const zh = {
   "health.disk.critical": "磁盘仅剩 {availableMb} MB，可能无法保存世界。",
   "health.disk.info": "无法读取磁盘空间。",
   "health.backup.title": "备份",
-  "health.backup.ok": "已有 {count} 份备份，最近一次在 {ageDays} 天前，自动备份任务 {scheduled} 个。",
+  "health.backup.ok":
+    "已有 {count} 份备份，最近一次在 {ageDays} 天前，自动备份任务 {scheduled} 个。",
   "health.backup.warning":
     "当前 {count} 份备份，最近一次超过 7 天或尚未创建，自动备份任务 {scheduled} 个。",
   "health.logs.title": "日志",
@@ -1744,9 +1989,11 @@ export const zh = {
   "serverSettings.upgrade.desc":
     "当前 {version} · {artifact}。升级会替换服务端 JAR，并在有世界数据时先创建安全备份。",
   "serverSettings.upgrade.action": "升级版本",
-  "serverSettings.upgrade.notInstalledHint": "服务器尚未安装，安装完成后再升级。",
+  "serverSettings.upgrade.notInstalledHint":
+    "服务器尚未安装，安装完成后再升级。",
   "serverSettings.upgrade.stopHint": "请先停止服务器再升级。",
-  "serverSettings.upgrade.rollbackAvailable": "可回退到 {version}（升级于 {date}）",
+  "serverSettings.upgrade.rollbackAvailable":
+    "可回退到 {version}（升级于 {date}）",
   "serverSettings.upgrade.rollbackHint": "只替换服务端 JAR，不改变世界。",
   "serverSettings.upgrade.rollback": "回退版本",
   "serverSettings.upgrade.rollbackTitle": "回退服务端版本？",
@@ -1791,7 +2038,8 @@ export const zh = {
     "无法连接本地 RCON 端口。确认已启用 RCON 并重启过服务器。",
   "errors.rcon.timeout": "RCON 没有及时响应，请稍后重试。",
   "errors.rcon.portInUse": "RCON 端口已被占用，请换一个端口。",
-  "errors.rcon.invalidPort": "请选择 1024–65535 之间的 RCON 端口，且不能与服务器端口相同。",
+  "errors.rcon.invalidPort":
+    "请选择 1024–65535 之间的 RCON 端口，且不能与服务器端口相同。",
   "errors.rcon.invalidCommand": "请只输入一条 RCON 命令，最多 4096 个字符。",
   "errors.rcon.noPassword": "没有保存 RCON 密码，请停用后重新启用。",
   "errors.rcon.playerList": "无法识别服务器返回的玩家列表。",
@@ -1821,9 +2069,11 @@ export const zh = {
   "errors.upgrade.noRollback": "没有可回退的上一个服务端 JAR。",
   "errors.upgrade.noJar": "服务器 JAR 缺失，请重新安装后再升级。",
   "errors.app.readOnly": "只读模式已开启。请在应用设置中关闭后再修改。",
-  "errors.contentUpdate.notConfirmed": "请先查看更新日志与依赖影响，再确认更新。",
+  "errors.contentUpdate.notConfirmed":
+    "请先查看更新日志与依赖影响，再确认更新。",
   "errors.contentUpdate.rollbackNotConfirmed": "请确认后再回退该内容。",
-  "errors.contentUpdate.notManaged": "只能更新由 EasyLauncher 安装并记录的内容。",
+  "errors.contentUpdate.notManaged":
+    "只能更新由 EasyLauncher 安装并记录的内容。",
   "errors.contentUpdate.tooMany": "一次最多检查 128 个项目。",
   "errors.contentUpdate.fileMissing": "已安装文件缺失，请刷新列表后再更新。",
   "errors.contentUpdate.versionGone":
@@ -1833,7 +2083,8 @@ export const zh = {
   "errors.contentUpdate.tooLarge": "该文件超过 128 MB 内容上限。",
   "errors.contentUpdate.unsafeName":
     "Modrinth 返回了不安全的文件名，请换一个版本。",
-  "errors.contentUpdate.nameTaken": "内容目录中已有同名文件，请先移除以避免覆盖。",
+  "errors.contentUpdate.nameTaken":
+    "内容目录中已有同名文件，请先移除以避免覆盖。",
   "errors.contentUpdate.noRollback": "该项目没有可回退的已保存版本。",
   "errors.contentUpdate.targetExists":
     "旧文件名已被其他文件占用，请手动处理后再回退。",
@@ -1841,13 +2092,121 @@ export const zh = {
     "密钥名称只能包含小写字母、数字、点、下划线和连字符，1–64 个字符。",
   "errors.secrets.value": "密钥内容为空或超过 16 KiB，无法保存。",
   "errors.secrets.unreadable": "无法读取密钥库。请检查文件权限或清理后重试。",
-  "errors.secrets.unsupported": "当前构建不支持 Windows DPAPI，无法安全保存密钥。",
+  "errors.secrets.unsupported":
+    "当前构建不支持 Windows DPAPI，无法安全保存密钥。",
   "errors.secrets.dpapi": "Windows DPAPI 无法加密或解密该密钥。",
 } as const;
 
 export type MessageKey = keyof typeof zh;
 
 export const en: Record<MessageKey, string> = {
+  "activity.title": "Log insights workbench",
+  "activity.desc":
+    "Explore player and operational events from local historical logs, with timestamps and source lines. No game launch or log upload.",
+  "activity.source": "Log library",
+  "activity.noLogs": "No readable logs",
+  "activity.analyze": "Analyze selected log",
+  "activity.omitted":
+    "Showing 200 logs sorted by name, latest.log first; {count} more omitted.",
+  "activity.scope":
+    "Scanned {lines} lines · {events} events · {players} players",
+  "activity.truncated":
+    "Partial results: reads at most the first 8 MiB after decompression and retains 10,000 events. Statistics cover only the scanned portion.",
+  "activity.hours": "Events by hour (log local time; click to filter)",
+  "activity.hour": "Hour {hour}: {count} events",
+  "activity.player": "Player",
+  "activity.allPlayers": "All players",
+  "activity.search": "Search event content",
+  "activity.bookmarked": "Bookmarked only",
+  "activity.export": "Export filtered JSON",
+  "activity.reset": "Clear filters",
+  "activity.markHint":
+    "Bookmarks last for this analysis and are included in exports. Basic redaction is applied; review before sharing. Only standard English server messages are recognized. Death detection uses rules and is not a complete combat record.",
+  "activity.line": "Source line",
+  "activity.time": "Time",
+  "activity.type": "Type",
+  "activity.evidence": "Log evidence",
+  "activity.mark": "Bookmark",
+  "activity.markLine": "Bookmark line {line}",
+  "activity.empty": "No matching events. Clear filters or select another log.",
+  "activity.previous": "Previous",
+  "activity.next": "Next",
+  "activity.page": "Page {page} / {total} · {count} matching events",
+  "activity.startHint":
+    "Select a .log or .log.gz and analyze. Supports standard Vanilla, Paper, Purpur and Fabric server logs. Unknown formats are not guessed as player events.",
+  "activity.kind.join": "Join",
+  "activity.kind.leave": "Leave",
+  "activity.kind.death": "Death",
+  "activity.kind.advancement": "Advancement",
+  "activity.kind.chat": "Chat",
+  "activity.kind.warning": "Warning",
+  "activity.kind.error": "Error",
+  "activity.kind.lifecycle": "Lifecycle",
+  "playit.title": "Play with friends",
+  "playit.entryHint":
+    "Friends outside your LAN: enable multiplayer and authorize once, then connect automatically on server start.",
+  "playit.desc":
+    "Connect automatically so friends can join directly from Minecraft.",
+  "playit.explain":
+    "Sign in and authorize once at playit.gg. Future server starts connect automatically; stopping closes the connection. No manual client or router setup. Routing and quotas are provided by playit. Windows x64 / Java Edition supported.",
+  "playit.enable": "Enable automatic multiplayer",
+  "playit.disable": "Disable automatic multiplayer",
+  "playit.authorize": "Authorize at playit",
+  "playit.reauthorize": "Authorize again (stop all servers first)",
+  "playit.claimHint":
+    "Complete sign-in and authorization in your browser, then return here. The app creates your address automatically. Verify your email if the provider requires it.",
+  "playit.readyHint":
+    "Authorization saved. Starting this server will connect it automatically.",
+  "playit.address": "Address for friends",
+  "playit.verifying":
+    "Checking the Minecraft response through the public address. Sharing becomes available once verified.",
+  "playit.advanced": "Advanced networking · UPnP / router mapping / firewall",
+  "playit.loadFailed": "Could not read connection status. Retrying.",
+  "playit.phase.disabled": "Disabled",
+  "playit.phase.preparing": "Preparing",
+  "playit.phase.authorizing": "Awaiting authorization",
+  "playit.phase.downloading": "Preparing connection component",
+  "playit.phase.ready": "Authorized · Waiting for server",
+  "playit.phase.connecting": "Connecting and verifying",
+  "playit.phase.online": "Public Minecraft response verified",
+  "playit.phase.error": "Connection issue · Retrying",
+  "sakura.title": "SakuraFrp",
+  "sakura.desc":
+    "Use your installed SakuraFrp client to open a tunnel when this server starts.",
+  "sakura.explain":
+    "Enter your access key and pick a route once. Starting the server then creates or updates the tunnel automatically; stopping it disconnects. Windows x64 / Java Edition only, and the SakuraFrp launcher must be installed.",
+  "sakura.tokenLabel": "Access key",
+  "sakura.tokenHint":
+    "Encrypted on this PC with Windows DPAPI. Never written to logs, command lines, or the web interface.",
+  "sakura.tokenPlaceholder": "Paste your SakuraFrp access key",
+  "sakura.saveToken": "Save and verify",
+  "sakura.getToken": "Get access key",
+  "sakura.changeToken": "Change key",
+  "sakura.nodeLabel": "Route node",
+  "sakura.nodeHint":
+    "Disabled nodes are full or offline. Free accounts should choose a non-VIP node.",
+  "sakura.publicRule":
+    "Private friend groups may use any node. If the server is advertised publicly on forums, group chats, or video platforms, you must choose a node marked 多线 (public games); otherwise SakuraFrp may ban the account.",
+  "sakura.nodeUnavailable": "No nodes are available right now",
+  "sakura.enable": "Enable SakuraFrp",
+  "sakura.disable": "Disable SakuraFrp",
+  "sakura.manage": "Manage tunnels",
+  "sakura.address": "Address for friends",
+  "sakura.verifying":
+    "Tunnel connected. Verifying the Minecraft response through the public address…",
+  "sakura.readyHint":
+    "Saved. Starting this server will create or update the tunnel and connect automatically.",
+  "sakura.tunnel": "Tunnel #{id}",
+  "sakura.publicBadge": "Public games",
+  "sakura.vipBadge": "VIP {level}",
+  "sakura.loadFailed": "Could not read SakuraFrp status. Retrying.",
+  "sakura.phase.disabled": "Disabled",
+  "sakura.phase.preparing": "Preparing",
+  "sakura.phase.needs_token": "Access key required",
+  "sakura.phase.ready": "Configured · Waiting for server",
+  "sakura.phase.connecting": "Connecting and verifying",
+  "sakura.phase.online": "Public Minecraft response verified",
+  "sakura.phase.error": "Connection issue · Retrying",
   "diagnosis.jvmOptions.title": "Invalid or conflicting JVM options",
   "diagnosis.jvmOptions.advice":
     "Switch to the Balanced JVM preset, verify the Java version, then restore custom options one at a time.",
@@ -1867,6 +2226,51 @@ export const en: Record<MessageKey, string> = {
     "Address supplied by you. A running process does not prove public connectivity.",
   "tunnel.exited":
     "frpc exited (code {code}). Check your provider configuration and retry.",
+
+  "sakura.nodeAuto": "Choose an available node automatically",
+  "public.title": "Public access",
+  "public.desc":
+    "Choose a connection method once; it connects when the server starts and disconnects when it stops.",
+  "public.explain":
+    "Public access (port forwarding) lets friends outside your network join directly. Choose a provider, protocol, and local port once. The address appears after Minecraft starts listening and the public path is verified.",
+  "public.provider": "Connection method",
+  "public.providerHint": "LAN only works for friends on the same router.",
+  "public.provider.lan": "LAN only",
+  "public.provider.sakura": "SakuraFrp",
+  "public.provider.playit": "playit.gg",
+  "public.provider.custom": "Custom FRP",
+  "public.protocol": "Protocol",
+  "public.protocolHint": "Java Edition uses TCP; Bedrock uses UDP.",
+  "public.protocol.tcp": "TCP · Java Edition",
+  "public.protocol.udp": "UDP · Bedrock",
+  "public.localPort": "Local port",
+  "public.localPortHint":
+    "Leave blank to follow the server port ({port}). Use 19132 for Bedrock.",
+  "public.save": "Save and enable",
+  "public.savedHint": "Using: {provider}",
+  "public.address": "Public address",
+  "public.copy": "Copy address",
+  "public.copied": "Copied",
+  "public.verifying": "Tunnel established. Verifying the public response…",
+  "public.needsSetup":
+    "One provider step is still required: enter the access key or complete authorization.",
+  "public.loadFailed": "Could not read public access status. Retrying.",
+  "public.playitHint":
+    "On first use, start the server once to generate the authorization link. After that no action is needed.",
+  "public.customHint":
+    "Enter the official frpc executable, a dedicated config file, and the public address. frpc reads credentials from its config; this app stores only paths and the address. The local port must match the frpc config.",
+  "public.lanHint": "No tunnel. Friends must be on the same local network.",
+  "public.manage": "Open settings",
+  "public.addressPending": "Start the server to get a public address",
+  "public.phase.needs_setup": "Setup required",
+  "public.phase.preparing": "Preparing",
+  "public.phase.authorizing": "Awaiting authorization",
+  "public.phase.downloading": "Preparing component",
+  "public.phase.ready": "Configured · Waiting for server",
+  "public.phase.waiting": "Waiting for Minecraft to listen",
+  "public.phase.connecting": "Connecting and verifying",
+  "public.phase.online": "Public Minecraft response verified",
+  "public.phase.error": "Connection issue · Retrying",
 
   "deps.relation.required": "Required",
   "deps.relation.optional": "Optional",
@@ -1921,27 +2325,33 @@ export const en: Record<MessageKey, string> = {
 
   "common.refresh": "Refresh",
 
-  "errors.server.notFound": "This server could not be found. Refresh your server list.",
+  "errors.server.notFound":
+    "This server could not be found. Refresh your server list.",
   "errors.server.alreadyRunning":
     "This server is already running, or is starting or stopping.",
-  "errors.server.notInstalled": "Server files are not installed yet. Install them before starting.",
+  "errors.server.notInstalled":
+    "Server files are not installed yet. Install them before starting.",
   "errors.server.eulaNotAccepted":
     "The Minecraft EULA has not been accepted. Accept it in server settings or edit eula.txt.",
-  "errors.server.jarMissing": "server.jar is missing. Reinstall the server or restore its files.",
+  "errors.server.jarMissing":
+    "server.jar is missing. Reinstall the server or restore its files.",
   "errors.server.restorePending":
     "Unfinished world recovery files were found. Complete or remove the recovery files in the server folder first.",
   "errors.server.javaStartFailed":
     "Could not start Java. Check the runtime path and folder permissions.",
   "errors.server.javaPathInvalid":
     "Choose the full path to the Java executable (java.exe on Windows).",
-  "errors.server.javaTimeout": "Java did not respond within 8 seconds. Choose another runtime.",
+  "errors.server.javaTimeout":
+    "Java did not respond within 8 seconds. Choose another runtime.",
   "errors.server.javaUnusable":
     "Could not run the selected Java. Make sure it is installed correctly.",
-  "errors.server.javaInvalid": "The selected program is not a valid Java runtime.",
+  "errors.server.javaInvalid":
+    "The selected program is not a valid Java runtime.",
   "errors.server.javaMismatch":
     "Java version mismatch. Install the version the server requires, or choose another runtime.",
   "errors.server.alreadyInstalled": "This server is already installed.",
-  "errors.server.installCancelled": "Installation cancelled. Retry from the server card.",
+  "errors.server.installCancelled":
+    "Installation cancelled. Retry from the server card.",
   "errors.server.memoryInvalid":
     "Invalid memory settings: at least 256 MB, maximum above minimum, and at least 1 GB plus 20% of RAM left for the system.",
   "errors.server.memoryLow":
@@ -1955,7 +2365,8 @@ export const en: Record<MessageKey, string> = {
   "errors.resources.queueIdle": "No start queue is currently running.",
   "errors.resources.nothingToStart":
     "None of the selected servers can start right now. Check installation, state and ports.",
-  "errors.resources.portTaken": "Another managed server already uses this port.",
+  "errors.resources.portTaken":
+    "Another managed server already uses this port.",
   "errors.resources.invalidPort": "Choose a port between 1024 and 65535.",
   "errors.resources.invalidOptions":
     "The stagger or readiness wait is outside the allowed range.",
@@ -1963,15 +2374,15 @@ export const en: Record<MessageKey, string> = {
     "This server is starting, stopping or installing and cannot join the queue yet.",
   "errors.resources.portConflict":
     "The port conflicts with another server or a running service.",
-  "errors.resources.portOccupied": "Another program is already using this port.",
+  "errors.resources.portOccupied":
+    "Another program is already using this port.",
   "errors.supervision.unsupported":
     "Production services are not supported here. Only Linux systemd and macOS launchd can install them.",
   "errors.supervision.notConfirmed":
     "Confirm that the server is stopped or the service is disabled first.",
   "errors.supervision.notInstalled":
     "Install the server files before creating a production service.",
-  "errors.supervision.noFile":
-    "No service file is installed for this server.",
+  "errors.supervision.noFile": "No service file is installed for this server.",
   "errors.update.invalidChannel":
     "Enter a direct HTTPS URL to latest.json without spaces, a query or a fragment.",
   "errors.update.notConfigured":
@@ -2158,10 +2569,73 @@ export const en: Record<MessageKey, string> = {
   "nav.dashboard": "Overview",
   "nav.overview": "Live overview",
   "nav.servers": "My servers",
+  "nav.discover": "Discover",
   "nav.players": "Players",
   "nav.backups": "Backups",
   "nav.console": "Console",
   "nav.settings": "Settings",
+
+  "discover.eyebrow": "Community content",
+  "discover.pageTitle": "Discover & one-click servers",
+  "discover.pageSubtitle":
+    "Browse modpacks and mods on Modrinth and create a server straight from a modpack; export a server's mods as a modpack from its content tab.",
+  "discover.title": "Discover",
+  "discover.subtitle":
+    "Search Modrinth and turn a modpack into your own server in one step.",
+  "discover.tab.modpacks": "Modpacks",
+  "discover.tab.mods": "Mods",
+  "discover.searchPlaceholder": "Search modpacks or mods…",
+  "discover.search": "Search",
+  "discover.gameVersion": "Game version",
+  "discover.allVersions": "All versions",
+  "discover.loader": "Loader",
+  "discover.allLoaders": "All loaders",
+  "discover.sort": "Sort",
+  "discover.sort.relevance": "Relevance",
+  "discover.sort.downloads": "Downloads",
+  "discover.sort.follows": "Followers",
+  "discover.sort.newest": "Newest",
+  "discover.sort.updated": "Recently updated",
+  "discover.results": "{total} results",
+  "discover.clientOnly": "Client only",
+  "discover.details": "Details",
+  "discover.loadMore": "Load more",
+  "discover.searchHint": "Type a keyword to start browsing Modrinth.",
+  "discover.noResults": "Nothing matched. Try another keyword.",
+  "discover.license": "License",
+  "discover.description": "Description",
+  "discover.noDescription": "This project has no description.",
+  "discover.versions": "Available versions",
+  "discover.versionCount": "{count} versions",
+  "discover.noVersions": "No versions match the current filters.",
+  "discover.installTo": "Install to server",
+  "discover.oneClick": "One-click server",
+  "discover.unsupportedLoader":
+    "One-click setup currently supports Fabric or vanilla modpacks.",
+  "discover.showMore": "Show more versions",
+  "discover.installModHint":
+    "Mods are installed into an installed Fabric server; check version compatibility first.",
+  "discover.fabricOnly":
+    "One-click setup supports Fabric and vanilla modpacks. Use the manual flow for Forge, NeoForge, or Quilt.",
+  "discover.installTitle": "Install {name}",
+  "discover.chooseServer": "Target server",
+  "discover.noCompatibleServer":
+    "No compatible server. Create one with a matching version and loader first.",
+  "discover.install": "Install",
+  "discover.oneClickTitle": "Create a server from {name}",
+  "discover.createHint":
+    "Minecraft version and loader come from the modpack, and the required Java runtime is installed automatically.",
+  "discover.serverName": "Server name",
+  "discover.port": "Port",
+  "discover.portHint": "Leave empty to pick a free port",
+  "discover.memory": "Maximum memory (MB)",
+  "discover.onlineMode": "Online mode",
+  "discover.onlineModeHint": "Turn off to allow offline clients.",
+  "discover.eula": "I have read and accept the Minecraft EULA",
+  "discover.create": "Create and install",
+  "discover.creating": "Creating…",
+  "discover.installed": "Installed {name} on the server.",
+  "discover.created": "Created server {name}. Opening it now.",
 
   "common.cancel": "Cancel",
   "common.close": "Close",
@@ -2221,7 +2695,8 @@ export const en: Record<MessageKey, string> = {
   "palette.empty": "No matching servers, pages or actions",
   "palette.hint": "↑ ↓ to move · Enter to run · Esc to close",
   "notice.title": "Notifications",
-  "notice.empty": "No notifications yet. Starts, crashes, backups and task failures show up here.",
+  "notice.empty":
+    "No notifications yet. Starts, crashes, backups and task failures show up here.",
   "notice.clear": "Clear",
   "notice.mute": "Mute unread badge",
   "notice.unmute": "Show unread badge",
@@ -2289,7 +2764,8 @@ export const en: Record<MessageKey, string> = {
   "overview.resource.idle": "Stopped reserve",
   "overview.resource.projected": "Projected total",
   "overview.resource.free": "Headroom",
-  "overview.resource.budgetOk": "Every installed server fits within the budget.",
+  "overview.resource.budgetOk":
+    "Every installed server fits within the budget.",
   "overview.resource.tight": "Memory is tight. Start fewer servers at once.",
   "overview.resource.overBudget":
     "Starting every server at once would exceed the memory budget.",
@@ -2418,6 +2894,25 @@ export const en: Record<MessageKey, string> = {
   "settings.appearance.opacityHint":
     "Drag right to make the frosted glass more see-through. Text and icons keep full contrast.",
   "settings.appearance.opacityValue": "Transparency {value}%",
+  "settings.appearance.blur": "Background blur",
+  "settings.appearance.blurHint":
+    "Softens the landscape so cards stand out. 0 px keeps the artwork sharp.",
+  "settings.appearance.blurValue": "{value} px",
+  "settings.appearance.background": "Background image",
+  "settings.appearance.backgroundHint":
+    "PNG, JPG, WEBP or BMP up to 25 MB. The picture is copied into the app data folder, so moving the original later changes nothing.",
+  "settings.appearance.backgroundPreview": "Current background preview",
+  "settings.appearance.backgroundDefault": "Bundled landscape",
+  "settings.appearance.backgroundDefaultHint":
+    "Using the public-domain landscape that ships with the app.",
+  "settings.appearance.backgroundCopied":
+    "Copied into app data; the original file can move freely.",
+  "settings.appearance.backgroundChoose": "Choose image",
+  "settings.appearance.backgroundReset": "Use default",
+  "settings.appearance.backgroundPicked": "Background updated.",
+  "settings.appearance.backgroundResetDone": "Bundled background restored.",
+  "settings.appearance.backgroundUnreadable":
+    "That image could not be read. The bundled background is back.",
   "settings.java.title": "Java environment",
   "settings.java.desc":
     "Global detection preference. Each server keeps its own runtime.",
@@ -2514,8 +3009,7 @@ export const en: Record<MessageKey, string> = {
     "This release has no installer for the current platform.",
   "settings.update.download": "Download installer ({size})",
   "settings.update.downloadAgain": "Download again",
-  "settings.update.downloaded":
-    "The installer was downloaded and verified.",
+  "settings.update.downloaded": "The installer was downloaded and verified.",
   "settings.update.open": "Open installer",
   "settings.update.openHint":
     "The system installer completes the upgrade; EasyLauncher never installs silently.",
@@ -2714,7 +3208,8 @@ export const en: Record<MessageKey, string> = {
   "backups.compressedSize": "compressed {size}",
   "backups.retentionTitle": "Retention policy",
   "backups.retentionOff": "Disabled. Every backup is kept.",
-  "backups.retentionSummary": "Daily {daily} · Weekly {weekly} · Monthly {monthly}",
+  "backups.retentionSummary":
+    "Daily {daily} · Weekly {weekly} · Monthly {monthly}",
   "backups.retentionEdit": "Edit policy",
   "backups.retentionPreview": "Preview cleanup",
   "backups.retentionEnabled": "Enable automatic retention",
@@ -2802,8 +3297,10 @@ export const en: Record<MessageKey, string> = {
   "backups.remotePrefix": "Storage folder (optional)",
   "backups.remotePrefixHint":
     "Letters, digits, dots, dashes and underscores only; separate folders with /.",
-  "backups.remotePathStyle": "Use path-style S3 URLs (usually required by MinIO)",
-  "backups.remoteEncrypt": "Encrypt the archive with a passphrase before upload",
+  "backups.remotePathStyle":
+    "Use path-style S3 URLs (usually required by MinIO)",
+  "backups.remoteEncrypt":
+    "Encrypt the archive with a passphrase before upload",
   "backups.remoteEncryptHint":
     "Uses age passphrase encryption. The passphrase is stored only in the Windows vault; if it is lost, the remote archive cannot be recovered.",
   "backups.remotePassphrase": "Archive passphrase",
@@ -2839,8 +3336,7 @@ export const en: Record<MessageKey, string> = {
   "backups.worldCorruptChunks": "Corrupt chunks",
   "backups.worldBlockEntities": "Block entities",
   "backups.worldEntities": "Entities",
-  "backups.worldSnapshotTime":
-    "Backup {date} · scanned {scanned}",
+  "backups.worldSnapshotTime": "Backup {date} · scanned {scanned}",
   "backups.worldRegionCount": "{count} region files",
   "backups.worldRegion": "Region",
   "backups.worldScale": "Map detail",
@@ -2850,7 +3346,8 @@ export const en: Record<MessageKey, string> = {
   "backups.worldRendering": "Rendering map…",
   "backups.worldMapMeta":
     "Rendered {chunks} chunks; {empty} empty; {corrupt} corrupt.",
-  "backups.worldTruncated": "The scan limit was reached; some data was not checked.",
+  "backups.worldTruncated":
+    "The scan limit was reached; some data was not checked.",
   "backups.worldBlockEntityTypes": "Block entity types",
   "backups.worldEntityTypes": "Entity types",
   "backups.worldPlayers": "Player positions",
@@ -3030,7 +3527,8 @@ export const en: Record<MessageKey, string> = {
     "Read TPS and MSPT through local RCON and keep a bounded history in the server folder. Nothing is queried until recording is enabled.",
   "perf.record": "Record performance history",
   "perf.interval": "Sample interval (seconds)",
-  "perf.intervalHint": "5–60 seconds; samples only while the server is running.",
+  "perf.intervalHint":
+    "5–60 seconds; samples only while the server is running.",
   "perf.sampleNow": "Sample now",
   "perf.saved": "Performance recording settings saved.",
   "perf.needRcon":
@@ -3067,8 +3565,7 @@ export const en: Record<MessageKey, string> = {
   "perf.jfrNoProfiles": "No recording files yet.",
   "perf.jfrDelete": "Delete",
   "perf.jfrDeleted": "Recording file deleted.",
-  "perf.jfrDeleteConfirm":
-    "Delete this JFR file? This cannot be undone.",
+  "perf.jfrDeleteConfirm": "Delete this JFR file? This cannot be undone.",
   "perf.heapTitle": "Heap and GC snapshot",
   "perf.heapDesc": "Read the current heap once; nothing is written to disk.",
   "perf.heapRead": "Read heap snapshot",
@@ -3429,6 +3926,25 @@ export const en: Record<MessageKey, string> = {
   "content.packRollbackBody":
     "Files added by the update are deleted, and the files and modpack record from before the update (version {version}) are restored. Worlds are unaffected.",
   "content.packRollbackDone": "The modpack was rolled back to {version}.",
+  "content.exportPack": "Export modpack",
+  "content.exportTitle": "Export as a modpack",
+  "content.exportHint":
+    "Package this server's mods and configuration as a .mrpack that any launcher can import.",
+  "content.exportName": "Modpack name",
+  "content.exportVersion": "Version",
+  "content.exportPath": "Save location",
+  "content.exportPathHint": "Choose where to save the .mrpack file.",
+  "content.exportNoPath": "No location selected",
+  "content.exportChoose": "Choose location",
+  "content.exportNote":
+    "Worlds, logs, and backups are not included. Modrinth mods keep their download URLs and hashes; manually added files are written to overrides.",
+  "content.exportRun": "Start export",
+  "content.exporting": "Exporting…",
+  "content.exportDone": "Export complete",
+  "content.exportStats":
+    "{files} files in the index, {overrides} override files, {skipped} not indexed, {size} total.",
+  "content.exportNeedsIdle":
+    "Install the server and stop it before exporting a modpack.",
   "content.progress.download": "Downloading {file} ({done}/{total})",
   "content.progress.overrides": "Applying {file} ({done}/{total})",
   "content.progress.reuse": "Reusing unchanged file {file} ({done}/{total})",
@@ -3640,7 +4156,8 @@ export const en: Record<MessageKey, string> = {
   "health.firewall.info":
     "Firewall rules could not be read (port {port}). Verify them in the system.",
   "health.upnp.title": "Router mapping",
-  "health.upnp.ok": "External port {external} is mapped to internal port {internal}.",
+  "health.upnp.ok":
+    "External port {external} is mapped to internal port {internal}.",
   "health.upnp.info":
     "No UPnP mapping is enabled; internet players need manual port forwarding ({port}).",
   "health.properties.title": "Server configuration",
@@ -3786,19 +4303,26 @@ export const en: Record<MessageKey, string> = {
   "overview.rconNote":
     "An RCON refresh replaces the log-observed player list with the server's authoritative list.",
   "errors.rcon.disabled": "RCON is not enabled for this server.",
-  "errors.rcon.notRunning": "Start the server and wait until it is ready before using RCON.",
-  "errors.rcon.authFailed": "RCON authentication failed. Disable and re-enable RCON to rotate the password.",
+  "errors.rcon.notRunning":
+    "Start the server and wait until it is ready before using RCON.",
+  "errors.rcon.authFailed":
+    "RCON authentication failed. Disable and re-enable RCON to rotate the password.",
   "errors.rcon.unreachable":
     "Could not connect to the local RCON port. Confirm RCON is enabled and the server has restarted.",
   "errors.rcon.timeout": "RCON did not respond in time. Try again shortly.",
-  "errors.rcon.portInUse": "The RCON port is already in use. Choose another port.",
-  "errors.rcon.invalidPort": "Choose an RCON port between 1024 and 65535 that differs from the server port.",
-  "errors.rcon.invalidCommand": "Enter one RCON command, up to 4096 characters.",
-  "errors.rcon.noPassword": "No RCON password is stored. Disable and re-enable RCON.",
+  "errors.rcon.portInUse":
+    "The RCON port is already in use. Choose another port.",
+  "errors.rcon.invalidPort":
+    "Choose an RCON port between 1024 and 65535 that differs from the server port.",
+  "errors.rcon.invalidCommand":
+    "Enter one RCON command, up to 4096 characters.",
+  "errors.rcon.noPassword":
+    "No RCON password is stored. Disable and re-enable RCON.",
   "errors.rcon.playerList": "The server returned an unrecognized player list.",
   "errors.rcon.protocol": "The RCON endpoint returned an unrecognized packet.",
   "errors.rcon.io": "The RCON connection was interrupted. Try again shortly.",
-  "errors.perf.invalidInterval": "Choose a sampling interval between 5 and 60 seconds.",
+  "errors.perf.invalidInterval":
+    "Choose a sampling interval between 5 and 60 seconds.",
   "errors.perf.notRunning": "Start the server and wait until it is ready.",
   "errors.perf.noReading":
     "The server did not return recognizable tick data. Confirm the version supports tick query, or install Spark.",
@@ -3863,7 +4387,8 @@ export const en: Record<MessageKey, string> = {
     "The secret vault cannot be read. Check file permissions or clear it and retry.",
   "errors.secrets.unsupported":
     "This build cannot use Windows DPAPI, so secrets cannot be stored securely.",
-  "errors.secrets.dpapi": "Windows DPAPI could not encrypt or decrypt this secret.",
+  "errors.secrets.dpapi":
+    "Windows DPAPI could not encrypt or decrypt this secret.",
 };
 
 export const messages = { "zh-CN": zh, en } as const;

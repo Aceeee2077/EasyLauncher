@@ -4,6 +4,7 @@ import {
   ArrowUpCircle,
   Boxes,
   Download,
+  FileArchive,
   FolderOpen,
   Package,
   Pin,
@@ -13,7 +14,7 @@ import {
   Trash2,
   Undo2,
 } from "lucide-react";
-import { Button, Modal, bytes } from "../components/ui";
+import { Button, Field, Modal, bytes } from "../components/ui";
 import { DependencyCheck } from "../components/DependencyCheck";
 import { call } from "../services/api";
 import { useI18n, type MessageKey } from "../i18n";
@@ -24,6 +25,7 @@ import type {
   ContentRollback,
   ContentUpdateEntry,
   ContentUpdateReport,
+  ExportedPack,
   ModpackInfo,
   ModpackReport,
   ModpackUpdatePreview,
@@ -31,6 +33,7 @@ import type {
   ProjectVersion,
   ServerView,
 } from "../types";
+import { idle } from "../types";
 import type { TaskProps } from "../utils/task";
 
 type Mode = "content" | "modpack";
@@ -86,6 +89,13 @@ export function Content({
     version: string;
   } | null>(null);
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportForm, setExportForm] = useState({
+    path: "",
+    name: "",
+    version: "1.0.0",
+  });
+  const [exportResult, setExportResult] = useState<ExportedPack | null>(null);
   const refreshKey = `content-list-${server.id}`;
   const searchKey = `content-search-${server.id}`;
   const installKey = `content-install-${server.id}`;
@@ -96,6 +106,8 @@ export function Content({
   const packCheckKey = `modpack-check-${server.id}`;
   const packUpdateKey = `modpack-update-${server.id}`;
   const packRollbackKey = `modpack-rollback-${server.id}`;
+  const exportPickKey = `modpack-export-pick-${server.id}`;
+  const exportKey = `modpack-export-${server.id}`;
   const loadListing = async () => {
     const [content, installedPack] = await Promise.all([
       call("content_list", { id: server.id }),
@@ -120,6 +132,8 @@ export function Content({
     setUpdateTarget(null);
     setRollbackTarget(null);
     setUpdateMessage(null);
+    setExportOpen(false);
+    setExportResult(null);
     setMode(modes[0]);
   }, [server.id]);
   useEffect(() => {
@@ -279,6 +293,39 @@ export function Content({
       const preview = await call("modpack_update_check", { id: server.id });
       if (preview) setPackPreview(preview);
       else setPackMessage(t("content.packUpToDate"));
+    });
+  };
+  const openExport = () => {
+    setExportResult(null);
+    setExportForm({
+      path: "",
+      name: server.name,
+      version: "1.0.0",
+    });
+    setExportOpen(true);
+  };
+  const pickExportPath = () =>
+    void run(exportPickKey, async () => {
+      const path = await call("modpack_pick_export", {
+        name: exportForm.name.trim() || server.name,
+      });
+      if (path) {
+        setExportForm((previous) => ({ ...previous, path }));
+      }
+    });
+  const exportPack = () => {
+    if (!exportForm.path.trim()) return;
+    void run(exportKey, async () => {
+      setExportResult(null);
+      const result = await call("modpack_export", {
+        id: server.id,
+        input: {
+          path: exportForm.path.trim(),
+          name: exportForm.name.trim() || undefined,
+          version: exportForm.version.trim() || undefined,
+        },
+      });
+      setExportResult(result);
     });
   };
   const applyPackUpdate = () => {
@@ -571,13 +618,29 @@ export function Content({
             </h2>
             <p>{t("content.installedDesc")}</p>
           </div>
-          <Button
-            busy={busy.has(refreshKey)}
-            onClick={() => void run(refreshKey, loadListing)}
-          >
-            <RefreshCw size={15} />
-            {t("content.refresh")}
-          </Button>
+          <div className="row">
+            {!plugins && (
+              <Button
+                disabled={!server.installed || !idle(server.runtime.status)}
+                title={
+                  !server.installed || !idle(server.runtime.status)
+                    ? t("content.exportNeedsIdle")
+                    : undefined
+                }
+                onClick={openExport}
+              >
+                <FileArchive size={15} />
+                {t("content.exportPack")}
+              </Button>
+            )}
+            <Button
+              busy={busy.has(refreshKey)}
+              onClick={() => void run(refreshKey, loadListing)}
+            >
+              <RefreshCw size={15} />
+              {t("content.refresh")}
+            </Button>
+          </div>
         </div>
         {pack && (
           <div className="content-updates">
@@ -980,6 +1043,93 @@ export function Content({
             >
               <Undo2 size={15} />
               {t("content.packRollback")}
+            </Button>
+          </div>
+        </Modal>
+      )}
+      {exportOpen && (
+        <Modal
+          title={t("content.exportTitle")}
+          onClose={() => {
+            if (!busy.has(exportKey)) setExportOpen(false);
+          }}
+        >
+          <p>{t("content.exportHint")}</p>
+          <div className="rule-grid">
+            <Field label={t("content.exportName")}>
+              <input
+                value={exportForm.name}
+                maxLength={64}
+                onChange={(event) =>
+                  setExportForm((previous) => ({
+                    ...previous,
+                    name: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+            <Field label={t("content.exportVersion")}>
+              <input
+                value={exportForm.version}
+                maxLength={32}
+                onChange={(event) =>
+                  setExportForm((previous) => ({
+                    ...previous,
+                    version: event.target.value,
+                  }))
+                }
+              />
+            </Field>
+          </div>
+          <Field label={t("content.exportPath")} hint={t("content.exportPathHint")}>
+            <div className="row">
+              <input
+                value={exportForm.path}
+                readOnly
+                placeholder={t("content.exportNoPath")}
+              />
+              <Button
+                busy={busy.has(exportPickKey)}
+                disabled={busy.has(exportKey)}
+                onClick={pickExportPath}
+              >
+                <FolderOpen size={15} />
+                {t("content.exportChoose")}
+              </Button>
+            </div>
+          </Field>
+          {exportResult && (
+            <div className="content-report">
+              <strong>{t("content.exportDone")}</strong>
+              <p>{exportResult.path}</p>
+              <small>
+                {t("content.exportStats", {
+                  files: exportResult.files,
+                  overrides: exportResult.overrides,
+                  skipped: exportResult.skipped,
+                  size: bytes(exportResult.sizeBytes),
+                })}
+              </small>
+            </div>
+          )}
+          <p className="content-note">{t("content.exportNote")}</p>
+          <div className="modal-actions">
+            <Button
+              onClick={() => setExportOpen(false)}
+              disabled={busy.has(exportKey)}
+            >
+              {exportResult ? t("common.close") : t("common.cancel")}
+            </Button>
+            <Button
+              variant="primary"
+              busy={busy.has(exportKey)}
+              disabled={!exportForm.path.trim()}
+              onClick={exportPack}
+            >
+              <FileArchive size={15} />
+              {busy.has(exportKey)
+                ? t("content.exporting")
+                : t("content.exportRun")}
             </Button>
           </div>
         </Modal>

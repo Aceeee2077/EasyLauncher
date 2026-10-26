@@ -1,3 +1,32 @@
+export type ActivityKind =
+  | "join"
+  | "leave"
+  | "death"
+  | "advancement"
+  | "chat"
+  | "warning"
+  | "error"
+  | "lifecycle";
+export interface ActivityLibrary {
+  files: { name: string; bytes: number }[];
+  omitted: number;
+}
+export interface ActivityEvent {
+  line: number;
+  time: string | null;
+  hour: number | null;
+  kind: ActivityKind;
+  player: string | null;
+  message: string;
+}
+export interface ActivityReport {
+  source: string;
+  scannedLines: number;
+  truncated: boolean;
+  events: ActivityEvent[];
+  players: string[];
+  hours: number[];
+}
 export type ServerType = "vanilla" | "paper" | "purpur" | "fabric";
 export type Status =
   | "stopped"
@@ -107,10 +136,7 @@ export interface Progress {
   attempt: number;
 }
 export type NoticeKind =
-  | "serverStarted"
-  | "serverCrashed"
-  | "backupComplete"
-  | "taskFailed";
+  "serverStarted" | "serverCrashed" | "backupComplete" | "taskFailed";
 export interface Notice {
   kind: NoticeKind;
   serverId: string;
@@ -352,6 +378,10 @@ export interface Settings {
   updateChannel: string | null;
   autoCheckUpdates: boolean;
   glassOpacity: number;
+  /** Backdrop blur in pixels, 0 (sharp) to 40. */
+  backgroundBlur: number;
+  /** Path of the wallpaper copied into app data, or null for the bundled art. */
+  backgroundImage: string | null;
   serverStorage: string | null;
   autoJoin: boolean;
 }
@@ -483,6 +513,37 @@ export interface ProjectPage {
   total: number;
   offset: number;
   limit: number;
+}
+export interface GalleryImage {
+  url: string;
+  featured: boolean;
+  title: string | null;
+  description: string | null;
+}
+export interface ProjectDetail {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  body: string;
+  projectType: string;
+  iconUrl: string | null;
+  downloads: number;
+  followers: number;
+  categories: string[];
+  additionalCategories: string[];
+  clientSide: string;
+  serverSide: string;
+  gameVersions: string[];
+  loaders: string[];
+  gallery: GalleryImage[];
+  sourceUrl: string | null;
+  issuesUrl: string | null;
+  wikiUrl: string | null;
+  discordUrl: string | null;
+  licenseName: string | null;
+  licenseUrl: string | null;
+  updated: string;
 }
 export interface VersionFile {
   filename: string;
@@ -645,6 +706,33 @@ export interface ModpackInfo {
   installedAt: string;
   canRollback: boolean;
   rollbackVersion: string | null;
+}
+export interface ModpackServerInput {
+  projectId: string;
+  versionId: string;
+  name?: string;
+  port?: number;
+  memoryMinMb?: number;
+  memoryMaxMb?: number;
+  maxPlayers?: number;
+  onlineMode?: boolean;
+  eulaAccepted: boolean;
+}
+export interface ModpackServerResult {
+  server: Server;
+  report: ModpackReport;
+}
+export interface ExportPackInput {
+  path: string;
+  name?: string;
+  version?: string;
+}
+export interface ExportedPack {
+  path: string;
+  files: number;
+  overrides: number;
+  skipped: number;
+  sizeBytes: number;
 }
 export interface ModpackUpdatePreview {
   projectId: string;
@@ -915,10 +1003,7 @@ export interface ResourceReport {
 }
 export type ServiceKind = "systemd" | "launchd";
 export type SupervisorReason =
-  | "windows"
-  | "noSystemd"
-  | "noHome"
-  | "unsupportedOs";
+  "windows" | "noSystemd" | "noHome" | "unsupportedOs";
 export interface SupervisorSupport {
   platform: string;
   kind: ServiceKind | null;
@@ -1088,3 +1173,70 @@ export interface MigrationProgress {
 export const active = (s: Status) =>
   ["starting", "running", "stopping", "restarting"].includes(s);
 export const idle = (s: Status) => !active(s) && s !== "installing";
+export interface PlayitInfo {
+  enabled: boolean;
+  authorized: boolean;
+  phase:
+    | "disabled"
+    | "preparing"
+    | "authorizing"
+    | "downloading"
+    | "ready"
+    | "connecting"
+    | "online"
+    | "error";
+  address: string | null;
+  claimUrl: string | null;
+  message: string | null;
+}
+export interface SakuraInfo {
+  enabled: boolean;
+  authorized: boolean;
+  phase:
+    | "disabled"
+    | "preparing"
+    | "needs_token"
+    | "ready"
+    | "connecting"
+    | "online"
+    | "error";
+  address: string | null;
+  tunnelId: number | null;
+  message: string | null;
+}
+export interface SakuraNode {
+  id: number;
+  name: string;
+  host: string;
+  vip: number;
+  flag: number;
+  available: boolean;
+  offline: boolean;
+  publicGames: boolean;
+}
+/** Providers understood by the unified Public Access layer. */
+export type PublicAccessProvider = "lan" | "sakura" | "playit" | "custom";
+export type PublicAccessProtocol = "tcp" | "udp";
+export type PublicAccessPhase =
+  | "needs_setup"
+  | "preparing"
+  | "authorizing"
+  | "downloading"
+  | "ready"
+  | "waiting"
+  | "connecting"
+  | "online"
+  | "error";
+export interface PublicAccessInfo {
+  provider: PublicAccessProvider;
+  protocol: PublicAccessProtocol;
+  localPort: number;
+  phase: PublicAccessPhase;
+  address: string | null;
+  message: string | null;
+  authorized: boolean;
+  configured: boolean;
+  claimUrl: string | null;
+  tunnelId: number | null;
+  verified: boolean;
+}

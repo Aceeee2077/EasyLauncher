@@ -3,6 +3,7 @@ import {
   Activity,
   Archive,
   Clock,
+  Compass,
   FolderInput,
   Globe,
   LayoutDashboard,
@@ -28,6 +29,7 @@ export type PalettePage =
   | "dashboard"
   | "overview"
   | "servers"
+  | "discover"
   | "players"
   | "backups"
   | "console"
@@ -61,6 +63,7 @@ const pages = [
   ["dashboard", "nav.dashboard", LayoutDashboard],
   ["overview", "nav.overview", LayoutGrid],
   ["servers", "nav.servers", ServerIcon],
+  ["discover", "nav.discover", Compass],
   ["players", "nav.players", Users],
   ["backups", "nav.backups", Archive],
   ["console", "nav.console", Terminal],

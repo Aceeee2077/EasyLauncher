@@ -442,6 +442,9 @@ impl Manager {
     }
     pub async fn shutdown(self: &Arc<Self>) -> Result<()> {
         self.shutting_down.store(true, Ordering::SeqCst);
+        crate::playit::shutdown(self).await;
+        crate::sakura::shutdown(self).await;
+        crate::public_access::shutdown(self).await;
         let tunnel_error = crate::tunnel::stop_all(self).await.err();
         let ids: Vec<String> = self.runtimes.lock().unwrap().keys().cloned().collect();
         let mut jobs = Vec::new();

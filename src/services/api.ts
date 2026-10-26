@@ -24,7 +24,12 @@ import type {
   DiskReport,
   DiskCleanupResult,
   ProjectPage,
+  ProjectDetail,
   ProjectVersion,
+  ModpackServerInput,
+  ModpackServerResult,
+  ExportPackInput,
+  ExportedPack,
   ContentEntry,
   ContentListing,
   ContentUpdateReport,
@@ -81,6 +86,12 @@ import type {
   WorldTrack,
   TunnelConfig,
   TunnelInfo,
+  PlayitInfo,
+  SakuraInfo,
+  SakuraNode,
+  PublicAccessInfo,
+  PublicAccessProvider,
+  PublicAccessProtocol,
   RconInfo,
   AuditEntry,
   SecretStatus,
@@ -90,6 +101,34 @@ import type {
   UpgradeRollbackOutcome,
 } from "../types";
 type Contract = {
+  activity_library: [{ id: string }, import("../types").ActivityLibrary];
+  activity_analyze: [
+    { id: string; name: string },
+    import("../types").ActivityReport,
+  ];
+  playit_info: [{ id: string }, PlayitInfo];
+  playit_enable: [{ id: string; enabled: boolean }, PlayitInfo];
+  playit_open_claim: [undefined, void];
+  playit_reset_authorization: [undefined, void];
+  sakura_info: [{ id: string }, SakuraInfo];
+  sakura_enable: [{ id: string; enabled: boolean; node?: number }, SakuraInfo];
+  sakura_save_token: [{ token: string }, void];
+  sakura_reset_token: [undefined, void];
+  sakura_nodes: [undefined, SakuraNode[]];
+  sakura_open_panel: [undefined, void];
+  sakura_open_token_page: [undefined, void];
+  public_access_info: [{ id: string }, PublicAccessInfo];
+  public_access_configure: [
+    {
+      id: string;
+      provider: PublicAccessProvider;
+      protocol: PublicAccessProtocol;
+      localPort?: number;
+      node?: number;
+      custom?: TunnelConfig;
+    },
+    PublicAccessInfo,
+  ];
   tunnel_info: [{ id: string }, TunnelInfo];
   tunnel_start: [{ id: string; config: TunnelConfig }, TunnelInfo];
   tunnel_stop: [{ id: string }, TunnelInfo];
@@ -140,10 +179,7 @@ type Contract = {
     { id: string; template: PropertyTemplate },
     PropertyChange[],
   ];
-  apply_properties_template: [
-    { id: string; template: PropertyTemplate },
-    void,
-  ];
+  apply_properties_template: [{ id: string; template: PropertyTemplate }, void];
   update_resources: [
     { id: string; min: number; max: number; javaPath: string },
     void,
@@ -159,16 +195,18 @@ type Contract = {
     { id: string; target: string; confirmed: boolean; allowDowngrade: boolean },
     UpgradeOutcome,
   ];
-  upgrade_rollback: [{ id: string; confirmed: boolean }, UpgradeRollbackOutcome];
+  upgrade_rollback: [
+    { id: string; confirmed: boolean },
+    UpgradeRollbackOutcome,
+  ];
   delete_java: [{ id: string; confirmed: boolean }, void];
   validate_java: [{ path: string; required: number }, JavaRuntime];
   java_requirement: [{ version: string; software: ServerType }, number];
-  list_versions: [
-    { software: ServerType; snapshots?: boolean },
-    Version[],
-  ];
+  list_versions: [{ software: ServerType; snapshots?: boolean }, Version[]];
   system_info: [undefined, SystemInfo];
   get_settings: [undefined, Settings];
+  pick_background_image: [undefined, string | null];
+  clear_background_image: [undefined, void];
   save_settings: [{ settings: Settings }, void];
   audit_list: [{ limit?: number }, AuditEntry[]];
   audit_clear: [undefined, void];
@@ -195,10 +233,7 @@ type Contract = {
     RetentionPolicy,
   ];
   preview_backup_cleanup: [{ id: string }, RetentionPreview];
-  apply_backup_cleanup: [
-    { id: string; confirmed: boolean },
-    RetentionOutcome,
-  ];
+  apply_backup_cleanup: [{ id: string; confirmed: boolean }, RetentionOutcome];
   remote_backup_info: [{ id: string }, RemoteInfo];
   save_remote_backup: [
     { id: string; config: RemoteConfig; credentials: RemoteSecretsInput },
@@ -222,10 +257,7 @@ type Contract = {
     },
     WorldMap,
   ];
-  world_diff: [
-    { id: string; beforeId: string; afterId: string },
-    WorldDiff,
-  ];
+  world_diff: [{ id: string; beforeId: string; afterId: string }, WorldDiff];
   world_tracks: [{ id: string }, WorldTrack[]];
   sample_world_tracks: [{ id: string }, WorldTrack[]];
   player_action: [{ id: string; player: string; action: string }, void];
@@ -239,10 +271,7 @@ type Contract = {
   open_folder: [{ id?: string; kind: string }, void];
   server_health: [{ id: string }, HealthReport];
   server_diagnosis: [{ id: string }, DiagnosisReport];
-  server_crash_report: [
-    { id: string; language: string },
-    CrashReport,
-  ];
+  server_crash_report: [{ id: string; language: string }, CrashReport];
   disk_report: [{ id: string }, DiskReport];
   clean_disk: [
     { id: string; targets: string[]; confirmed: boolean },
@@ -255,10 +284,12 @@ type Contract = {
       projectType: string;
       gameVersion?: string;
       loader?: string;
+      sort?: string;
       offset?: number;
     },
     ProjectPage,
   ];
+  modrinth_project: [{ projectId: string }, ProjectDetail];
   modrinth_versions: [
     { projectId: string; gameVersion?: string; loader?: string },
     ProjectVersion[],
@@ -271,12 +302,12 @@ type Contract = {
     { id: string; projectId: string; versionId: string },
     ModpackReport,
   ];
+  modpack_create_server: [{ input: ModpackServerInput }, ModpackServerResult];
+  modpack_export: [{ id: string; input: ExportPackInput }, ExportedPack];
+  modpack_pick_export: [{ name: string }, string | null];
   modpack_info: [{ id: string }, ModpackInfo | null];
   modpack_update_check: [{ id: string }, ModpackUpdatePreview | null];
-  modpack_update: [
-    { id: string; confirmed: boolean },
-    ModpackUpdateOutcome,
-  ];
+  modpack_update: [{ id: string; confirmed: boolean }, ModpackUpdateOutcome];
   modpack_rollback: [
     { id: string; confirmed: boolean },
     ModpackRollbackOutcome,
@@ -306,14 +337,8 @@ type Contract = {
   delete_task: [{ id: string; taskId: string }, void];
   run_task_now: [{ id: string; taskId: string }, void];
   preview_task_schedule: [{ input: TaskInput; count?: number }, string[]];
-  task_calendar: [
-    { id: string; days?: number },
-    TaskCalendarEntry[],
-  ];
-  task_history: [
-    { id: string; taskId?: string },
-    TaskHistoryEntry[],
-  ];
+  task_calendar: [{ id: string; days?: number }, TaskCalendarEntry[]];
+  task_history: [{ id: string; taskId?: string }, TaskHistoryEntry[]];
   monitor_metrics: [{ id: string }, ServerMetrics | null];
   monitor_history: [{ id: string }, MetricsSample[]];
   monitor_alerts: [{ id: string }, ServerAlert[]];
@@ -321,10 +346,7 @@ type Contract = {
   monitor_rules: [{ id: string }, AlertRules];
   save_monitor_rules: [{ id: string; rules: AlertRules }, AlertRules];
   perf_report: [{ id: string }, PerfReport];
-  perf_save_config: [
-    { id: string; config: PerfConfig },
-    PerfConfig,
-  ];
+  perf_save_config: [{ id: string; config: PerfConfig }, PerfConfig];
   perf_sample_now: [{ id: string }, PerfSample];
   perf_jfr_tools: [{ id: string }, JfrTools];
   perf_jfr_start: [
@@ -336,19 +358,13 @@ type Contract = {
   perf_heap_info: [{ id: string }, HeapInfo];
   resources_report: [undefined, ResourceReport];
   resources_plan: [{ ids: string[]; options: StartOptions }, StartPlan];
-  resources_start_queue: [
-    { ids: string[]; options: StartOptions },
-    StartQueue,
-  ];
+  resources_start_queue: [{ ids: string[]; options: StartOptions }, StartQueue];
   resources_queue_state: [undefined, StartQueue | null];
   resources_cancel_queue: [undefined, StartQueue];
   resources_apply_port: [{ id: string; port: number }, void];
   supervision_info: [undefined, SupervisorSupport];
   supervision_preview: [{ id: string }, ServicePreview];
-  supervision_install: [
-    { id: string; confirmed: boolean },
-    ServicePreview,
-  ];
+  supervision_install: [{ id: string; confirmed: boolean }, ServicePreview];
   supervision_remove: [{ id: string; confirmed: boolean }, ServicePreview];
   update_check: [undefined, UpdateStatus];
   update_download: [{ version: string }, UpdateStatus];
@@ -430,6 +446,6 @@ export async function call<K extends keyof Contract>(
 }
 export const brand = {
   name: "EasyLauncher",
-  version: "0.2.1",
+  version: "0.2.3",
   tagline: "A home for your next world.",
 };

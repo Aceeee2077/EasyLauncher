@@ -1117,7 +1117,7 @@ fn suggested_file_name(name: &str) -> String {
 }
 
 #[cfg(windows)]
-fn file_dialog(script: &str) -> Result<Option<String>> {
+pub(crate) fn file_dialog(script: &str) -> Result<Option<String>> {
     use std::{
         os::windows::process::CommandExt,
         process::{Command, Stdio},
@@ -1184,6 +1184,33 @@ if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
 }
 "#;
     file_dialog(SCRIPT)
+}
+
+#[cfg(windows)]
+pub fn pick_modpack_export(name: &str) -> Result<Option<String>> {
+    let file_name = suggested_file_name(name);
+    let script = format!(
+        r#"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Add-Type -AssemblyName System.Windows.Forms | Out-Null
+$dialog = New-Object System.Windows.Forms.SaveFileDialog
+$dialog.Title = 'Export the EasyLauncher modpack'
+$dialog.Filter = 'Modrinth modpack (*.mrpack)|*.mrpack|All files (*.*)|*.*'
+$dialog.DefaultExt = 'mrpack'
+$dialog.AddExtension = $true
+$dialog.OverwritePrompt = $true
+$dialog.FileName = '{file_name}.mrpack'
+if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{
+  [Console]::Out.WriteLine($dialog.FileName)
+}}
+"#
+    );
+    file_dialog(&script)
+}
+
+#[cfg(not(windows))]
+pub fn pick_modpack_export(_name: &str) -> Result<Option<String>> {
+    Ok(None)
 }
 
 #[cfg(not(windows))]

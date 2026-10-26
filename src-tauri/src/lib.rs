@@ -1,3 +1,5 @@
+pub mod activity;
+pub mod appearance;
 pub mod audit;
 pub mod backup;
 pub mod backup_diff;
@@ -20,11 +22,14 @@ pub mod monitor;
 pub mod network;
 pub mod perf;
 pub mod player_stats;
+pub mod playit;
+pub mod public_access;
 pub mod rcon;
 pub mod remote;
 pub mod remote_backup;
 pub mod resources;
 pub mod retention;
+pub mod sakura;
 pub mod schedule;
 pub mod secrets;
 pub mod server;
@@ -59,11 +64,29 @@ pub fn run() {
             monitor::spawn(manager.clone());
             perf::spawn(manager.clone());
             player_stats::spawn(manager.clone());
+            playit::spawn(manager.clone());
+            sakura::spawn(manager.clone());
+            public_access::spawn(manager.clone());
             app.manage(remote::WebConsole::new(manager.clone()));
             app.manage(manager);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::activity_library,
+            commands::activity_analyze,
+            commands::playit_info,
+            commands::playit_enable,
+            commands::playit_open_claim,
+            commands::playit_reset_authorization,
+            commands::sakura_info,
+            commands::sakura_enable,
+            commands::sakura_save_token,
+            commands::sakura_reset_token,
+            commands::sakura_nodes,
+            commands::sakura_open_panel,
+            commands::sakura_open_token_page,
+            commands::public_access_info,
+            commands::public_access_configure,
             commands::list_servers,
             commands::save_share_card,
             commands::open_share_cards,
@@ -101,6 +124,8 @@ pub fn run() {
             commands::list_versions,
             commands::system_info,
             commands::get_settings,
+            commands::pick_background_image,
+            commands::clear_background_image,
             commands::save_settings,
             commands::audit_list,
             commands::audit_clear,
@@ -149,9 +174,13 @@ pub fn run() {
             commands::analyze_log,
             commands::open_guide,
             commands::modrinth_search,
+            commands::modrinth_project,
             commands::modrinth_versions,
             commands::modrinth_install,
             commands::modpack_install,
+            commands::modpack_create_server,
+            commands::modpack_export,
+            commands::modpack_pick_export,
             commands::modpack_info,
             commands::modpack_update_check,
             commands::modpack_update,

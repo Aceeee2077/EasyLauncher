@@ -32,6 +32,7 @@ import {
   TriangleAlert,
   Search,
   X,
+  Compass,
 } from "lucide-react";
 import {
   Button,
@@ -45,10 +46,16 @@ import { BrandMark } from "./components/BrandMark";
 import { Splash } from "./components/Splash";
 import { CommandPalette } from "./components/CommandPalette";
 import { NotificationCenter } from "./components/NotificationCenter";
+import { PublicAccessStatus } from "./components/PublicAccessStatus";
 import { useTask } from "./hooks/useTask";
 import { useI18n, type MessageKey } from "./i18n";
 import { brand, call, desktop } from "./services/api";
-import { applyAppearance, applyGlassOpacity } from "./services/appearance";
+import {
+  applyAppearance,
+  applyBackgroundBlur,
+  applyBackgroundImage,
+  applyGlassOpacity,
+} from "./services/appearance";
 import {
   active,
   idle,
@@ -102,11 +109,15 @@ const Content = lazy(() =>
 const AppSettings = lazy(() =>
   import("./pages/AppSettings").then((m) => ({ default: m.AppSettings })),
 );
+const Discover = lazy(() =>
+  import("./pages/Discover").then((m) => ({ default: m.Discover })),
+);
 
 type Page =
   | "dashboard"
   | "overview"
   | "servers"
+  | "discover"
   | "players"
   | "backups"
   | "console"
@@ -116,6 +127,7 @@ const nav = [
   ["dashboard", "nav.dashboard", LayoutDashboard],
   ["overview", "nav.overview", LayoutGrid],
   ["servers", "nav.servers", ServerIcon],
+  ["discover", "nav.discover", Compass],
   ["players", "nav.players", Users],
   ["backups", "nav.backups", Archive],
   ["console", "nav.console", Terminal],
@@ -209,6 +221,8 @@ export default function App() {
         setLanguage(settings.language);
         await applyAppearance(settings.appearance);
         applyGlassOpacity(settings.glassOpacity);
+        applyBackgroundBlur(settings.backgroundBlur);
+        void applyBackgroundImage(settings.backgroundImage);
       }
     }).finally(() => {
       if (alive) setLoading(false);
@@ -284,6 +298,14 @@ export default function App() {
   const imported = (s: Server) => {
     setImportOpen(false);
     void run("imported", async () => {
+      await load();
+      setSelected(s.id);
+      setPage("detail");
+      setTab("console");
+    });
+  };
+  const discoverCreated = (s: Server) => {
+    void run(`discover-created-${s.id}`, async () => {
       await load();
       setSelected(s.id);
       setPage("detail");
@@ -829,6 +851,22 @@ export default function App() {
                 />
               </>
             )}
+            {page === "discover" && (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <div className="eyebrow">{t("discover.eyebrow")}</div>
+                    <h1>{t("discover.pageTitle")}</h1>
+                    <p>{t("discover.pageSubtitle")}</p>
+                  </div>
+                </div>
+                <Discover
+                  {...shared}
+                  servers={servers}
+                  onCreated={discoverCreated}
+                />
+              </>
+            )}
             {page === "settings" && (
               <>
                 <div className="page-heading">
@@ -934,7 +972,10 @@ export default function App() {
                         </span>
                       )}
                     </div>
-                    <p className="address-note">{t("detail.addressNote")}</p>
+                    <PublicAccessStatus
+                      id={server.id}
+                      onOpen={() => setTab("network")}
+                    />
                     {server.runtime.message && (
                       <div
                         className={`info-strip ${["crashed", "installationFailed"].includes(server.runtime.status) ? "crash-strip" : ""}`}

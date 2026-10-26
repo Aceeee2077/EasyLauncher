@@ -112,6 +112,17 @@ pub async fn info(m: &Manager, id: &str) -> Result<Info> {
         exit_code: None,
     })
 }
+/// Persist the user's frpc choice without starting a process. Public access
+/// uses this so a provider can be configured before the server is running.
+pub fn save(m: &Manager, id: &str, config: &Config) -> Result<()> {
+    m.metadata(id)?;
+    validate(config)?;
+    storage::write_json(&config_file(m, id)?, config)
+}
+/// Start the saved frpc configuration, used by the automatic lifecycle.
+pub async fn start_saved(m: &Manager, id: &str) -> Result<Info> {
+    start(m, id, saved(m, id)?).await
+}
 pub async fn start(m: &Manager, id: &str, config: Config) -> Result<Info> {
     m.ready()?;
     let runtime = m.runtime(id)?;

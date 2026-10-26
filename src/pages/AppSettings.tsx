@@ -5,6 +5,7 @@ import {
   Globe,
   Monitor,
   Cpu,
+  Image as ImageIcon,
   Info,
   Download,
   Languages,
@@ -17,7 +18,11 @@ import {
 } from "lucide-react";
 import { Button, Field, GuideLink, Modal, bytes, date } from "../components/ui";
 import { brand, call, desktop } from "../services/api";
-import { applyGlassOpacity } from "../services/appearance";
+import {
+  applyBackgroundBlur,
+  applyBackgroundImage,
+  applyGlassOpacity,
+} from "../services/appearance";
 import { useI18n } from "../i18n";
 import type {
   AuditEntry,
@@ -55,6 +60,8 @@ export function AppSettings({
     updateChannel: null,
     autoCheckUpdates: true,
     glassOpacity: 1,
+    backgroundBlur: 0,
+    backgroundImage: null,
     serverStorage: null,
     autoJoin: false,
   });
@@ -123,6 +130,30 @@ export function AppSettings({
     );
   };
 
+  // The picker copies the file into app data and persists the path backend
+  // side, so this works even if the source picture is moved later.
+  const pickBackground = () =>
+    void run("pickBackground", async () => {
+      const path = await call("pick_background_image");
+      if (!path) return;
+      if (!(await applyBackgroundImage(path))) {
+        await call("clear_background_image");
+        setSettings((s) => ({ ...s, backgroundImage: null }));
+        setMessage(t("settings.appearance.backgroundUnreadable"));
+        return;
+      }
+      setSettings((s) => ({ ...s, backgroundImage: path }));
+      setMessage(t("settings.appearance.backgroundPicked"));
+    });
+
+  const resetBackground = () =>
+    void run("resetBackground", async () => {
+      await call("clear_background_image");
+      await applyBackgroundImage(null);
+      setSettings((s) => ({ ...s, backgroundImage: null }));
+      setMessage(t("settings.appearance.backgroundResetDone"));
+    });
+
   const installJava = (major: number) =>
     void run(`installJava-${major}`, async () => {
       setInstalling(major);
@@ -188,6 +219,10 @@ export function AppSettings({
       if (!updateStatus?.latestVersion) return;
       await call("update_open", { version: updateStatus.latestVersion });
     });
+
+  const wallpaperName = settings.backgroundImage
+    ? settings.backgroundImage.split(/[\\/]/).pop()
+    : "";
 
   return (
     <div className="settings-stack app-settings">
@@ -266,6 +301,70 @@ export function AppSettings({
             </span>
           </div>
         </Field>
+        <Field
+          label={t("settings.appearance.blur")}
+          hint={t("settings.appearance.blurHint")}
+        >
+          <div className="slider-row">
+            <input
+              className="glass-slider"
+              type="range"
+              min={0}
+              max={40}
+              step={2}
+              aria-label={t("settings.appearance.blur")}
+              value={Math.round(settings.backgroundBlur)}
+              onChange={(e) => {
+                const next = Number(e.target.value);
+                setSettings((s) => ({ ...s, backgroundBlur: next }));
+                applyBackgroundBlur(next);
+              }}
+            />
+            <span className="slider-value">
+              {t("settings.appearance.blurValue", {
+                value: Math.round(settings.backgroundBlur),
+              })}
+            </span>
+          </div>
+        </Field>
+        <div className="field">
+          <span>{t("settings.appearance.background")}</span>
+          <div className="background-row">
+            <div
+              className="background-preview"
+              role="img"
+              aria-label={t("settings.appearance.backgroundPreview")}
+            />
+            <div className="background-copy">
+              <strong>
+                {wallpaperName || t("settings.appearance.backgroundDefault")}
+              </strong>
+              <span>
+                {settings.backgroundImage
+                  ? t("settings.appearance.backgroundCopied")
+                  : t("settings.appearance.backgroundDefaultHint")}
+              </span>
+            </div>
+            <Button
+              disabled={!desktop}
+              busy={busy.has("pickBackground")}
+              onClick={pickBackground}
+            >
+              <ImageIcon size={15} />
+              {t("settings.appearance.backgroundChoose")}
+            </Button>
+            {settings.backgroundImage && (
+              <Button
+                variant="ghost"
+                busy={busy.has("resetBackground")}
+                onClick={resetBackground}
+              >
+                {t("settings.appearance.backgroundReset")}
+              </Button>
+            )}
+          </div>
+          <small>{t("settings.appearance.backgroundHint")}</small>
+        </div>
       </section>
       <section className="panel">
         <div className="section-title">

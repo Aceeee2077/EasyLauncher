@@ -9,6 +9,102 @@ use std::{
 };
 use tauri::State;
 type Managed<'a> = State<'a, Arc<Manager>>;
+#[tauri::command]
+pub async fn activity_library(m: Managed<'_>, id: String) -> Result<crate::activity::Library> {
+    let manager = m.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || crate::activity::library(&manager, &id))
+        .await
+        .map_err(|_| AppError::user("The log library task was interrupted."))?
+}
+#[tauri::command]
+pub async fn activity_analyze(
+    m: Managed<'_>,
+    id: String,
+    name: String,
+) -> Result<crate::activity::Report> {
+    let manager = m.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || crate::activity::analyze(&manager, &id, &name))
+        .await
+        .map_err(|_| AppError::user("The log analysis task was interrupted."))?
+}
+#[tauri::command]
+pub fn playit_info(m: Managed<'_>, id: String) -> Result<crate::playit::Info> {
+    crate::playit::info(&m, &id)
+}
+#[tauri::command]
+pub async fn playit_enable(
+    m: Managed<'_>,
+    id: String,
+    enabled: bool,
+) -> Result<crate::playit::Info> {
+    if enabled {
+        m.ensure_writable()?;
+    }
+    crate::playit::enable(&m, &id, enabled).await
+}
+#[tauri::command]
+pub fn playit_open_claim(m: Managed<'_>) -> Result<()> {
+    crate::playit::open_claim(&m)
+}
+#[tauri::command]
+pub async fn playit_reset_authorization(m: Managed<'_>) -> Result<()> {
+    crate::playit::reset_authorization(&m).await
+}
+#[tauri::command]
+pub fn sakura_info(m: Managed<'_>, id: String) -> Result<crate::sakura::Info> {
+    crate::sakura::info(&m, &id)
+}
+#[tauri::command]
+pub async fn sakura_enable(
+    m: Managed<'_>,
+    id: String,
+    enabled: bool,
+    node: Option<u32>,
+) -> Result<crate::sakura::Info> {
+    crate::sakura::enable(&m, &id, enabled, node).await
+}
+#[tauri::command]
+pub async fn sakura_save_token(m: Managed<'_>, token: String) -> Result<()> {
+    crate::sakura::save_token(&m, &token).await
+}
+#[tauri::command]
+pub async fn sakura_reset_token(m: Managed<'_>) -> Result<()> {
+    crate::sakura::reset_token(&m).await
+}
+#[tauri::command]
+pub async fn sakura_nodes(m: Managed<'_>) -> Result<Vec<crate::sakura::Node>> {
+    crate::sakura::nodes(&m).await
+}
+#[tauri::command]
+pub fn sakura_open_panel() -> Result<()> {
+    crate::sakura::open_panel()
+}
+#[tauri::command]
+pub fn sakura_open_token_page() -> Result<()> {
+    crate::sakura::open_token_page()
+}
+#[tauri::command]
+pub async fn public_access_info(m: Managed<'_>, id: String) -> Result<crate::public_access::Info> {
+    crate::public_access::info(&m, &id).await
+}
+/// One-time provider setup. `custom` carries the existing manually-managed
+/// frpc paths; credentials for managed providers stay in the DPAPI vault.
+#[tauri::command]
+pub async fn public_access_configure(
+    m: Managed<'_>,
+    id: String,
+    provider: String,
+    protocol: String,
+    local_port: Option<u16>,
+    node: Option<u32>,
+    custom: Option<crate::tunnel::Config>,
+) -> Result<crate::public_access::Info> {
+    let info =
+        crate::public_access::configure(&m, &id, &provider, &protocol, local_port, node, custom)
+            .await?;
+    audit(&m, "publicAccess.configure", &id, provider);
+    Ok(info)
+}
 fn audit(m: &Manager, action: &str, id: &str, detail: impl ToString) {
     let name = m.metadata(id).ok().map(|server| server.name);
     crate::audit::record(m, action, Some(id), name.as_deref(), detail);
@@ -458,6 +554,32 @@ pub async fn system_info(m: Managed<'_>) -> Result<serde_json::Value> {
 #[tauri::command]
 pub async fn get_settings(m: Managed<'_>) -> Result<Settings> {
     m.settings()
+}
+/// Opens the image picker, copies the chosen wallpaper into app data and
+/// persists it. Returns the managed path, or none when the user cancels.
+#[tauri::command]
+pub async fn pick_background_image(m: Managed<'_>) -> Result<Option<String>> {
+    let root = m.root.clone();
+    let picked = tokio::task::spawn_blocking(move || crate::appearance::choose(&root))
+        .await
+        .map_err(|e| AppError::new("Could not open the image picker.", e))??;
+    if let Some(path) = &picked {
+        let mut settings = m.settings()?;
+        settings.background_image = Some(path.clone());
+        m.save_settings(settings).await?;
+    }
+    Ok(picked)
+}
+/// Restores the bundled artwork and deletes the copied wallpaper.
+#[tauri::command]
+pub async fn clear_background_image(m: Managed<'_>) -> Result<()> {
+    let root = m.root.clone();
+    tokio::task::spawn_blocking(move || crate::appearance::clear(&root))
+        .await
+        .map_err(|e| AppError::new("Could not remove the background image.", e))??;
+    let mut settings = m.settings()?;
+    settings.background_image = None;
+    m.save_settings(settings).await
 }
 #[tauri::command]
 pub async fn save_settings(m: Managed<'_>, settings: Settings) -> Result<()> {
@@ -938,6 +1060,7 @@ pub async fn modrinth_search(
     project_type: String,
     game_version: Option<String>,
     loader: Option<String>,
+    sort: Option<String>,
     offset: Option<u64>,
 ) -> Result<crate::modrinth::ProjectPage> {
     crate::modrinth::search(
@@ -946,9 +1069,17 @@ pub async fn modrinth_search(
         &project_type,
         game_version.as_deref(),
         loader.as_deref(),
+        sort.as_deref(),
         offset.unwrap_or(0),
     )
     .await
+}
+#[tauri::command]
+pub async fn modrinth_project(
+    m: Managed<'_>,
+    project_id: String,
+) -> Result<crate::modrinth::ProjectDetail> {
+    crate::modrinth::project_detail(&m.client(), &project_id).await
 }
 #[tauri::command]
 pub async fn modrinth_versions(
@@ -1049,6 +1180,44 @@ pub async fn modpack_rollback(
         format!("{} {}", outcome.name, outcome.restored_version),
     );
     Ok(outcome)
+}
+#[tauri::command]
+pub async fn modpack_create_server(
+    m: Managed<'_>,
+    input: crate::modrinth::ModpackServerInput,
+) -> Result<crate::modrinth::ModpackServerResult> {
+    m.ensure_writable()?;
+    let manager = m.inner().clone();
+    let result = crate::modrinth::create_server_from_modpack(manager, input).await?;
+    crate::audit::record(
+        &m,
+        "modpack.create_server",
+        Some(&result.server.id),
+        Some(&result.server.name),
+        format!(
+            "{} {} · {}",
+            result.report.name, result.report.version, result.report.minecraft
+        ),
+    );
+    Ok(result)
+}
+#[tauri::command]
+pub async fn modpack_export(
+    m: Managed<'_>,
+    id: String,
+    input: crate::modrinth::ExportPackInput,
+) -> Result<crate::modrinth::ExportedPack> {
+    m.ensure_writable()?;
+    let server_id = id.clone();
+    let result = crate::modrinth::export_modpack(m.inner().clone(), id, input).await?;
+    audit(&m, "modpack.export", &server_id, result.path.clone());
+    Ok(result)
+}
+#[tauri::command]
+pub async fn modpack_pick_export(name: String) -> Result<Option<String>> {
+    tokio::task::spawn_blocking(move || crate::migration::pick_modpack_export(&name))
+        .await
+        .map_err(|e| AppError::new("Could not open the save dialog.", e))?
 }
 #[tauri::command]
 pub async fn content_list(m: Managed<'_>, id: String) -> Result<crate::modrinth::ContentListing> {
